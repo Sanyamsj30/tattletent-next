@@ -102,9 +102,82 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// --- LOGIN A USER ---
+// Route: POST /api/auth/login
+router.post('/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-// --- LOGIN and GOOGLE OAUTH routes remain unchanged ---
-// ... (paste your existing /login and /google routes here)
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Please enter all fields.' });
+        }
 
+        const userResult = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+        
+        const user = userResult.rows[0];
+
+        // Check if user is verified (for email/password signups)
+        if (!user.is_verified) {
+            return res.status(403).json({ message: 'Please verify your email address before logging in.' });
+        }
+        
+        // Ensure user has a password (they might have signed up with Google)
+        if (!user.password_hash) {
+            return res.status(401).json({ message: 'Account was created with a social provider. Please use Google to log in.' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+
+        // Generate JWT
+        const token = generateToken(user.user_id);
+        
+        // --- KEY CHANGE ---
+        // Respond with the token AND the user's details (excluding password)
+        // The frontend will use the 'role' for redirection.
+        res.status(200).json({ 
+            token,
+            user: {
+                user_id: user.user_id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+
+// --- GOOGLE OAUTH ROUTES ---
+
+// 1. Route to start the Google OAuth flow
+// Route: GET /api/auth/google
+router.get('/google', passport.authenticate('google', {
+    scope: ['profile', 'email']
+}));
+
+// 2. Callback route that Google redirects to
+// Route: GET /api/auth/google/callback
+router.get('/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
+    // req.user is attached by passport after successful authentication
+    const token = generateToken(req.user.user_id);
+    
+    // On a real project, you would redirect to your frontend application
+    // Example: res.redirect(`http://yourfrontend.com/auth-success?token=${token}`);
+    
+    // For now, we'll just send the token as a response
+    res.status(200).json({ token });
+});
 
 export default router;
