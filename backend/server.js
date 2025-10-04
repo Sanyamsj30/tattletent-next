@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import passport from 'passport';
 import './config/passport-setup.js'; // Import the passport config
+import complaintRoutes from "./routes/complaint.routes.js"
 
 
 // Load environment variables
@@ -13,9 +14,13 @@ const app = express();
 // Middleware to parse JSON bodies
 app.use(express.json());
 app.use(passport.initialize());
+app.use("/public", express.static("public"));
 
-// serve uploaded files (so frontend can access)
-app.use("/uploads", express.static("uploads"));
+
+//Routes
+app.use("/api/complaints",complaintRoutes);
+
+
 
 
 // Define a base route for authentication
