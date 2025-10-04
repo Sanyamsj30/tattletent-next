@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardHeader, CardContent, CardTitle } from "./ui/card";
+import React from "react";
 
 export default function SignupForm({ onSignup }) {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -68,6 +69,25 @@ export default function SignupForm({ onSignup }) {
               required
             />
           </div>
+
+           <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">
+                  Upload Document <span className="text-gray-500">(ID Proof)</span>
+                </label>
+                <Input
+                  type="file"
+                  accept=".pdf,.jpg,.png"
+                  onChange={(e) =>
+                    setForm({ ...form, document: e.target.files[0] || null })
+                  }
+                  required
+                  className="rounded-lg cursor-pointer"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Accepted formats: PDF, JPG, PNG
+                </p>
+              </div>
+
           <Button type="submit" variant="primary" className="w-full">
             Sign Up
           </Button>
