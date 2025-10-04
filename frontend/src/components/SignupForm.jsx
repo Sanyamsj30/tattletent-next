@@ -37,9 +37,37 @@ export default function SignupForm({ onSignup }) {
   };
 
   return (
-    <Card className="max-w-md mx-auto shadow-xl border border-cyan-200 rounded-2xl bg-gray-50 p-6">
+      <div className="min-h-screen flex flex-col bg-gray-50">
+          {/* Navbar */}
+          <nav className="bg-gradient-to-r from-sky-800 to-cyan-600 shadow-md">
+            <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
+              {/* Logo + Brand */}
+              <div className="flex items-center space-x-3">
+                <img
+                  src="/logo.png" // replace with your TattleTent logo path
+                  alt="TattleTent Logo"
+                  className="h-10 w-10 object-contain"
+                />
+                <span className="text-xl font-bold text-white tracking-wide">
+                  TattleTent
+                </span>
+              </div>
+    
+              {/* Home Button */}
+              <Button
+                variant="secondary"
+                className="rounded-lg text-sm font-medium bg-white text-blue-700 hover:bg-gray-100"
+                onClick={() => (window.location.href = "/")}
+              >
+                Home
+              </Button>
+            </div>
+          </nav>
+
+    <div className="flex flex-grow items-center justify-center px-6 py-12 bg-blue-50">
+    <Card className="max-w-md mx-auto shadow-xl border border-cyan-200 rounded-2xl  p-6">
       <CardHeader>
-        <CardTitle className="text-center text-2xl font-bold text-cyan-800">
+        <CardTitle className="text-center text-3xl font-bold text-sky-800">
           Citizen Sign Up
         </CardTitle>
         <p className="text-center text-sm text-black-600">
@@ -50,7 +78,7 @@ export default function SignupForm({ onSignup }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium mb-1 text-cyan-800">Full Name</label>
+            <label className="block text-sm font-medium mb-1 text-black-800">Full Name</label>
             <Input
               type="text"
               value={form.name}
@@ -76,7 +104,7 @@ export default function SignupForm({ onSignup }) {
 
           {/* Password */}
           <div>
-            <label className="block text-sm font-medium mb-1 text-cyan-800">Password</label>
+            <label className="block text-sm font-medium mb-1 text-black-800">Password</label>
             <Input
               type="password"
               value={form.password}
@@ -89,7 +117,7 @@ export default function SignupForm({ onSignup }) {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium mb-1 text-cyan-800">Confirm Password</label>
+            <label className="block text-sm font-medium mb-1 text-black-800">Confirm Password</label>
             <Input
               type="password"
               value={form.confirmPassword}
@@ -102,8 +130,8 @@ export default function SignupForm({ onSignup }) {
 
           {/* Document Upload */}
           <div>
-            <label className="block text-sm font-medium mb-1 text-cyan-800">
-              Upload Document <span className="text-cyan-500">(ID Proof)</span>
+            <label className="block text-sm font-medium mb-1 text-black-800">
+              Upload Document <span className="text-black-500">(ID Proof)</span>
             </label>
             <Input
               type="file"
@@ -130,7 +158,7 @@ export default function SignupForm({ onSignup }) {
         </form>
 
         {/* Social Sign Up */}
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center bg-blue-100 px-8 py-8 rounded-lg">
           <p className="text-sm mb-3 text-cyan-600">Or sign up with</p>
           <div className="flex flex-col gap-3">
             <button
@@ -143,7 +171,7 @@ export default function SignupForm({ onSignup }) {
 
             <button
               onClick={() => handleSocialLogin("Facebook")}
-              className="flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 hover:bg-blue-700 transition duration-150"
+              className="flex items-center justify-center gap-2 bg-gray-600 text-white rounded-lg py-2 hover:bg-gray-700 transition duration-150"
             >
               <FaFacebookF />
               <span>Sign up with Facebook</span>
@@ -172,5 +200,8 @@ export default function SignupForm({ onSignup }) {
         </p>
       </CardContent>
     </Card>
+    </div>
+    </div>
+
   );
 }
