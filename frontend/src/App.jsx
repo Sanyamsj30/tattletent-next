@@ -123,7 +123,7 @@ export default function GrievanceApp() {
     };
     setComplaints([newComplaint, ...complaints]);
     // Reset form to default values
-    const defaultForm = { title: "", description: "", type: "", location: "", priority: "medium" };
+    const defaultForm = { title: "", description: "", type: "", location: "" };
     setForm(defaultForm);
   };
 
@@ -208,14 +208,7 @@ export default function GrievanceApp() {
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "high": return "danger";
-      case "medium": return "warning";
-      case "low": return "success";
-      default: return "default";
-    }
-  };
+ 
 
  
 
@@ -365,19 +358,6 @@ export default function GrievanceApp() {
                         </Select>
                       </div>
                       
-                      <div>
-                        <label className="block text-sm font-medium text-secondary-700 mb-2">
-                          Priority Level
-                        </label>
-                        <Select 
-                          value={form.priority}
-                          onValueChange={(val) => setForm({ ...form, priority: val })}
-                        >
-                          <SelectItem value="low">Low Priority</SelectItem>
-                          <SelectItem value="medium">Medium Priority</SelectItem>
-                          <SelectItem value="high">High Priority</SelectItem>
-                        </Select>
-                      </div>
                     </div>
                     
                     <div>
@@ -486,9 +466,7 @@ export default function GrievanceApp() {
                                         {complaint.title}
                                       </h3>
                                       <div className="flex gap-2">
-                                        <Badge variant={getPriorityColor(complaint.priority)}>
-                                          {complaint.priority.toUpperCase()}
-                                        </Badge>
+                                        
                                         <Badge variant="success">
                                           ✅ RESOLVED
                                         </Badge>
@@ -580,9 +558,7 @@ export default function GrievanceApp() {
                                 {complaint.title}
                               </h3>
                               <div className="flex gap-2">
-                                <Badge variant={getPriorityColor(complaint.priority)}>
-                                  {complaint.priority.toUpperCase()}
-                                </Badge>
+                                
                                 <Badge variant={getStatusColor(complaint.status)}>
                                   {complaint.status}
                                 </Badge>
