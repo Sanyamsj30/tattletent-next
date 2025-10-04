@@ -27,40 +27,39 @@ export default function LoginForm({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-white text-slate-900">
       {/* Navbar */}
-      <nav className="bg-gradient-to-r from-sky-800 to-cyan-600 shadow-md">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
-          {/* Logo + Brand */}
-          <div className="flex items-center space-x-3">
-            <img
-              src="/logo.png" // replace with your TattleTent logo path
-              alt="TattleTent Logo"
-              className="h-10 w-10 object-contain"
-            />
-            <span className="text-xl font-bold text-white tracking-wide">
-              TattleTent
-            </span>
+      <header className="px-8 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 flex items-center justify-center rounded-md bg-primary/10">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M3 12 L12 4 L21 12 L3 12 Z" fill="#5b6bf7"/>
+              <rect x="6" y="12" width="12" height="7" rx="1" fill="#5b6bf7"/>
+            </svg>
           </div>
+          <h1 className="text-xl font-extrabold tracking-tight text-primary">TattleTent</h1>
+        </div>
+
+        <nav className="flex ">
 
           {/* Home Button */}
           <Button
-            variant="secondary"
-            className="rounded-lg text-sm font-medium bg-white text-blue-700 hover:bg-gray-100"
+            variant="primary"
+            className="rounded-lg text-sm font-medium bg-primary text-blue-700 hover:bg-gray-100"
             onClick={() => (window.location.href = "/")}
           >
             Home
           </Button>
-        </div>
-      </nav>
+        </nav>
+      </header>
 
       {/* Main Section */}
-      <div className="flex flex-grow items-center justify-center px-6 py-12 bg-blue-50">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-6xl w-full bg-blue-50">
+      <div className="flex flex-grow items-center justify-center px-6 py-12 bg-white">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-6xl w-full bg-white">
           {/* Left: Login Form */}
           <Card className="shadow-xl border border-cyan-200 rounded-2xl ">
             <CardHeader className="pb-2">
-              <CardTitle className="text-center text-3xl font-bold text-sky-800">
+              <CardTitle className="text-center text-3xl font-bold text-primary">
                 Citizen Login
               </CardTitle>
               <p className="text-center text-sm text-black-600">
@@ -115,7 +114,7 @@ export default function LoginForm({ onLogin }) {
                 <Button
                   type="submit"
                   variant="primary"
-                  className="w-full py-2 rounded-xl bg-blue-600 text-white font-medium shadow-md hover:bg-blue-700 transition"
+                  className="w-full py-2 rounded-xl bg-primary text-white font-medium shadow-md hover:bg-primary-600 transition"
                 >
                   Login
                 </Button>
@@ -144,7 +143,7 @@ export default function LoginForm({ onLogin }) {
               alt="Future Vision"
               className="rounded-2xl shadow-lg max-h-96 object-cover"
             />
-            <h2 className="mt-6 text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-sky-800 to-cyan-600 bg-clip-text text-transparent tracking-tight">
+            <h2 className="mt-6 text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-sky-800 to-cyan-600 bg-clip-text text-primary tracking-tight">
               Thriving for a Better Future
             </h2>
 
