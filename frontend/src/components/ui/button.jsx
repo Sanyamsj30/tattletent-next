@@ -12,7 +12,7 @@ export function Button({ children, onClick, size = "md", variant = "primary", cl
   };
   
   const variants = {
-    primary: "bg-gradient-primary text-white shadow-soft hover:shadow-medium focus:ring-primary-500 border border-primary-600",
+    primary:"px-4 py-2 rounded-md text-sm bg-primary text-white shadow hover:bg-primaryDark transition",
     secondary: "bg-white text-secondary-700 border border-secondary-200 shadow-soft hover:bg-secondary-50 hover:shadow-medium focus:ring-secondary-500",
     accent: "bg-gradient-accent text-white shadow-soft hover:shadow-medium focus:ring-accent-500 border border-accent-600",
     gold: "bg-gradient-gold text-white shadow-soft hover:shadow-medium focus:ring-gold-500 border border-gold-600",
