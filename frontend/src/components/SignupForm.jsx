@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardHeader, CardContent, CardTitle } from "./ui/card";
 import { FaGoogle, FaFacebookF, FaLinkedinIn } from "react-icons/fa";
+import Home from "../Home.jsx";
 
 export default function SignupForm({ onSignup }) {
   const [form, setForm] = useState({
@@ -39,35 +40,34 @@ export default function SignupForm({ onSignup }) {
   return (
       <div className="min-h-screen flex flex-col bg-gray-50">
           {/* Navbar */}
-          <nav className="bg-gradient-to-r from-sky-800 to-cyan-600 shadow-md">
-            <div className="max-w-7xl mx-auto flex items-center justify-between px-6 py-3">
-              {/* Logo + Brand */}
-              <div className="flex items-center space-x-3">
-                <img
-                  src="/logo.png" // replace with your TattleTent logo path
-                  alt="TattleTent Logo"
-                  className="h-10 w-10 object-contain"
-                />
-                <span className="text-xl font-bold text-white tracking-wide">
-                  TattleTent
-                </span>
-              </div>
-    
-              {/* Home Button */}
-              <Button
-                variant="secondary"
-                className="rounded-lg text-sm font-medium bg-white text-blue-700 hover:bg-gray-100"
-                onClick={() => (window.location.href = "/")}
-              >
-                Home
-              </Button>
-            </div>
-          </nav>
+          <header className="px-8 py-5 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 flex items-center justify-center rounded-md bg-primary/10">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M3 12 L12 4 L21 12 L3 12 Z" fill="#5b6bf7"/>
+                        <rect x="6" y="12" width="12" height="7" rx="1" fill="#5b6bf7"/>
+                      </svg>
+                    </div>
+                    <h1 className="text-xl font-extrabold tracking-tight text-primary">TattleTent</h1>
+                  </div>
+          
+                  <nav className="flex ">
+          
+                    {/* Home Button */}
+                    <Button
+                      variant="primary"
+                      className="rounded-lg text-sm font-medium bg-primary text-blue-700 hover:bg-blue-500"
+                      onClick={() => (window.location.href = "/")}
+                    >
+                      Home
+                    </Button>
+                  </nav>
+                </header>
 
-    <div className="flex flex-grow items-center justify-center px-6 py-12 bg-blue-50">
+    <div className="flex flex-grow items-center justify-center px-6 py-12 ">
     <Card className="max-w-md mx-auto shadow-xl border border-cyan-200 rounded-2xl  p-6">
       <CardHeader>
-        <CardTitle className="text-center text-3xl font-bold text-sky-800">
+        <CardTitle className="text-center text-3xl font-bold text-blue-600">
           Citizen Sign Up
         </CardTitle>
         <p className="text-center text-sm text-black-600">
