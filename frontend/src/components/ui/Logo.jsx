@@ -6,7 +6,7 @@ import React from 'react';
 
 // Define the custom colors based on your theme
 const brownCircleColor = '#A0522D';
-const grayTextColor = 'text-[#696969]'; 
+const grayTextColor = 'text-orange-700'; 
 const scriptStyle = { fontFamily: 'Great Vibes, cursive' }; // Ensure this font is loaded globally
 
 const Logo = () => {
@@ -24,7 +24,7 @@ const Logo = () => {
 
             {/* 2. TattleTent Text (Styled in gray script) */}
             <span 
-                className={`text-4xl font-script font-extrabold ${grayTextColor}`} 
+                className={`text-6xl font-script font-extrabold ${grayTextColor}`} 
                 style={scriptStyle}
             >
                 TattleTent

@@ -6,13 +6,17 @@ import './index.css'
 //import Home from "./Home.jsx"
 //import SignupForm from "./components/SignupForm.jsx"
 //import App from "./App.jsx"
-import Home from "./Home"
+//import Home from "./Home"
+import StaffDashboard from "./components/ui/StaffDashboard"
+//import CitizenDashboard from "./components/ui/CitizenDashboard"
+
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <StaffDashboard/>
     {/*<LoginForm/>*/}
     {/*<SignupForm />*/}
     {/*<App/>*/}
-    <Home/>
+    {/*<Home/>*/}
   </StrictMode>
 )
