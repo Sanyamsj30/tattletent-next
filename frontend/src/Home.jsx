@@ -3,7 +3,7 @@ import React, { useState } from "react";
 
 import { motion } from "framer-motion";
 import AppButton from "./components/ui/app-button";
-
+import Logo from "./components/ui/Logo"
 
 const portals = [
   ["Citizen Portal", "Easily lodge complaints and track updates.", "M12 4v16m8-8H4"],
@@ -28,9 +28,11 @@ const categories = [
 
 
 
+
 export default function LandingPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
 
   return (
     <div className="bg-[#FCF5EE] text-gray-900">
@@ -55,18 +57,22 @@ export default function LandingPage() {
         transition={{ duration: 0.7 }}
         className="flex justify-between items-center py-6 px-8 bg-[#fffaf6]/80 backdrop-blur-md sticky top-0 z-50 shadow-sm"
       >
-        <h1 className="text-2xl font-bold text-[#d55d1f]">TattleTent</h1>
+       <Logo/>
+
         <div className="flex gap-5">
           <AppButton
             onClick={() => setLoginOpen(true)}
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
             Login
           </AppButton>
-          <AppButton className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
+          <AppButton 
+          onClick={() => setSignupOpen(true)}
+          className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
             Sign Up
           </AppButton>
         </div>
       </motion.nav>
+     
 
       {/* Hero Section */}
       <section className="text-center py-28 relative">
@@ -76,7 +82,7 @@ export default function LandingPage() {
           transition={{ duration: 1 }}
           className="text-4xl md:text-6xl font-bold mb-6 tracking-tight leading-tight"
         >
-          Speak Up, Get Heard,  
+          Speak Up, Get Heard,
           <span className="text-[#d55d1f]"> Transform Your City</span>
         </motion.h2>
         <motion.p
@@ -85,7 +91,7 @@ export default function LandingPage() {
           transition={{ delay: 0.3, duration: 1 }}
           className="text-lg md:text-xl text-[#7a6f65] max-w-2xl mx-auto mb-10"
         >
-          TattleTent empowers citizens to report civic issues easily and ensures swift action by authorities.  
+          TattleTent empowers citizens to report civic issues easily and ensures swift action by authorities.
           Together, let’s make our communities smarter and safer.
         </motion.p>
         <motion.div
@@ -95,10 +101,12 @@ export default function LandingPage() {
           className="flex justify-center gap-5"
         >
           <AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg">
-            Report an Issue
+            View all Complaints
           </AppButton>
-          <AppButton className="bg-transparent border border-[#d55d1f] text-black hover:bg-[#d55d1f] hover:text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg">
-            Learn More
+          <AppButton className=" border border-[#8B4513] !bg-[#8B4513] 
+             hover:!bg-[#A0522D]  hover:text-white 
+             font-medium py-3 rounded-full transition-all duration-300"
+          >Learn More
           </AppButton>
         </motion.div>
       </section>
@@ -205,7 +213,7 @@ export default function LandingPage() {
               transition={{ delay: i * 0.2, duration: 0.5 }}
               viewport={{ once: true }}
             >
-              <AppButton className="!bg-transparent border border-[#d55d1f] text-[#d55d1f] hover:!bg-[#d55d1f] hover:text-white font-medium py-3 px-6 rounded-full shadow-md hover:shadow-lg transition-all duration-300">
+              <AppButton className=" border border-[#d55d1f] text-[#d55d1f] hover:!bg-[#d55d1f] hover:text-white font-medium py-3 px-6 rounded-full shadow-md hover:shadow-lg transition-all duration-300">
                 {text}
               </AppButton>
             </motion.div>
@@ -218,73 +226,217 @@ export default function LandingPage() {
 
       {/* Login Modal */}
       {loginOpen && (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="fixed inset-0 flex items-center justify-center bg-black/40 z-[100]"
-    onClick={() => setLoginOpen(false)}
-  >
     <motion.div
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0.8, opacity: 0 }}
-      transition={{ type: "spring", stiffness: 120 }}
-      onClick={(e) => e.stopPropagation()}
-      className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 flex items-center justify-center bg-black/40 z-[100]"
+        onClick={() => setLoginOpen(false)}
     >
-      {!forgotPassword ? (
-        <>
-          <h2 className="text-2xl font-bold text-[#d55d1f] mb-6">Login</h2>
-          <input
-            type="email"
-            placeholder="Email"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:ring-2 focus:ring-[#d55d1f] outline-none"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:ring-2 focus:ring-[#d55d1f] outline-none"
-          />
-          <AppButton className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg">
-            Login
-          </AppButton>
-          <p className="text-sm text-center mt-4">
-            <button
-              onClick={() => setForgotPassword(true)}
-              className="text-[#d55d1f] hover:underline"
-            >
-              Forgot Password?
-            </button>
-          </p>
-        </>
-      ) : (
-        <>
-          <h2 className="text-2xl font-bold text-[#d55d1f] mb-6">
-            Forgot Password
-          </h2>
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:ring-2 focus:ring-[#d55d1f] outline-none"
-          />
-          <AppButton className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg">
-            Send Reset Link
-          </AppButton>
-          <p className="text-sm text-center mt-4">
-            <button
-              onClick={() => setForgotPassword(false)}
-              className="text-gray-500 hover:underline"
-            >
-              Back to Login
-            </button>
-          </p>
-        </>
-      )}
-    </motion.div>
-  </motion.div>
-)}
+        <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 120 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4"
+        >
+            {!forgotPassword ? (
+                // --- Login Form ---
+                <form>
+                    <h2 className="text-2xl font-bold text-[#d55d1f] mb-6">Login</h2>
+                    
+                    {/* Email Field */}
+                    <div className="mb-4">
+                        <label htmlFor="loginEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                            Email <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="loginEmail"
+                            type="email"
+                            placeholder="you@example.com"
+                            required // 👈 REQUIRED
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#d55d1f] outline-none"
+                        />
+                    </div>
 
+                    {/* Password Field */}
+                    <div className="mb-6"> {/* Increased bottom margin for better spacing before the button */}
+                        <label htmlFor="loginPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                            Password <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="loginPassword"
+                            type="password"
+                            placeholder="Your password"
+                            required // 👈 REQUIRED
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#d55d1f] outline-none"
+                        />
+                    </div>
+
+                    <AppButton type="submit" className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg">
+                        Login
+                    </AppButton>
+                    <p className="text-sm text-center mt-4">
+                        <button
+                            onClick={() => setForgotPassword(true)}
+                            type="button" // Use type="button" to prevent form submission on click
+                            className="text-[#d55d1f] hover:underline"
+                        >
+                            Forgot Password?
+                        </button>
+                    </p>
+                </form>
+            ) : (
+                // --- Forgot Password Form ---
+                <form>
+                    <h2 className="text-2xl font-bold text-[#d55d1f] mb-6">
+                        Forgot Password
+                    </h2>
+                    
+                    {/* Email Field for Reset */}
+                    <div className="mb-6">
+                        <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                            Enter your email <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="resetEmail"
+                            type="email"
+                            placeholder="Enter your email"
+                            required // 👈 REQUIRED
+                            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#d55d1f] outline-none"
+                        />
+                    </div>
+
+                    <AppButton type="submit" className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg">
+                        Send Reset Link
+                    </AppButton>
+                    <p className="text-sm text-center mt-4">
+                        <button
+                            onClick={() => setForgotPassword(false)}
+                            type="button" // Use type="button" to prevent form submission on click
+                            className="text-gray-500 hover:underline"
+                        >
+                            Back to Login
+                        </button>
+                    </p>
+                </form>
+            )}
+        </motion.div>
+    </motion.div>
+)}
+      {/* Assuming you have state: const [signupOpen, setSignupOpen] = useState(false); */}
+{/* Assuming you have state: const [signupOpen, setSignupOpen] = useState(false); */}
+{signupOpen && (
+    <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 flex items-center justify-center bg-black/40 z-[100]"
+        onClick={() => setSignupOpen(false)}
+    >
+        <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 120 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4"
+        >
+            <h2 className="text-2xl font-bold text-[#A0522D] mb-6 text-center">Create Your Account</h2>
+
+            {/* Sign Up with Google Button */}
+            <AppButton 
+    // Remove all color utilities (text-*, bg-*) from the AppButton's class, 
+    // but keep border/layout/spacing.
+    className="w-full border border-gray-300 bg-white hover:bg-gray-50 py-3 rounded-lg flex items-center justify-center mb-6"
+>
+    {/* Wrap the content in a span and force the text color here */}
+    <span className="flex items-center text-black"> 
+        {/* Google Icon SVG */}
+        <svg className="w-5 h-5 mr-3" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M24 9.5c3.27 0 5.86 1.18 7.6 2.76l5.77-5.77C33.4 3.73 28.98 2 24 2 15.68 2 8.5 6.7 4.97 14.18l6.32 4.92C12.44 14.7 17.7 9.5 24 9.5z"/>
+            <path fill="#34A853" d="M4.97 14.18c-.8.95-1.2 2.1-1.2 3.32s.4 2.37 1.2 3.32l6.32 4.92c-.3-1.03-.47-2.1-.47-3.32s.17-2.29.47-3.32L4.97 14.18z"/>
+            <path fill="#FBBC04" d="M24 35.5c-5.83 0-10.7-3.9-12.43-9.15l-6.32 4.92c3.53 7.48 10.71 12.18 19.15 12.18s15.62-4.7 19.15-12.18l-6.32-4.92c-1.73 5.25-6.6 9.15-12.83 9.15z"/>
+            <path fill="#EA4335" d="M43.7 24.5c0-1.58-.15-3.07-.4-4.5H24v7.75h11.84c-.5 3.32-2.09 5.85-4.5 7.42l6.32 4.92c3.78-3.53 5.74-8.7 5.74-13.88z"/>
+        </svg>
+        Sign Up with Google
+    </span>
+</AppButton>
+            
+            {/* Divider */}
+            <div className="relative flex items-center justify-center mb-6">
+                <div className="flex-grow border-t border-gray-300"></div>
+                <span className="flex-shrink mx-4 text-gray-500 text-sm">or</span>
+                <div className="flex-grow border-t border-gray-300"></div>
+            </div>
+
+            {/* Form for Email/Password Sign Up */}
+            <form>
+                {/* Full Name */}
+                <div className="mb-4">
+                    <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                        Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        id="fullName"
+                        type="text"
+                        placeholder="e.g., Jane Doe"
+                        required
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#A0522D] outline-none"
+                    />
+                </div>
+                
+                {/* Email */}
+                <div className="mb-4">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        required
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#A0522D] outline-none"
+                    />
+                </div>
+                
+                {/* Password */}
+                <div className="mb-6">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                        Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        id="password"
+                        type="password"
+                        placeholder="Min. 8 characters"
+                        required
+                        minLength={8}
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#A0522D] outline-none"
+                    />
+                </div>
+
+                <AppButton type="submit" className="w-full bg-[#A0522D] hover:bg-[#8B4513] text-white py-3 rounded-lg">
+                    Sign Up
+                </AppButton>
+            </form>
+            {/* End Form */}
+
+            <p className="text-sm text-center mt-4 text-gray-600">
+                Already have an account?{" "}
+                <button
+                    onClick={() => {
+                        setSignupOpen(false); // Close signup
+                         setLoginOpen(true);  // Uncomment this if you want to switch to login
+                    }}
+                    className="text-[#A0522D] hover:underline font-medium"
+                >
+                    Log In
+                </button>
+            </p>
+        </motion.div>
+    </motion.div>
+)}
     </div>
   );
 }
