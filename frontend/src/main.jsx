@@ -7,15 +7,17 @@ import './index.css'
 //import SignupForm from "./components/SignupForm.jsx"
 //import App from "./App.jsx"
 //import Home from "./Home"
-//import StaffDashboard from "./components/ui/StaffDashboard"
+import StaffDashboard from "./components/ui/StaffDashboard"
 //import CitizenDashboard from "./components/ui/CitizenDashboard"
-import AdminDashboard from "./components/ui/AdminDashboard"
-
-
+//import AdminDashboard from "./components/ui/AdminDashboard"
+//import AllComplaintPage from "./components/ui/AllComplaintsPage"
+//import LearnMorePage from './components/ui/LearnMorePage'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AdminDashboard/>
+    {/*<LearnMorePage/>*/}
+    {/*<AllComplaintPage/>*/}
+    <StaffDashboard/>
     {/*<LoginForm/>*/}
     {/*<SignupForm />*/}
     {/*<App/>*/}
