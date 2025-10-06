@@ -347,17 +347,22 @@ export default function LandingPage() {
 
             {/* Sign Up with Google Button */}
             <AppButton 
-                className="w-full border border-gray-300 text-[#A0522D] bg-white hover:bg-gray-50 py-3 rounded-lg flex items-center justify-center mb-6"
-            >
-                {/* Google Icon SVG */}
-                <svg className="w-5 h-5 mr-3" viewBox="0 0 48 48">
-                    <path fill="#4285F4" d="M24 9.5c3.27 0 5.86 1.18 7.6 2.76l5.77-5.77C33.4 3.73 28.98 2 24 2 15.68 2 8.5 6.7 4.97 14.18l6.32 4.92C12.44 14.7 17.7 9.5 24 9.5z"/>
-                    <path fill="#34A853" d="M4.97 14.18c-.8.95-1.2 2.1-1.2 3.32s.4 2.37 1.2 3.32l6.32 4.92c-.3-1.03-.47-2.1-.47-3.32s.17-2.29.47-3.32L4.97 14.18z"/>
-                    <path fill="#FBBC04" d="M24 35.5c-5.83 0-10.7-3.9-12.43-9.15l-6.32 4.92c3.53 7.48 10.71 12.18 19.15 12.18s15.62-4.7 19.15-12.18l-6.32-4.92c-1.73 5.25-6.6 9.15-12.83 9.15z"/>
-                    <path fill="#EA4335" d="M43.7 24.5c0-1.58-.15-3.07-.4-4.5H24v7.75h11.84c-.5 3.32-2.09 5.85-4.5 7.42l6.32 4.92c3.78-3.53 5.74-8.7 5.74-13.88z"/>
-                </svg>
-                Sign Up with Google
-            </AppButton>
+    // Remove all color utilities (text-*, bg-*) from the AppButton's class, 
+    // but keep border/layout/spacing.
+    className="w-full border border-gray-300 bg-white hover:bg-gray-50 py-3 rounded-lg flex items-center justify-center mb-6"
+>
+    {/* Wrap the content in a span and force the text color here */}
+    <span className="flex items-center text-black"> 
+        {/* Google Icon SVG */}
+        <svg className="w-5 h-5 mr-3" viewBox="0 0 48 48">
+            <path fill="#4285F4" d="M24 9.5c3.27 0 5.86 1.18 7.6 2.76l5.77-5.77C33.4 3.73 28.98 2 24 2 15.68 2 8.5 6.7 4.97 14.18l6.32 4.92C12.44 14.7 17.7 9.5 24 9.5z"/>
+            <path fill="#34A853" d="M4.97 14.18c-.8.95-1.2 2.1-1.2 3.32s.4 2.37 1.2 3.32l6.32 4.92c-.3-1.03-.47-2.1-.47-3.32s.17-2.29.47-3.32L4.97 14.18z"/>
+            <path fill="#FBBC04" d="M24 35.5c-5.83 0-10.7-3.9-12.43-9.15l-6.32 4.92c3.53 7.48 10.71 12.18 19.15 12.18s15.62-4.7 19.15-12.18l-6.32-4.92c-1.73 5.25-6.6 9.15-12.83 9.15z"/>
+            <path fill="#EA4335" d="M43.7 24.5c0-1.58-.15-3.07-.4-4.5H24v7.75h11.84c-.5 3.32-2.09 5.85-4.5 7.42l6.32 4.92c3.78-3.53 5.74-8.7 5.74-13.88z"/>
+        </svg>
+        Sign Up with Google
+    </span>
+</AppButton>
             
             {/* Divider */}
             <div className="relative flex items-center justify-center mb-6">
