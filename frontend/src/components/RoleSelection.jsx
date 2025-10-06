@@ -9,8 +9,8 @@ const RoleSelection = ({ onRoleSelect }) => {
       description: 'Submit and track your grievances and complaints',
       icon: '👤',
       features: ['Submit complaints', 'Track status', 'View history', 'Get updates'],
-      gradient: 'from-primary-600 to-primary-800',
-      hoverGradient: 'hover:from-primary-700 hover:to-primary-900',
+      gradient: 'from-sky-600 to-sky-800',
+      hoverGradient: 'hover:from-blue-700 hover:to-blue-900',
     },
     {
       id: 'staff',
@@ -34,8 +34,32 @@ const RoleSelection = ({ onRoleSelect }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-white to-primary-50 flex items-center justify-center p-4">
+      
       <div className="max-w-6xl w-full">
         {/* Header */}
+        <header className="px-8 py-5 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 flex items-center justify-center rounded-md bg-primary/10">
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+                                <path d="M3 12 L12 4 L21 12 L3 12 Z" fill="#5b6bf7"/>
+                                <rect x="6" y="12" width="12" height="7" rx="1" fill="#5b6bf7"/>
+                              </svg>
+                            </div>
+                            <h1 className="text-xl font-extrabold tracking-tight text-primary">TattleTent</h1>
+                          </div>
+                  
+                          <nav className="flex ">
+                  
+                            {/* Home Button */}
+                            <Button
+                              variant="primary"
+                              className="rounded-lg text-sm font-medium bg-primary text-blue-700 hover:bg-blue-500"
+                              onClick={() => (window.location.href = "/")}
+                            >
+                              Home
+                            </Button>
+                          </nav>
+                        </header>
         <div className="text-center mb-16 animate-fade-in-up">
           <h1 className="font-display text-6xl md:text-7xl font-bold text-gradient mb-6 text-shadow-soft">
             Grievance Management
@@ -126,7 +150,7 @@ const RoleSelection = ({ onRoleSelect }) => {
           <p>&copy; 2025 Grievance Management System. All rights reserved.</p>
         </div>
       </div>
-    </div>
+   </div>
   );
 };
 
