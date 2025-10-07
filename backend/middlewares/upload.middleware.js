@@ -2,25 +2,25 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 
-// Configure multer storage
+// Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadPath = "public/temp/";
-    // ✅ Ensure folder exists
+    // Checking if folder exist
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
     }
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    // ✅ Prevent spaces & special characters in filename
+    // Prevent spaces & special characters in filename
     const uniqueName =
       Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
     cb(null, uniqueName);
   },
 });
 
-// ✅ File filter for image types
+// File filter for image types
 const fileFilter = (req, file, cb) => {
   const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
   if (allowed.includes(file.mimetype)) {
@@ -30,7 +30,7 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// ✅ 5MB file size limit
+// 5MB file size limit
 const upload = multer({
   storage,
   fileFilter,

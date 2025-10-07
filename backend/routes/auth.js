@@ -7,12 +7,8 @@ import sendEmail from '../utils/sendEmail.js';
 
 const router = Router();
 
-// In-memory store for OTPs. A Map is used for efficient lookups and deletions.
-// It will store data like: { 'user@email.com' => { otpHash: '...', expiresAt: ... } }
+// otp
 const otpStore = new Map();
-
-
-// --- STEP 1: SEND OTP FOR EMAIL VERIFICATION ---
 router.post('/send-otp', async (req, res) => {
   try {
     const { email } = req.body;
@@ -25,10 +21,9 @@ router.post('/send-otp', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
     
-    // Set OTP expiration to 5 minutes from now
+    // 5 mins
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    // Store the OTP hash and expiry in our in-memory map
     otpStore.set(email, { otpHash, expiresAt });
 
     await sendEmail({
@@ -46,7 +41,7 @@ router.post('/send-otp', async (req, res) => {
 });
 
 
-// --- STEP 2: REGISTER USER AFTER OTP VERIFICATION ---
+// Register
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password, otp } = req.body;
@@ -55,7 +50,6 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Please provide all required fields.' });
     }
 
-    // Retrieve the OTP data from our in-memory store
     const storedData = otpStore.get(email);
 
     if (!storedData) {
@@ -64,21 +58,19 @@ router.post('/register', async (req, res) => {
 
     const { otpHash, expiresAt } = storedData;
 
-    // Check if OTP has expired
+    // Otp Expire
     if (new Date() > new Date(expiresAt)) {
       otpStore.delete(email); // Clean up expired OTP
       return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
     }
 
-    // Compare the provided OTP with the stored hash
     const isValidOtp = await bcrypt.compare(otp, otpHash);
     if (!isValidOtp) {
-      // Allow user to re-enter without requesting a new OTP
       return res.status(400).json({ message: 'OTP incorrect. Please try again.' });
     }
 
     // --- OTP is valid ---
-    // 1. Create the user in the database
+    // User -> DB
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
     const newUser = await pool.query(
@@ -86,10 +78,9 @@ router.post('/register', async (req, res) => {
       [name, email, passwordHash]
     );
 
-    // 2. IMPORTANT: Clean up the used OTP from the store to prevent reuse
     otpStore.delete(email);
     
-    // 3. Generate JWT and log the user in
+    // JWT
     const token = generateToken(newUser.rows[0].user_id);
     res.status(201).json({ token });
 
@@ -102,8 +93,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// --- LOGIN A USER ---
-// Route: POST /api/auth/login
+// Login
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -120,12 +110,10 @@ router.post('/login', async (req, res) => {
         
         const user = userResult.rows[0];
 
-        // Check if user is verified (for email/password signups)
         if (!user.is_verified) {
             return res.status(403).json({ message: 'Please verify your email address before logging in.' });
         }
         
-        // Ensure user has a password (they might have signed up with Google)
         if (!user.password_hash) {
             return res.status(401).json({ message: 'Account was created with a social provider. Please use Google to log in.' });
         }
@@ -139,9 +127,7 @@ router.post('/login', async (req, res) => {
         // Generate JWT
         const token = generateToken(user.user_id);
         
-        // --- KEY CHANGE ---
-        // Respond with the token AND the user's details (excluding password)
-        // The frontend will use the 'role' for redirection.
+        // Resirect
         res.status(200).json({ 
             token,
             user: {
@@ -159,24 +145,13 @@ router.post('/login', async (req, res) => {
 });
 
 
-// --- GOOGLE OAUTH ROUTES ---
-
-// 1. Route to start the Google OAuth flow
-// Route: GET /api/auth/google
+// OAUTH
 router.get('/google', passport.authenticate('google', {
     scope: ['profile', 'email']
 }));
 
-// 2. Callback route that Google redirects to
-// Route: GET /api/auth/google/callback
 router.get('/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
-    // req.user is attached by passport after successful authentication
     const token = generateToken(req.user.user_id);
-    
-    // On a real project, you would redirect to your frontend application
-    // Example: res.redirect(`http://yourfrontend.com/auth-success?token=${token}`);
-    
-    // For now, we'll just send the token as a response
     res.status(200).json({ token });
 });
 
