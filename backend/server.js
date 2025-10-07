@@ -5,6 +5,8 @@ import passport from 'passport';
 import './config/passport-setup.js'; // Import the passport config
 import complaintRoutes from "./routes/complaint.routes.js"
 import "./jobs/escalation.job.js";
+import feedbackRoutes from "./routes/feedback.routes.js";
+
 
 
 
@@ -21,7 +23,7 @@ app.use("/public", express.static("public"));
 
 //Routes
 app.use("/api/complaints",complaintRoutes);
-
+app.use("/api/feedback", feedbackRoutes);
 
 
 
