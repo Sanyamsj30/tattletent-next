@@ -1,5 +1,5 @@
 // 🧠 TEMPORARY MOCK FUNCTION
-
+import pool from '../db/db.js';
 let complaints = []; // 🧠 temporary in-memory storage
 
 const categoryThresholds = {
@@ -11,8 +11,10 @@ const categoryThresholds = {
 
 // ✅ Save complaint
 export const saveComplaintToDB = async (newComplaint) => {
-  const complaint = { id: Date.now().toString(), ...newComplaint };
-  complaints.push(complaint);
+  const complaint = await pool.query(
+    "INSERT INTO complaints (title, description, status, photo, category, location) VALUES ($1, $2, $3, $4, $5, $6) RETURNING complaint_id, title, description, photo, category, location",
+    [newComplaint.title, newComplaint.description, newComplaint.status, newComplaint.photo, newComplaint.category, newComplaint.location]
+  );
   return complaint;
 };
 

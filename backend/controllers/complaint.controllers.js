@@ -12,6 +12,7 @@ import {
 
 
 
+
 // ✅ Create a new complaint
 const createComplaint = asynchandler(async (req, res) => {
   const { title, description, category, location } = req.body;
@@ -29,16 +30,14 @@ const createComplaint = asynchandler(async (req, res) => {
     category,
     location,
     photo: req.file ? `/temp/${req.file.filename}` : null,
-    status: "OPEN",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    statusHistory: [
-      {
-        status: "OPEN",
-        date: new Date().toISOString(),
-        note: "Complaint submitted",
-      },
-    ],
+    status: "New",
+    // statusHistory: [
+    //   {
+    //     status: "OPEN",
+    //     date: new Date().toISOString(),
+    //     note: "Complaint submitted",
+    //   },
+    // ],
   };
 
   // Save complaint (currently mock, later DB)
