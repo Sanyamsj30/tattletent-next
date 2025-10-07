@@ -9,8 +9,12 @@ import {
   Legend,
 } from "recharts";
 import Logo from "./Logo"
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
+
+  const navigate=useNavigate();
+
   const [staffList, setStaffList] = useState([
     { id: 1, name: "John Doe", role: "Field Staff", performance: { Resolved: 10, "In Progress": 3, Pending: 2 } },
     { id: 2, name: "Jane Smith", role: "Field Staff", performance: { Resolved: 8, "In Progress": 4, Pending: 1 } },
@@ -68,10 +72,10 @@ const AdminDashboard = () => {
             <p className="text-sm text-gray-600">Logged in as</p>
             <p className="font-semibold text-gray-800">Admin</p>
           </div>
-          <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
+          <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2" onClick={() => navigate("/")}>
             Logout
           </button>
-          <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
+          <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2" onClick={() => navigate("/all-complaints")}>
             All Complaints
           </button>
         </div>

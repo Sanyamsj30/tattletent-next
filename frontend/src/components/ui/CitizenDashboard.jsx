@@ -2,15 +2,32 @@ import { useState } from "react";
 import React from "react";
 import Logo from "./Logo";
 import AppButton from "./app-button";
+import { useNavigate } from "react-router-dom";
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const navigate = useNavigate(); 
 
   const complaints = [
     { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
     { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
     { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
   ];
+
+  <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
+        <div className="flex items-center">
+          <Logo />
+        </div>
+        <div className="flex items-center">
+          <button
+            onClick={() => navigate("/")} // 👈 Redirect to Home page
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
+          >
+            <span className="text-xl">Logout</span>
+          </button>
+        </div>
+      </div>
+
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -27,19 +44,20 @@ const CitizenDashboard = () => {
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans">
       {/* Navbar */}
-      <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
-        <div className="flex items-center">
-          <Logo />
-        </div>
-        <div className="flex items-center">
-          <button
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
-          >
-            <span className="text-xl">Logout</span>
-            
-          </button>
-        </div>
-      </div>
+<div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
+  <div className="flex items-center">
+    <Logo />
+  </div>
+  <div className="flex items-center">
+    <button
+      onClick={() => navigate("/")} // 👈 this now works properly
+      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
+    >
+      <span className="text-xl">Logout</span>
+    </button>
+  </div>
+</div>
+
 
       {/* Main */}
     <main className="container mx-auto px-4 py-12 space-y-12 max-w-6xl pt-32">

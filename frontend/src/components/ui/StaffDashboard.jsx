@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import Logo from "./Logo.jsx"
+import { useNavigate } from "react-router-dom";
 
 const StaffDashboard = () => {
+
+  const navigate=useNavigate();
+
   const initialComplaints = [
     { id: 1, category: "Water Leak", status: "Pending", description: "Leak near Tent #5, pipe burst", location: "Tent #5, Sector A", date: "2025-10-02", citizen: "John Doe", priority: "" },
     { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", location: "Sector C, Main Road", date: "2025-09-28", citizen: "Jane Smith", priority: "Medium", solution: "Tiles replaced" },
@@ -16,6 +20,8 @@ const StaffDashboard = () => {
 
   const newComplaints = complaints.filter(c => c.status === "Pending");
   const assignedComplaints = complaints.filter(c => c.status !== "Pending");
+
+   
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -59,11 +65,15 @@ const StaffDashboard = () => {
             <p className="text-sm text-gray-600">Logged in as</p>
             <p className="font-semibold text-gray-800">Staff Member</p>
           </div>
-          <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
+          <button
+            onClick={() => navigate("/")} // 👈 Redirect to Home page
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
+          >
             <span className="text-xl">Logout</span>
           </button>
         </div>
-      </div>
+      </div> 
+
 
       {/* Welcome Bar */}
       {/* Welcome Bar */}
