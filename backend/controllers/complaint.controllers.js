@@ -70,9 +70,9 @@ const getComplaintById = asynchandler(async (req, res) => {
 // ✅ Update Complaint (status or details)
 const updateComplaint = asynchandler(async (req, res) => {
   const { id } = req.params;
-  const updates = req.body;
-
-  const updatedComplaint = await updateComplaintInDB(id, updates);
+  const updates = [req.body.status, req.body.priority];
+  const complaintId = parseInt(id, 10);
+  const updatedComplaint = await updateComplaintInDB(complaintId, updates);
 
   if (!updatedComplaint)
     return res

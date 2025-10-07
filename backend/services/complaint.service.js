@@ -25,26 +25,30 @@ export const getComplaintByIdFromDB = async (id) => {
 
 // ✅ Update complaint
 export const updateComplaintInDB = async (id, updates) => {
-  const index = complaints.findIndex((c) => c.id === id);
-  if (index === -1) return null;
+  const complaintR = await pool.query(
+    'SELECT complaint_id, status, priority FROM complaints WHERE complaint_id = $1',
+    [id]
+  );
+  if (complaintR.rows.length === 0) return null;
+
+  if(!updates[0]) updates[0] = complaintR.rows[0].status;
+  if(!updates[1]) updates[1] = complaintR.rows[0].priority;
 
   // Update fields dynamically
-  complaints[index] = {
-    ...complaints[index],
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  };
+  const upC = await pool.query(
+    'UPDATE complaints SET status = $1, priority = $2 WHERE complaint_id = $3 RETURNING complaint_id, title, description, photo, location, category, status, priority', [updates[0], updates[1], id]
+  );
 
   // If status changed, push to history
-  if (updates.status) {
-    complaints[index].statusHistory.push({
-      status: updates.status,
-      date: new Date().toISOString(),
-      note: "Status updated",
-    });
-  }
+  // if (updates.status) {
+  //   complaints[index].statusHistory.push({
+  //     status: updates.status,
+  //     date: new Date().toISOString(),
+  //     note: "Status updated",
+  //   });
+  // }
 
-  return complaints[index];
+  return upC.rows[0];
 };
 
 // ✅ Delete complaint
