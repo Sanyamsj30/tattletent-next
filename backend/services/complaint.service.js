@@ -15,12 +15,15 @@ export const saveComplaintToDB = async (newComplaint) => {
     "INSERT INTO complaints (title, description, status, photo, category, location) VALUES ($1, $2, $3, $4, $5, $6) RETURNING complaint_id, title, description, photo, category, location",
     [newComplaint.title, newComplaint.description, newComplaint.status, newComplaint.photo, newComplaint.category, newComplaint.location]
   );
-  return complaint;
+  return complaint.rows[0];
 };
 
 // ✅ Get complaint by ID
 export const getComplaintByIdFromDB = async (id) => {
-  return complaints.find((c) => c.id === id) || null;
+  const complain = await pool.query(
+    'SELECT complaint_id, title, description, status, priority, submitted_at, photo, category, location FROM complaints WHERE complaint_id = $1', [id]
+  );
+  return complain.rows[0];
 };
 
 // ✅ Update complaint

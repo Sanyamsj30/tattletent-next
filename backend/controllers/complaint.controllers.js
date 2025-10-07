@@ -54,7 +54,8 @@ const createComplaint = asynchandler(async (req, res) => {
 // ✅ Get Complaint by ID
 const getComplaintById = asynchandler(async (req, res) => {
   const { id } = req.params;
-  const complaint = await getComplaintByIdFromDB(id);
+  const complaintId = parseInt(id, 10);
+  const complaint = await getComplaintByIdFromDB(complaintId);
 
   if (!complaint)
     return res
