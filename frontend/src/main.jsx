@@ -9,15 +9,16 @@ import './index.css'
 //import Home from "./Home"
 //import StaffDashboard from "./components/ui/StaffDashboard"
 //import CitizenDashboard from "./components/ui/CitizenDashboard"
-//import AdminDashboard from "./components/ui/AdminDashboard"
-import AllComplaintPage from "./components/ui/AllComplaintsPage"
+import AdminDashboard from "./components/ui/AdminDashboard"
+//import AllComplaintPage from "./components/ui/AllComplaintsPage"
 //import LearnMorePage from './components/ui/LearnMorePage'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     {/*<LearnMorePage/>*/}
-    <AllComplaintPage/>
+    {/*<AllComplaintPage/>*/}
     {/*<CitizenDashboard/>*/}
+    <AdminDashboard/>
     {/*<LoginForm/>*/}
     {/*<SignupForm />*/}
     {/*<App/>*/}

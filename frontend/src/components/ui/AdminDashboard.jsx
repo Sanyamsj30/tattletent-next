@@ -71,6 +71,9 @@ const AdminDashboard = () => {
           <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
             Logout
           </button>
+          <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
+            All Complaints
+          </button>
         </div>
       </div>
 
