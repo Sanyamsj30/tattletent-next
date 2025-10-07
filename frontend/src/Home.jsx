@@ -35,6 +35,7 @@ export default function LandingPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [cpassword, setCPassword] = useState("");
   const navigate = useNavigate();
 
   const handleSignupSubmit = (e) => {
@@ -441,7 +442,38 @@ export default function LandingPage() {
                 />
               </div>
 
-              <AppButton type="submit" className="w-full bg-[#A0522D] hover:bg-[#8B4513] text-white py-3 rounded-lg">
+              <div className="mb-6">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  placeholder="Password Must be Same"
+                  required
+                  minLength={8}
+                  value={cpassword}
+                  onChange={(e) => setCPassword(e.target.value)}
+                  className={`w-full border rounded-lg px-4 py-2 outline-none 
+                    ${cpassword && password !== cpassword ? 'border-red-500' : 'border-gray-300'}
+                    focus:ring-2 focus:ring-[#A0522D]`}
+                />
+
+                {cpassword && password !== cpassword && (
+                  <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
+                )}
+              </div>
+
+
+              <AppButton
+                type="submit"
+                disabled={!password || password !== cpassword} // 🔒 Disable until both passwords match
+                className={`w-full py-3 rounded-lg text-white transition-colors duration-200
+                  ${!password || password !== cpassword
+                    ? 'bg-gray-400 cursor-not-allowed'  // disabled look
+                    : 'bg-[#A0522D] hover:bg-[#8B4513]' // active look
+                  }`}
+              >
                 Sign Up
               </AppButton>
             </form>
