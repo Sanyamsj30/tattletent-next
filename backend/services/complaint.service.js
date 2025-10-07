@@ -53,9 +53,14 @@ export const updateComplaintInDB = async (id, updates) => {
 
 // ✅ Delete complaint
 export const deleteComplaintFromDB = async (id) => {
-  const initialLength = complaints.length;
-  complaints = complaints.filter((c) => c.id !== id);
-  return complaints.length < initialLength; // true if deleted
+  const ck = await pool.query(
+    'SELECT * FROM complaints WHERE complaint_id = $1', [id]
+  );
+  if(ck.rows.length === 0) return false;
+  await pool.query(
+    'DELETE FROM complaints WHERE complaint_id = $1', [id]
+  );
+  return true; // true if deleted
 };
 
 // This lets you test filters, pagination, etc. without connecting to the real database
