@@ -9,7 +9,7 @@ const AllComplaintsPage = () => {
   ]);
 
   const [filterStatus, setFilterStatus] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [assignStaff, setAssignStaff] = useState(null);
 
@@ -17,8 +17,8 @@ const AllComplaintsPage = () => {
 
   const filteredComplaints = complaints.filter(c => {
     const matchesStatus = filterStatus === "all" || c.status.toLowerCase() === filterStatus.toLowerCase();
-    const matchesSearch = c.category.toLowerCase().includes(searchTerm.toLowerCase()) || c.citizen.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    const matchesCategory = filterCategory === "all" || c.category.toLowerCase() === filterCategory.toLowerCase();
+    return matchesStatus && matchesCategory;
   });
 
   const handleAssign = (complaint) => setAssignStaff(complaint);
@@ -36,7 +36,6 @@ const AllComplaintsPage = () => {
   };
 
   const exportCSV = () => {
-    // Simple CSV export logic
     const csvContent = [
       ["ID", "Category", "Location", "Status", "Citizen", "Priority", "Assigned To", "Description"],
       ...complaints.map(c => [c.id, c.category, c.location, c.status, c.citizen, c.priority || "", c.assignedTo || "", c.description])
@@ -57,23 +56,38 @@ const AllComplaintsPage = () => {
         <p className="text-gray-700 text-lg">View, assign, and update all complaints efficiently.</p>
       </div>
 
-      {/* Filter & Search */}
+      {/* Filter & Category */}
       <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-6">
         <div className="flex gap-2">
           {["all","pending","in progress","resolved"].map(f => (
-            <button key={f} onClick={()=>setFilterStatus(f)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${filterStatus===f?"bg-orange-600 text-white":"bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"}`}>
+            <button
+              key={f}
+              onClick={()=>setFilterStatus(f)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${filterStatus===f?"bg-orange-600 text-white":"bg-white text-gray-700 border border-gray-300 hover:bg-gray-100"}`}
+            >
               {f.charAt(0).toUpperCase()+f.slice(1)}
             </button>
           ))}
         </div>
-        <input
-          type="text"
-          placeholder="Search by category or citizen..."
+
+        <select
           className="px-4 py-2 border rounded-lg w-full sm:w-1/3"
-          value={searchTerm}
-          onChange={e=>setSearchTerm(e.target.value)}
-        />
-        <button onClick={exportCSV} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">Export CSV</button>
+          value={filterCategory}
+          onChange={(e)=>setFilterCategory(e.target.value)}
+        >
+          <option value="all">All Categories</option>
+          <option value="pathway damage">Pathway Damage</option>
+          <option value="water leak">Water Leak</option>
+          <option value="garbage">Garbage</option>
+          <option value="electrical">Electrical</option>
+        </select>
+
+        <button
+          onClick={exportCSV}
+          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+        >
+          Export CSV
+        </button>
       </div>
 
       {/* Complaints Table */}

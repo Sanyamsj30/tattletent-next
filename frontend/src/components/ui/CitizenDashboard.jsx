@@ -170,7 +170,7 @@ const CitizenDashboard = () => {
 
     {/* View All button - Changed to a blue button to match the notebook theme */}
     <div className="flex justify-center mt-8">
-      <button className="px-6 py-3 rounded-xl bg-orange-600 text-white font-semibold shadow-md hover:bg-blue-700 transition">
+      <button className="px-6 py-3 rounded-xl bg-orange-600 text-white font-semibold shadow-md hover:bg-orange-700 transition">
         View All Complaints
       </button>
     </div>
@@ -188,40 +188,81 @@ const CitizenDashboard = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-2xl font-bold text-orange-600 mb-6 border-b pb-2">Submit New Complaint</h3>
-            <form className="space-y-4">
-              <select className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner appearance-none bg-white">
-                <option>Select Category</option>
-                <option>Pathway Damage</option>
-                <option>Water Leak</option>
-                <option>Garbage</option>
-                <option>Electrical</option>
-              </select>
-              <input
-                type="text"
-                placeholder="Location / Address (e.g., Tent #12, Sector C)"
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner"
-              />
-              <textarea
-                placeholder="Detailed Description (what is the issue?)"
-                rows={4}
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner resize-none"
-              ></textarea>
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 transition shadow-md font-semibold"
-                  onClick={() => setIsSubmitOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-3 rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition shadow-lg font-semibold"
-                >
-                  Submit
-                </button>
-              </div>
-            </form>
+            <form className="space-y-5 bg-white p-6 rounded-2xl shadow-lg">
+  {/* Category */}
+  <div className="space-y-2">
+    <label className="block text-sm font-semibold text-gray-700">
+      Complaint Category <span className="text-red-500">*</span>
+    </label>
+    <select
+      required
+      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner appearance-none bg-white"
+    >
+      <option value="">Select Category</option>
+      <option>Pathway Damage</option>
+      <option>Water Leak</option>
+      <option>Garbage</option>
+      <option>Electrical</option>
+    </select>
+  </div>
+
+  {/* Location */}
+  <div className="space-y-2">
+    <label className="block text-sm font-semibold text-gray-700">
+      Location / Address <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="text"
+      required
+      placeholder="e.g., Tent #12, Sector C"
+      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner"
+    />
+  </div>
+
+  {/* Description */}
+  <div className="space-y-2">
+    <label className="block text-sm font-semibold text-gray-700">
+      Detailed Description <span className="text-red-500">*</span>
+    </label>
+    <textarea
+      required
+      placeholder="What is the issue?"
+      rows={4}
+      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner resize-none"
+    ></textarea>
+  </div>
+
+  {/* Photo Upload */}
+  <div className="space-y-2">
+    <label className="block text-sm font-semibold text-gray-700">
+      Upload Photo (optional but recommended)
+    </label>
+    <input
+      type="file"
+      accept="image/*"
+      required
+      className="w-full p-2 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200"
+    />
+  </div>
+
+  {/* Buttons */}
+  <div className="flex justify-end gap-3 pt-4">
+    <button
+      type="button"
+      className="px-6 py-3 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 transition shadow-md font-semibold"
+      onClick={() => setIsSubmitOpen(false)}
+    >
+      Cancel
+    </button>
+    <button
+      type="submit"
+      className="px-6 py-3 rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition shadow-lg font-semibold"
+    >
+      Submit
+    </button>
+  </div>
+</form>
+
           </div>
         </div>
       )}
