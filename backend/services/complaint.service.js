@@ -18,14 +18,6 @@ export const saveComplaintToDB = async (newComplaint) => {
   return complaint.rows[0];
 };
 
-// ✅ Get complaint by ID
-export const getComplaintByIdFromDB = async (id) => {
-  const complain = await pool.query(
-    'SELECT complaint_id, title, description, status, priority, submitted_at, photo, category, location FROM complaints WHERE complaint_id = $1', [id]
-  );
-  return complain.rows[0];
-};
-
 // ✅ Update complaint
 export const updateComplaintInDB = async (id, updates) => {
   const complaintR = await pool.query(
@@ -66,66 +58,81 @@ export const deleteComplaintFromDB = async (id) => {
   return true; // true if deleted
 };
 
-// This lets you test filters, pagination, etc. without connecting to the real database
+// search and filter
 
-export const getComplaintsFromDB = async (filters) => {
-  const {
-    status,
+export const searchComplaints = async (filters) => {
+  let {
+    searchText,
     category,
+    status,
     location,
-    search,
-    page = 1,
-    limit = 10,
-    sort = "newest",
+    fromDate,
+    toDate,
+    page,
+    limit,
+    sortBy,
+    order
   } = filters;
 
-  // ✅ Dummy complaints list (you can expand this)
-  const mockComplaints = [
-    { id: 1, title: "Pothole near park", category: "Roads", status: "OPEN", location: "Sector 9", created_at: "2025-10-04T10:00:00Z" },
-    { id: 2, title: "Streetlight broken", category: "Infrastructure", status: "IN_PROGRESS", location: "Sector 12", created_at: "2025-10-03T08:00:00Z" },
-    { id: 3, title: "Garbage overflow", category: "Waste Management", status: "RESOLVED", location: "Sector 7", created_at: "2025-10-02T15:00:00Z" },
-    { id: 4, title: "Water leakage", category: "Water & Sanitation", status: "OPEN", location: "Sector 5", created_at: "2025-10-01T12:00:00Z" },
-    { id: 5, title: "Broken signboard", category: "Infrastructure", status: "OPEN", location: "Sector 10", created_at: "2025-09-30T09:00:00Z" },
-  ];
+  // Ensure page & limit are valid integers
+  page = parseInt(page, 10);
+  limit = parseInt(limit, 10);
+  if (isNaN(page) || page < 1) page = 1;
+  if (isNaN(limit) || limit < 1) limit = 10;
 
-  // 🧩 1️⃣ Apply filters
-  let filtered = [...mockComplaints];
+  let query = 'SELECT * FROM complaints WHERE 1=1';
+  const params = [];
+  let idx = 1;
 
-  if (status) filtered = filtered.filter((c) => c.status === status);
-  if (category) filtered = filtered.filter((c) => c.category === category);
-  if (location) filtered = filtered.filter((c) => c.location.toLowerCase().includes(location.toLowerCase()));
-  if (search)
-    filtered = filtered.filter(
-      (c) =>
-        c.title.toLowerCase().includes(search.toLowerCase()) ||
-        c.category.toLowerCase().includes(search.toLowerCase())
-    );
+  // Text search
+  if (searchText) {
+    query += ` AND (title ILIKE $${idx} OR description ILIKE $${idx})`;
+    params.push(`%${searchText}%`);
+    idx++;
+  }
 
+  // Filters
+  if (category) {
+    query += ` AND category = $${idx}`;
+    params.push(category);
+    idx++;
+  }
+  if (status) {
+    query += ` AND status = $${idx}`;
+    params.push(status);
+    idx++;
+  }
+  if (location) {
+    query += ` AND location = $${idx}`;
+    params.push(location);
+    idx++;
+  }
+  if (fromDate) {
+    query += ` AND created_at >= $${idx}`;
+    params.push(fromDate);
+    idx++;
+  }
+  if (toDate) {
+    query += ` AND created_at <= $${idx}`;
+    params.push(toDate);
+    idx++;
+  }
 
-   if (search)
-    filtered = filtered.filter(
-      (c) =>
-        c.title.toLowerCase().includes(search.toLowerCase()) ||
-        c.category.toLowerCase().includes(search.toLowerCase())
-    );
+  // Sorting
+  const validSort = ['submitted_at', 'status', 'category', 'sla_deadline'];
+  const validOrder = ['asc', 'desc'];
+  const sortColumn = validSort.includes(sortBy) ? sortBy : 'submitted_at';
+  const sortOrder = validOrder.includes((order || '').toLowerCase()) ? order.toUpperCase() : 'DESC';
+  query += ` ORDER BY ${sortColumn} ${sortOrder}`;
 
-  // 🧩 2️⃣ Sort by date
-  filtered.sort((a, b) => {
-    if (sort === "oldest") return new Date(a.created_at) - new Date(b.created_at);
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
+  // Pagination
+  const offset = (page - 1) * limit;
+  query += ` LIMIT $${idx} OFFSET $${idx + 1}`;
+  params.push(limit, offset);
 
-  // 🧩 3️⃣ Pagination logic
-  const startIndex = (page - 1) * limit;
-  const paginated = filtered.slice(startIndex, startIndex + limit);
-
-  // 🧩 4️⃣ Return simulated DB result
-  return {
-    complaints: paginated,
-    totalCount: filtered.length,
-  };
+  const result = await pool.query(query, params);
+  return result.rows;
 };
-
 
 
 export const escalateComplaintsByCategory = async () => {

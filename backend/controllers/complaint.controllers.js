@@ -2,16 +2,11 @@ import asynchandler from "../utils/asynchandler.js";
 import { ApiResponse } from "../utils/api-response.js";
 import {
   saveComplaintToDB,
-  getComplaintByIdFromDB,
   updateComplaintInDB,
   deleteComplaintFromDB,
-  getComplaintsFromDB,
+  searchComplaints,
   escalateComplaintsByCategory,
 } from "../services/complaint.service.js";
-
-
-
-
 
 // ✅ Create a new complaint
 const createComplaint = asynchandler(async (req, res) => {
@@ -51,22 +46,6 @@ const createComplaint = asynchandler(async (req, res) => {
 });
 
 
-// ✅ Get Complaint by ID
-const getComplaintById = asynchandler(async (req, res) => {
-  const { id } = req.params;
-  const complaintId = parseInt(id, 10);
-  const complaint = await getComplaintByIdFromDB(complaintId);
-
-  if (!complaint)
-    return res
-      .status(404)
-      .json(new ApiResponse(404, "Complaint not found"));
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Complaint fetched successfully", complaint));
-});
-
 
 // ✅ Update Complaint (status or details)
 const updateComplaint = asynchandler(async (req, res) => {
@@ -101,40 +80,29 @@ const deleteComplaint = asynchandler(async (req, res) => {
     .json(new ApiResponse(200, "Complaint deleted successfully"));
 });
 
+// search and filter
+const getComplaints = async (req, res) => {
+  try {
+    const filters = {
+      searchText: req.query.q,
+      category: req.query.category,
+      status: req.query.status,
+      location: req.query.location,
+      fromDate: req.query.fromDate,
+      toDate: req.query.toDate,
+      page: req.query.page,
+      limit: req.query.limit,
+      sortBy: req.query.sortBy,
+      order: req.query.order
+    };
 
-const getAllComplaints = asynchandler(async (req, res) => {
-  const { status, category, location, search, page = 1, limit = 10, sort = "newest" } = req.query;
-
-  // Collect filters for your teammate’s DB query
-  const filters = {
-    status,
-    category,
-    location,
-    search,
-    page: Number(page),
-    limit: Number(limit),
-    sort
-  };
-
-  // Get filtered results from the DB
-  const { complaints, totalCount } = await getComplaintsFromDB(filters);
-
-    // ✅ if no complaints found → send 404 error
-  if (!complaints || complaints.length === 0) {
-    return res
-      .status(404)
-      .json(new ApiResponse(404, "No complaints found for the given search or filters"));
+    const complaints = await searchComplaints(filters);
+    res.status(200).json(complaints);
+  } catch (err) {
+    console.error('Error in getComplaints:', err);
+    res.status(500).json({ error: 'Server Error' });
   }
-
-  return res.status(200).json(
-    new ApiResponse(200, "Complaints fetched successfully", {
-      total: totalCount,
-      page,
-      totalPages: Math.ceil(totalCount / limit),
-      complaints,
-    })
-  );
-});
+};
 
 
 // ✅ Manual trigger endpoint (can run from Postman)
@@ -153,4 +121,4 @@ const escalateComplaints = asynchandler(async (req, res) => {
 });
 
 
-export { createComplaint, getComplaintById,updateComplaint, deleteComplaint ,getAllComplaints,escalateComplaints};
+export { createComplaint, updateComplaint, deleteComplaint ,getComplaints,escalateComplaints};
