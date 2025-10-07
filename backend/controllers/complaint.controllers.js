@@ -1,12 +1,15 @@
-import { asynchandler } from "../utils/asynchandler.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import asynchandler from "../utils/asynchandler.js";
+import { ApiResponse } from "../utils/api-response.js";
 import {
   saveComplaintToDB,
   getComplaintByIdFromDB,
   updateComplaintInDB,
   deleteComplaintFromDB,
   getComplaintsFromDB,
+  escalateComplaintsByCategory,
 } from "../services/complaint.service.js";
+
+
 
 
 // ✅ Create a new complaint
@@ -134,4 +137,20 @@ const getAllComplaints = asynchandler(async (req, res) => {
 });
 
 
-export { createComplaint, getComplaintById,updateComplaint, deleteComplaint ,getAllComplaints};
+// ✅ Manual trigger endpoint (can run from Postman)
+const escalateComplaints = asynchandler(async (req, res) => {
+  const escalated = await escalateComplaintsByCategory();
+
+  if (escalated.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "No complaints needed escalation today"));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Complaints escalated successfully", escalated));
+});
+
+
+export { createComplaint, getComplaintById,updateComplaint, deleteComplaint ,getAllComplaints,escalateComplaints};

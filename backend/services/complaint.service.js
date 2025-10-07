@@ -2,6 +2,13 @@
 
 let complaints = []; // 🧠 temporary in-memory storage
 
+const categoryThresholds = {
+  "Roads & Infrastructure": 3,
+  "Water & Sanitation": 2,
+  "Public Safety": 1,
+  "Waste Management": 4,
+};
+
 // ✅ Save complaint
 export const saveComplaintToDB = async (newComplaint) => {
   const complaint = { id: Date.now().toString(), ...newComplaint };
@@ -103,4 +110,33 @@ export const getComplaintsFromDB = async (filters) => {
     complaints: paginated,
     totalCount: filtered.length,
   };
+};
+
+
+
+export const escalateComplaintsByCategory = async () => {
+  const now = new Date();
+  const escalated = [];
+
+  for (const c of complaints) {
+    if (c.status === "RESOLVED") continue; // skip completed complaints
+
+    const lastUpdate = new Date(c.updatedAt);
+    const daysOld = (now - lastUpdate) / (1000 * 60 * 60 * 24);
+    const threshold = categoryThresholds[c.category] || 3; // default 3 days
+
+    if (daysOld > threshold && c.priority_level !== "Escalated") {
+      c.priority_level = "Escalated";
+      c.assigned_to = "supervisor";
+      c.updatedAt = now.toISOString();
+      c.statusHistory.push({
+        status: c.status,
+        date: now.toISOString(),
+        note: `Escalated automatically after ${Math.floor(daysOld)} days (limit: ${threshold})`,
+      });
+      escalated.push(c);
+    }
+  }
+
+  return escalated;
 };
