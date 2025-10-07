@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import Logo from './Logo'
+import { useNavigate } from "react-router-dom";
 
 const AllComplaintsPage = () => {
+
+  const navigate=useNavigate();
+
   const [complaints, setComplaints] = useState([
     { id: 1, category: "Water Leak", location: "Tent #5", status: "Pending", citizen: "John Doe", priority: null, description: "Leak near Tent #5, pipe burst", assignedTo: null },
     { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", citizen: "Mike Johnson", priority: "Low", description: "Overflowing bin near park", assignedTo: "John Doe" },
@@ -68,10 +72,10 @@ const AllComplaintsPage = () => {
     <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
     <Logo/>
     <div className="flex items-center gap-4">
-      <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
+      <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2" onClick={() => navigate("/")}>
         Home
       </button>
-      <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2">
+      <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2" onClick={() => navigate("/admin-dashboard")}>
         My Dashboard
       </button>
     </div>

@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const LearnMorePage = () => {
+  const navigate=useNavigate();
+
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans">
       {/* Header / Hero Section */}
@@ -75,7 +78,7 @@ const LearnMorePage = () => {
       <section className="py-20 px-6 bg-orange-50 text-center">
         <h2 className="text-3xl font-bold text-orange-700 mb-4">Join Us in Building Better Communities</h2>
         <p className="text-gray-700 mb-6 max-w-2xl mx-auto">Become a citizen reporter or staff member and help improve your neighborhood.</p>
-        <a href="/signup" className="px-6 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition font-semibold">Back To Home</a>
+        <a href="/" className="px-6 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition font-semibold">Back To Home</a>
       </section>
     </div>
   );

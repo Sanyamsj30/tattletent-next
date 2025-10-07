@@ -1,26 +1,36 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import './index.css'
-// import LoginForm from './components/LoginForm.jsx'
-// import SignupForm from "./components/SignupForm.jsx"
-//import App from "./App.jsx"
-import Home from "./Home"
-//import StaffDashboard from "./components/ui/StaffDashboard"
-//import CitizenDashboard from "./components/ui/CitizenDashboard"
-// import AdminDashboard from "./components/ui/AdminDashboard"
-//import AllComplaintPage from "./components/ui/AllComplaintsPage"
-//import LearnMorePage from './components/ui/LearnMorePage'
 
-createRoot(document.getElementById('root')).render(
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import "./index.css";
+
+import Home from "./Home";
+import CitizenDashboard from "./components/ui/CitizenDashboard";
+import StaffDashboard from "./components/ui/StaffDashboard";
+import AdminDashboard from "./components/ui/AdminDashboard";
+import LearnMorePage from "./components/ui/LearnMorePage"
+import AllComplaintsPage from "./components/ui/AllComplaintsPage"
+
+
+// Replace with your actual Google client ID
+const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
+
+createRoot(document.getElementById("root")).render(
   <StrictMode>
-    {/*<LearnMorePage/>*/}
-    {/*<AllComplaintPage/>*/}
-    {/*<CitizenDashboard/>*/}
-    {/* <AdminDashboard/> */}
-    {/*<LoginForm/>*/}
-    {/* <SignupForm /> */}
-    {/*<App/>*/}
-    <Home/>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
+          <Route path="/staff-dashboard" element={<StaffDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/learn-more" element={<LearnMorePage />} />
+          <Route path="/all-complaints" element={<AllComplaintsPage />} />
+
+
+        </Routes>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   </StrictMode>
-)
+);
