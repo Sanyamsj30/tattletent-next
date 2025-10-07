@@ -4,6 +4,8 @@ import authRoutes from './routes/auth.js';
 import passport from 'passport';
 import './config/passport-setup.js'; // Import the passport config
 import complaintRoutes from "./routes/complaint.routes.js"
+import "./jobs/escalation.job.js";
+
 
 
 // Load environment variables
