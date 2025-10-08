@@ -55,14 +55,14 @@ const createComplaint = asynchandler(async (req, res) => {
 const updateComplaintStatus = asynchandler(async (req, res) => {
   const { id } = req.params;
   // Expects { "status": "new status value" } in req.body
-  const { status } = req.body; 
+  const { status, staffId } = req.body; 
   const complaintId = parseInt(id, 10);
-  
+
   if (!status) {
       return res.status(400).json(new ApiResponse(400, "Status is required for this update."));
   }
 
-  const updatedComplaint = await updateComplaintStatusInDB(complaintId, status);
+  const updatedComplaint = await updateComplaintStatusInDB(complaintId, status, staffId);
 
   if (!updatedComplaint)
     return res
@@ -172,4 +172,4 @@ const escalateComplaints = asynchandler(async (req, res) => {
 });
 
 
-export { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint ,getComplaints,escalateComplaints};
+export { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint, fetchComplaintCounts ,getComplaints,escalateComplaints};
