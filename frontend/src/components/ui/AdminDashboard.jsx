@@ -1,22 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Logo from "./Logo";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const user = JSON.parse(localStorage.getItem("user"));
 
+  const [complaints, setComplaints] = useState([]);
+
+  const fetchComplaintsByUser = async () => {
+    try {
+      if (!user?.user_id) return;
+
+      const queryParams = new URLSearchParams({ status: "New" }).toString();
+      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+
+      if (!response.ok) throw new Error("Failed to fetch complaints");
+
+      const data = await response.json();
+      setComplaints(data.map(c => ({
+        id: c.complaint_id,
+        category: c.category,
+        location: c.location,
+        status: c.status,
+        assignedTo: c.assigned_to,
+        staff_id: c.staff_id,
+      })));
+
+    } catch (err) {
+      console.error("Error fetching complaints:", err);
+      setComplaints([]); // fallback to empty array
+    }
+  };
+
+  useEffect(() => {
+    if (user?.user_id) {
+      fetchComplaintsByUser();
+    }
+  }, [user]);
   // Demo data
- 
-
-  const [complaints] = useState([
-    { id: 1, category: "Water Leak", location: "Tent #5", status: "Pending", assignedTo: null },
-    { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", assignedTo: null },
-    { id: 3, category: "Electrical", location: "Sector B", status: "Pending", assignedTo: null },
-    { id: 4, category: "Road Damage", location: "Tent #10", status: "Pending", assignedTo: null },
-    { id: 5, category: "Street Light", location: "Sector A", status: "Resolved", assignedTo: null },
-    { id: 6, category: "Overflowing Dustbin", location: "Block 9", status: "Pending", assignedTo: null },
-  ]);
 
   const [reviews] = useState([
     { id: 1, citizen: "Alice", comment: "Great service by staff!", rating: 5 },
@@ -87,7 +110,7 @@ const AdminDashboard = () => {
         {/* Welcome Section */}
         <div className="text-center">
           <h2 className="text-5xl sm:text-6xl md:text-7xl font-extrabold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent leading-tight tracking-tight">
-            Welcome, Admin 🛡️
+            Welcome, {user.name} 🛡️
           </h2>
           <p className="text-gray-700 text-lg italic">
             Manage staff, assign complaints, and review citizen feedback.
@@ -114,23 +137,31 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-blue-200 bg-white">
-                {paginatedComplaints.map((c) => (
-                  <tr key={c.id} className="hover:bg-blue-50 transition">
-                    <td className="p-4 font-bold">{c.id}</td>
-                    <td className="p-4">{c.category}</td>
-                    <td className="p-4">{c.location}</td>
-                    <td className="p-4">{c.status}</td>
-                    <td className="p-4">{c.assignedTo || "Unassigned"}</td>
-                    <td className="p-4">
-                      <button
-                        className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition"
-                        onClick={() => handleAssignClick(c)}
-                      >
-                        Assign
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {complaints.length > 0 ? (
+                  paginatedComplaints.map((c) => (
+                    <tr key={c.id} className="hover:bg-blue-50 transition">
+                      <td className="p-4 font-bold">{c.id}</td>
+                      <td className="p-4">{c.category}</td>
+                      <td className="p-4">{c.location}</td>
+                      <td className="p-4">{c.status}</td>
+                      <td className="p-4">{c.assignedTo || "Unassigned"}</td>
+                      <td className="p-4">
+                        <button
+                          className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition"
+                          onClick={() => handleAssignClick(c)}
+                        >
+                          Assign
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                    <tr>
+                      <td colSpan="5" className="text-center p-4 text-gray-500">
+                        No complaints found.
+                      </td>
+                    </tr>
+                )}
               </tbody>
             </table>
           </div>
