@@ -108,13 +108,48 @@ export default function LandingPage() {
   };
 
 
-  const handleLoginSubmit = (e) => {
-    e.preventDefault();
-    const user = { email, password };
-    console.log("Logged In User:", user);
+  // const handleLoginSubmit = (e) => {
+  //   e.preventDefault();
+  //   const user = { email, password };
+  //   console.log("Logged In User:", user);
 
-    // Example: redirect to citizen dashboard (change as per your login logic)
-    navigate("/citizen-dashboard");
+  //   // Example: redirect to citizen dashboard (change as per your login logic)
+  //   navigate("/citizen-dashboard");
+  // };
+
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+
+      const loginRes = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const loginData = await loginRes.json();
+
+      if (loginRes.ok) {
+        localStorage.setItem("token", loginData.token);
+        localStorage.setItem("user", JSON.stringify(loginData.user));
+        setLoginOpen(false);
+        setEmail("");
+        setPassword("");
+        if (loginData.user.role === "ringmaster") navigate("/ringmaster-dashboard");
+        else if (loginData.user.role === "staff") navigate("/staff-dashboard");
+        else navigate("/citizen-dashboard");
+      } else {
+        console.error(loginData.message);
+      }
+    } catch (err) {
+      console.error("Login Unsuccessful:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
 
@@ -354,12 +389,7 @@ export default function LandingPage() {
     >
       {!forgotPassword ? (
         // --- Login Form ---
-        <form onSubmit={(e) => {
-            e.preventDefault();
-            const user = { email, password };
-            console.log("Logged In User:", user);
-            navigate("/citizen-dashboard");
-          }}
+        <form onSubmit={handleLoginSubmit}
         >
           <h2 className="text-2xl font-bold text-[#d55d1f] mb-6 text-center">Login</h2>
           
