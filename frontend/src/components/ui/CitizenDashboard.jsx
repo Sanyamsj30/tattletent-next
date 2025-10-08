@@ -11,6 +11,8 @@ const CitizenDashboard = () => {
   const navigate = useNavigate(); 
   const user = JSON.parse(localStorage.getItem("user"));
 
+  const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
+
   // const complaints = [
   //   { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
   //   { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
@@ -60,6 +62,20 @@ useEffect(() => {
         return "bg-red-100 text-red-800";
     }
   };
+  
+  const fetchCounts = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      setCounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+  
 
   const handleNewComplaint = async (e) => {
     e.preventDefault();
@@ -93,12 +109,14 @@ useEffect(() => {
         e.target.reset();
         setIsSubmitOpen(false);
         fetchComplaintsByUser();
+        fetchCounts();
       }
     } catch (error) {
       console.error("Error submitting complaint:", error);
       alert(error.response?.data?.message || "Failed to submit complaint.");
     }
   };
+
 
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans">
@@ -147,9 +165,9 @@ useEffect(() => {
   {/* 2. Stats Section - No outer box, but cards have internal padding (py-8) */}
   <div className="grid grid-cols-1 sm:grid-cols-3 gap-8"> {/* Increased gap for better spacing */}
     {[
-      { title: "Total Complaints", count: 42 },
-      { title: "Resolved", count: 20 },
-      { title: "Awaiting Action", count: 22 },
+      { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
+      { title: "Resolved", count: counts.resolved },
+      { title: "Awaiting Action", count: counts.in_progress },
     ].map((s) => (
       <div
         key={s.title}

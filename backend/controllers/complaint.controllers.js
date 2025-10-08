@@ -4,6 +4,7 @@ import {
   saveComplaintToDB,
   updateComplaintInDB,
   deleteComplaintFromDB,
+  getComplaintCounts,
   searchComplaints,
   escalateComplaintsByCategory,
 } from "../services/complaint.service.js";
@@ -81,6 +82,16 @@ const deleteComplaint = asynchandler(async (req, res) => {
     .json(new ApiResponse(200, "Complaint deleted successfully"));
 });
 
+// total count
+const fetchComplaintCounts = async (req, res) => {
+  try {
+    const counts = await getComplaintCounts();
+    res.status(200).json(counts);
+  } catch (err) {
+    res.status(500).json({ error: 'Server Error' });
+  }
+};
+
 // search and filter
 const getComplaints = async (req, res) => {
   try {
@@ -123,4 +134,4 @@ const escalateComplaints = asynchandler(async (req, res) => {
 });
 
 
-export { createComplaint, updateComplaint, deleteComplaint ,getComplaints,escalateComplaints};
+export { createComplaint, updateComplaint, deleteComplaint, fetchComplaintCounts, getComplaints, escalateComplaints};
