@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import passport from 'passport';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
+import { protect, adminOnly } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 
@@ -102,6 +103,64 @@ router.post('/register', async (req, res) => {
   }
 });
 
+/* ----------------------------
+   STAFF CREATION BY ADMIN
+----------------------------- */
+
+router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and email are required.' });
+    }
+
+    // 1️⃣  Check if user already exists
+    const existing = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ message: 'User with this email already exists.' });
+    }
+
+    // 2️⃣  Create temporary password
+    const tempPassword = 'Temp@1234';
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    // 3️⃣  Insert staff into database
+    const result = await pool.query(
+      `INSERT INTO users (name, email, password_hash, role, is_verified, must_change_password)
+       VALUES ($1, $2, $3, 'Staff', TRUE, TRUE)
+       RETURNING user_id, name, email, role, must_change_password`,
+      [name, email, hashedPassword]
+    );
+
+    const staff = result.rows[0];
+
+    // 4️⃣  Send email to staff with login credentials
+    await sendEmail({
+      email,
+      subject: 'Your Staff Account for TattleTent',
+      html: `
+        <h2>Welcome to TattleTent</h2>
+        <p>Dear ${name},</p>
+        <p>An account has been created for you by the TattleTent admin. Use the credentials below to log in:</p>
+        <ul>
+          <li><b>Email:</b> ${email}</li>
+          <li><b>Temporary Password:</b> ${tempPassword}</li>
+        </ul>
+        <p>For security reasons, you must change your password after your first login.</p>
+        <p><b>Login here:</b> https://your-frontend-url.com/login</p>
+      `,
+    });
+
+    res.status(201).json({
+      message: 'Staff account created successfully and credentials emailed.',
+      staff,
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // --- LOGIN A USER ---
 // Route: POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -136,6 +195,14 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials.' });
         }
 
+         //  Check if must change password
+        if (user.must_change_password) {
+          return res.status(403).json({
+            message: 'Password change required before login.',
+            must_change_password: true,
+          });
+        }
+
         // Generate JWT
         const token = generateToken(user.user_id);
         
@@ -156,6 +223,53 @@ router.post('/login', async (req, res) => {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
+});
+
+router.put('/change-password', protect, async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: 'Please provide both old and new password.' });
+    }
+
+    // Get current user info
+    const userResult = await pool.query(
+      'SELECT user_id, password_hash, must_change_password FROM users WHERE user_id = $1',
+      [req.user.user_id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const user = userResult.rows[0];
+    const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Old password is incorrect.' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const newHash = await bcrypt.hash(newPassword, salt);
+
+    // Update password + reset must_change_password flag
+    const updatedUser = await pool.query(
+      `UPDATE users
+       SET password_hash = $1, must_change_password = FALSE
+       WHERE user_id = $2
+       RETURNING user_id, name, email, role, must_change_password`,
+      [newHash, req.user.user_id]
+    );
+
+    res.status(200).json({
+      message: 'Password changed successfully.',
+      user: updatedUser.rows[0],
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
 });
 
 
