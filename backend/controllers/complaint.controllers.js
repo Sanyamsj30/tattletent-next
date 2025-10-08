@@ -2,7 +2,8 @@ import asynchandler from "../utils/asynchandler.js";
 import { ApiResponse } from "../utils/api-response.js";
 import {
   saveComplaintToDB,
-  updateComplaintInDB,
+  updateComplaintStatusInDB,
+  updateComplaintPriorityInDB,
   deleteComplaintFromDB,
   getComplaintCounts,
   searchComplaints,
@@ -49,12 +50,19 @@ const createComplaint = asynchandler(async (req, res) => {
 
 
 
-// ✅ Update Complaint (status or details)
-const updateComplaint = asynchandler(async (req, res) => {
+
+// ✅ Update Complaint Status
+const updateComplaintStatus = asynchandler(async (req, res) => {
   const { id } = req.params;
-  const updates = [req.body.status, req.body.priority];
+  // Expects { "status": "new status value" } in req.body
+  const { status } = req.body; 
   const complaintId = parseInt(id, 10);
-  const updatedComplaint = await updateComplaintInDB(complaintId, updates);
+  
+  if (!status) {
+      return res.status(400).json(new ApiResponse(400, "Status is required for this update."));
+  }
+
+  const updatedComplaint = await updateComplaintStatusInDB(complaintId, status);
 
   if (!updatedComplaint)
     return res
@@ -63,7 +71,30 @@ const updateComplaint = asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, "Complaint updated successfully", updatedComplaint));
+    .json(new ApiResponse(200, "Complaint status updated successfully", updatedComplaint));
+});
+
+// ✅ Update Complaint Priority (and recalculate SLA)
+const updateComplaintPriority = asynchandler(async (req, res) => {
+  const { id } = req.params;
+  // Expects { "priority": "new priority value" } in req.body
+  const { priority } = req.body;
+  const complaintId = parseInt(id, 10);
+
+  if (!priority) {
+      return res.status(400).json(new ApiResponse(400, "Priority is required for this update."));
+  }
+
+  const updatedComplaint = await updateComplaintPriorityInDB(complaintId, priority);
+
+  if (!updatedComplaint)
+    return res
+      .status(404)
+      .json(new ApiResponse(404, "Complaint not found"));
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Complaint priority updated successfully", updatedComplaint));
 });
 
 
@@ -118,20 +149,31 @@ const getComplaints = async (req, res) => {
 };
 
 
-// ✅ Manual trigger endpoint (can run from Postman)
+/**
+ * 🧭 Manual Escalation Trigger
+ * Route: POST /api/complaints/escalate
+ * Description: Runs escalation logic manually (for testing or admin use)
+ */
 const escalateComplaints = asynchandler(async (req, res) => {
   const escalated = await escalateComplaintsByCategory();
 
   if (escalated.length === 0) {
     return res
       .status(200)
-      .json(new ApiResponse(200, "No complaints needed escalation today"));
+      .json(new ApiResponse(200, "✅ No complaints needed escalation today"));
   }
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Complaints escalated successfully", escalated));
+  return res.status(200).json(
+    new ApiResponse(200, "⚡ Complaints escalated successfully", {
+      count: escalated.length,
+      escalated,
+    })
+  );
 });
 
 
+<<<<<<< HEAD
 export { createComplaint, updateComplaint, deleteComplaint, fetchComplaintCounts, getComplaints, escalateComplaints};
+=======
+export { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint ,getComplaints,escalateComplaints};
+>>>>>>> sanyam
