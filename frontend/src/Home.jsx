@@ -139,8 +139,8 @@ export default function LandingPage() {
         setLoginOpen(false);
         setEmail("");
         setPassword("");
-        if (loginData.user.role === "ringmaster") navigate("/ringmaster-dashboard");
-        else if (loginData.user.role === "staff") navigate("/staff-dashboard");
+        if (loginData.user.role === "Ringmaster") navigate("/admin-dashboard");
+        else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
         else navigate("/citizen-dashboard");
       } else {
         console.error(loginData.message);
@@ -252,6 +252,12 @@ export default function LandingPage() {
           >
             Admin Dahboard
           </AppButton>
+          {/*<AppButton
+            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
+            onClick={() => navigate("/citizen-dashboard")}
+          >
+            Citizen Dahboard
+          </AppButton>*/}
         </motion.div>
       </section>
 

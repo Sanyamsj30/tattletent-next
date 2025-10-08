@@ -94,6 +94,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
+
 /* ----------------------------
    STAFF CREATION BY ADMIN
 ----------------------------- */
@@ -154,6 +155,9 @@ router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
 
 // --- LOGIN A USER ---
 // Route: POST /api/auth/login
+
+// Login
+
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;

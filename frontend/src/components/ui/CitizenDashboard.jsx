@@ -1,32 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import Logo from "./Logo";
 import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [complaints, setComplaints] = useState([]);
   const navigate = useNavigate(); 
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  const complaints = [
-    { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
-    { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
-    { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
-  ];
+  const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
-  <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
-        <div className="flex items-center">
-          <Logo />
-        </div>
-        <div className="flex items-center">
-          <button
-            onClick={() => navigate("/")} // 👈 Redirect to Home page
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
-          >
-            <span className="text-xl">Logout</span>
-          </button>
-        </div>
-      </div>
+  // const complaints = [
+  //   { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
+  //   { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
+  //   { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
+  // ];
+
+  const fetchComplaintsByUser = async () => {
+  try {
+    if (!user?.user_id) return;
+
+    const queryParams = new URLSearchParams({ user_id: user.user_id }).toString();
+    const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+
+    if (!response.ok) throw new Error("Failed to fetch complaints");
+
+    const data = await response.json();
+    setComplaints(data.map(c => ({
+      id: c.complaint_id,
+      category: c.category,
+      status: c.status,
+      description: c.description,
+      date: new Date(c.submitted_at).toLocaleDateString()
+    })));
+
+  } catch (err) {
+    console.error("Error fetching complaints:", err);
+    setComplaints([]); // fallback to empty array
+  }
+};
+
+useEffect(() => {
+  if (user?.user_id) {
+    fetchComplaintsByUser();
+  }
+}, [user]);
+// refetch if user changes
 
 
   const getStatusBadge = (status) => {
@@ -40,6 +62,61 @@ const CitizenDashboard = () => {
         return "bg-red-100 text-red-800";
     }
   };
+  
+  const fetchCounts = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      setCounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+  
+
+  const handleNewComplaint = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !user) {
+        alert("You must be logged in to submit a complaint.");
+        return;
+      }
+
+      // Create a FormData object to handle text + image together
+      const formData = new FormData(e.target);
+
+      // Add logged-in user ID automatically
+      formData.append("user_id", user.user_id);
+
+      const response = await axios.post(
+        "http://localhost:5000/api/complaints",  // 👈 your backend route
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        alert("Complaint submitted successfully!");
+        e.target.reset();
+        setIsSubmitOpen(false);
+        fetchComplaintsByUser();
+        fetchCounts();
+      }
+    } catch (error) {
+      console.error("Error submitting complaint:", error);
+      alert(error.response?.data?.message || "Failed to submit complaint.");
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans">
@@ -66,7 +143,7 @@ const CitizenDashboard = () => {
   {/* 1. Welcome Section (No box) */}
   <div className="space-y-5 py-10 font-serif">
   <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent leading-tight tracking-tight">
-    👋 Welcome Back, Citizen!
+    👋 Welcome, {user.name}!
   </h1>
   
   <p className="text-2xl text-gray-700 mt-4 italic">
@@ -88,9 +165,9 @@ const CitizenDashboard = () => {
   {/* 2. Stats Section - No outer box, but cards have internal padding (py-8) */}
   <div className="grid grid-cols-1 sm:grid-cols-3 gap-8"> {/* Increased gap for better spacing */}
     {[
-      { title: "Total Complaints", count: 42 },
-      { title: "Resolved", count: 20 },
-      { title: "Awaiting Action", count: 22 },
+      { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
+      { title: "Resolved", count: counts.resolved },
+      { title: "Awaiting Action", count: counts.in_progress },
     ].map((s) => (
       <div
         key={s.title}
@@ -166,22 +243,30 @@ const CitizenDashboard = () => {
           </tr>
         </thead>
         {/* Body - Plain white background, blue dividers */}
-        <tbody className="divide-y divide-blue-200 bg-white"> 
-          {complaints.map((c) => (
-            <tr key={c.id} className="hover:bg-blue-50 transition"> {/* Subtle blue hover */}
-              <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td> {/* Dark 'ink' color */}
-              <td className="p-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>
-                  {c.status}
-                </span>
-              </td>
-              <td className="p-4 text-gray-700 font-mono">{c.description}</td> 
-              <td className="p-4 text-gray-600 text-sm font-mono">{c.date}</td> 
-              <td className="p-4 text-right">
-                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono">View Details</button>
+        <tbody className="divide-y divide-blue-200 bg-white">
+          {complaints.length > 0 ? (
+            complaints.map((c) => (
+              <tr key={c.id} className="hover:bg-blue-50 transition">
+                <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
+                <td className="p-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>
+                    {c.status}
+                  </span>
+                </td>
+                <td className="p-4 text-gray-700 font-mono">{c.description}</td>
+                <td className="p-4 text-gray-600 text-sm font-mono">{c.date}</td>
+                <td className="p-4 text-right">
+                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono">View Details</button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="5" className="text-center p-4 text-gray-500">
+                No complaints found.
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
@@ -206,13 +291,17 @@ const CitizenDashboard = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-2xl font-bold text-orange-600 mb-6 border-b pb-2">Submit New Complaint</h3>
-            <form className="space-y-5 bg-white p-6 rounded-2xl shadow-lg">
+            <form 
+              onSubmit={handleNewComplaint}
+              className="space-y-5 bg-white p-6 rounded-2xl shadow-lg"
+            >
   {/* Category */}
   <div className="space-y-2">
     <label className="block text-sm font-semibold text-gray-700">
       Complaint Category <span className="text-red-500">*</span>
     </label>
     <select
+      name="category"
       required
       className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner appearance-none bg-white"
     >
@@ -224,12 +313,26 @@ const CitizenDashboard = () => {
     </select>
   </div>
 
+  <div className="space-y-2">
+    <label className="block text-sm font-semibold text-gray-700">
+      Title <span className="text-red-500">*</span>
+    </label>
+    <input
+      name="title"
+      type="text"
+      required
+      placeholder="e.g., Tent #12, Sector C"
+      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner"
+    />
+  </div>
+
   {/* Location */}
   <div className="space-y-2">
     <label className="block text-sm font-semibold text-gray-700">
       Location / Address <span className="text-red-500">*</span>
     </label>
     <input
+      name="location"
       type="text"
       required
       placeholder="e.g., Tent #12, Sector C"
@@ -243,6 +346,7 @@ const CitizenDashboard = () => {
       Detailed Description <span className="text-red-500">*</span>
     </label>
     <textarea
+      name="description"
       required
       placeholder="What is the issue?"
       rows={4}
@@ -256,9 +360,9 @@ const CitizenDashboard = () => {
       Upload Photo (optional but recommended)
     </label>
     <input
+      name="photo"
       type="file"
       accept="image/*"
-      required
       className="w-full p-2 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200"
     />
   </div>

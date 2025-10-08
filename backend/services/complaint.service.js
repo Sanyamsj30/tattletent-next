@@ -139,10 +139,31 @@ export const deleteComplaintFromDB = async (id) => {
   return true; // true if deleted
 };
 
+// total count
+export const getComplaintCounts = async () => {
+  try {
+    const query = `
+      SELECT
+        COUNT(*) FILTER (WHERE status='Resolved') AS resolved,
+        COUNT(*) FILTER (WHERE status='New') AS pending,
+        COUNT(*) FILTER (WHERE status='In progress') AS in_progress
+      FROM complaints
+    `;
+
+    const result = await pool.query(query);
+    return result.rows[0] || { resolved: 0, pending: 0, in_progress: 0 };
+  } catch (err) {
+    console.error('Error in getComplaintCounts:', err);
+    throw err;
+  }
+};
+
+
 // search and filter
 
 export const searchComplaints = async (filters) => {
   let {
+    user_id,
     searchText,
     category,
     status,
@@ -169,6 +190,12 @@ export const searchComplaints = async (filters) => {
   if (searchText) {
     query += ` AND (title ILIKE $${idx} OR description ILIKE $${idx})`;
     params.push(`%${searchText}%`);
+    idx++;
+  }
+
+  if (user_id) {
+    query += ` AND user_id = $${idx}`;
+    params.push(user_id);
     idx++;
   }
 

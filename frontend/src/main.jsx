@@ -10,6 +10,7 @@ import StaffDashboard from "./components/ui/StaffDashboard";
 import AdminDashboard from "./components/ui/AdminDashboard";
 import LearnMorePage from "./components/ui/LearnMorePage"
 import AllComplaintsPage from "./components/ui/AllComplaintsPage"
+import AssignStaffPage from "./components/ui/AssignStaffPage"
 
 
 // Replace with your actual Google client ID
@@ -26,8 +27,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/learn-more" element={<LearnMorePage />} />
           <Route path="/all-complaints" element={<AllComplaintsPage />} />
-
-
+          <Route path="/assign-staff" element={<AssignStaffPage />} />
         </Routes>
       </BrowserRouter>
     </GoogleOAuthProvider>

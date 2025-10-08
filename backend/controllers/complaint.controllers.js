@@ -5,15 +5,16 @@ import {
   updateComplaintStatusInDB,
   updateComplaintPriorityInDB,
   deleteComplaintFromDB,
+  getComplaintCounts,
   searchComplaints,
   escalateComplaintsByCategory,
 } from "../services/complaint.service.js";
 
 // ✅ Create a new complaint
 const createComplaint = asynchandler(async (req, res) => {
-  const { title, description, category, location } = req.body;
-
-  if (!title || !description || !category || !location) {
+  const { title, description, category, location } = Object.assign({}, req.body);
+  const user_id = req.body.user_id;
+  if (!user_id || !title || !description || !category || !location) {
     return res
       .status(400)
       .json(new ApiResponse(400, "All fields are required"));
@@ -21,6 +22,7 @@ const createComplaint = asynchandler(async (req, res) => {
 
   // Create object
   const newComplaint = {
+    user_id,
     title,
     description,
     category,
@@ -111,10 +113,21 @@ const deleteComplaint = asynchandler(async (req, res) => {
     .json(new ApiResponse(200, "Complaint deleted successfully"));
 });
 
+// total count
+const fetchComplaintCounts = async (req, res) => {
+  try {
+    const counts = await getComplaintCounts();
+    res.status(200).json(counts);
+  } catch (err) {
+    res.status(500).json({ error: 'Server Error' });
+  }
+};
+
 // search and filter
 const getComplaints = async (req, res) => {
   try {
     const filters = {
+      user_id: req.query.user_id,
       searchText: req.query.q,
       category: req.query.category,
       status: req.query.status,
