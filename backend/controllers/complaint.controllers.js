@@ -171,5 +171,4 @@ const escalateComplaints = asynchandler(async (req, res) => {
   );
 });
 
-
 export { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint, fetchComplaintCounts ,getComplaints,escalateComplaints};
