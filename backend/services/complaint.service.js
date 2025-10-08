@@ -12,8 +12,8 @@ const categoryThresholds = {
 // ✅ Save complaint
 export const saveComplaintToDB = async (newComplaint) => {
   const complaint = await pool.query(
-    "INSERT INTO complaints (title, description, status, photo, category, location) VALUES ($1, $2, $3, $4, $5, $6) RETURNING complaint_id, title, description, photo, category, location",
-    [newComplaint.title, newComplaint.description, newComplaint.status, newComplaint.photo, newComplaint.category, newComplaint.location]
+    "INSERT INTO complaints (user_id, title, description, status, photo, category, location) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING complaint_id, title, description, photo, category, location",
+    [newComplaint.user_id, newComplaint.title, newComplaint.description, newComplaint.status, newComplaint.photo, newComplaint.category, newComplaint.location]
   );
   return complaint.rows[0];
 };

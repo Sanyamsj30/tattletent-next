@@ -10,9 +10,9 @@ import {
 
 // ✅ Create a new complaint
 const createComplaint = asynchandler(async (req, res) => {
-  const { title, description, category, location } = req.body;
-
-  if (!title || !description || !category || !location) {
+  const { title, description, category, location } = Object.assign({}, req.body);
+  const user_id = req.body.user_id;
+  if (!user_id || !title || !description || !category || !location) {
     return res
       .status(400)
       .json(new ApiResponse(400, "All fields are required"));
@@ -20,6 +20,7 @@ const createComplaint = asynchandler(async (req, res) => {
 
   // Create object
   const newComplaint = {
+    user_id,
     title,
     description,
     category,

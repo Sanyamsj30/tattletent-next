@@ -3,10 +3,12 @@ import React from "react";
 import Logo from "./Logo";
 import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const navigate = useNavigate(); 
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const complaints = [
     { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
@@ -41,6 +43,44 @@ const CitizenDashboard = () => {
     }
   };
 
+  const handleNewComplaint = async (e) => {
+    e.preventDefault();
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !user) {
+        alert("You must be logged in to submit a complaint.");
+        return;
+      }
+
+      // Create a FormData object to handle text + image together
+      const formData = new FormData(e.target);
+
+      // Add logged-in user ID automatically
+      formData.append("user_id", user.user_id);
+
+      const response = await axios.post(
+        "http://localhost:5000/api/complaints",  // 👈 your backend route
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        alert("Complaint submitted successfully!");
+        e.target.reset();
+        setIsSubmitOpen(false);
+      }
+    } catch (error) {
+      console.error("Error submitting complaint:", error);
+      alert(error.response?.data?.message || "Failed to submit complaint.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans">
       {/* Navbar */}
@@ -66,7 +106,7 @@ const CitizenDashboard = () => {
   {/* 1. Welcome Section (No box) */}
   <div className="space-y-5 py-10 font-serif">
   <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent leading-tight tracking-tight">
-    👋 Welcome Back, Citizen!
+    👋 Welcome, {user.name}!
   </h1>
   
   <p className="text-2xl text-gray-700 mt-4 italic">
@@ -206,13 +246,17 @@ const CitizenDashboard = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-2xl font-bold text-orange-600 mb-6 border-b pb-2">Submit New Complaint</h3>
-            <form className="space-y-5 bg-white p-6 rounded-2xl shadow-lg">
+            <form 
+              onSubmit={handleNewComplaint}
+              className="space-y-5 bg-white p-6 rounded-2xl shadow-lg"
+            >
   {/* Category */}
   <div className="space-y-2">
     <label className="block text-sm font-semibold text-gray-700">
       Complaint Category <span className="text-red-500">*</span>
     </label>
     <select
+      name="category"
       required
       className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner appearance-none bg-white"
     >
@@ -224,12 +268,26 @@ const CitizenDashboard = () => {
     </select>
   </div>
 
+  <div className="space-y-2">
+    <label className="block text-sm font-semibold text-gray-700">
+      Title <span className="text-red-500">*</span>
+    </label>
+    <input
+      name="title"
+      type="text"
+      required
+      placeholder="e.g., Tent #12, Sector C"
+      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner"
+    />
+  </div>
+
   {/* Location */}
   <div className="space-y-2">
     <label className="block text-sm font-semibold text-gray-700">
       Location / Address <span className="text-red-500">*</span>
     </label>
     <input
+      name="location"
       type="text"
       required
       placeholder="e.g., Tent #12, Sector C"
@@ -243,6 +301,7 @@ const CitizenDashboard = () => {
       Detailed Description <span className="text-red-500">*</span>
     </label>
     <textarea
+      name="description"
       required
       placeholder="What is the issue?"
       rows={4}
@@ -256,9 +315,9 @@ const CitizenDashboard = () => {
       Upload Photo (optional but recommended)
     </label>
     <input
+      name="photo"
       type="file"
       accept="image/*"
-      required
       className="w-full p-2 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-100 file:text-orange-700 hover:file:bg-orange-200"
     />
   </div>
