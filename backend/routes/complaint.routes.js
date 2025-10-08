@@ -1,6 +1,6 @@
 import express from "express"
 import upload from "../middlewares/upload.middleware.js";
-import { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint ,getComplaints,escalateComplaints} from "../controllers/complaint.controllers.js";
+import { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint, fetchComplaintCounts, getComplaints,escalateComplaints} from "../controllers/complaint.controllers.js";
 
 
 const router = express.Router();

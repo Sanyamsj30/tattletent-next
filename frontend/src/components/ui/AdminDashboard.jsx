@@ -17,21 +17,6 @@ const handleAssignClick = (complaint) => {
   navigate("/assign-staff", { state: { complaint } });
 };
 
-// New function to handle assignment from AssignStaffPage
-// const handleAssignConfirm = (complaintId, staffName) => {
-//   const assigned = complaints.find(c => c.id === complaintId);
-//   if (!assigned) return;
-
-//   // Remove from new complaints
-//   setComplaints(prev => prev.filter(c => c.id !== complaintId));
-
-//   // Add to assigned complaints
-//   setAssignedComplaints(prev => [
-//     ...prev,
-//     { ...assigned, assignedTo: staffName, status: "In Progress" }
-//   ]);
-// };
-
   const fetchComplaintsByUser = async () => {
     try {
       if (!user?.user_id) return;
@@ -62,6 +47,40 @@ const handleAssignClick = (complaint) => {
       fetchComplaintsByUser();
     }
   }, [user]);
+
+
+  const fetchAssignedComplaints = async () => {
+    try {
+      if (!user?.user_id) return;
+
+      const queryParams = new URLSearchParams({ status: "In Progress" }).toString();
+      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+
+      if (!response.ok) throw new Error("Failed to fetch complaints");
+
+      const data = await response.json();
+      setAssignedComplaints(data.map(c => ({
+        id: c.complaint_id,
+        category: c.category,
+        location: c.location,
+        status: c.status,
+        assignedTo: c.assigned_to,
+        staff_id: c.staff_id,
+      })));
+
+    } catch (err) {
+      console.error("Error fetching complaints:", err);
+      setAssignedComplaints([]); // fallback to empty array
+    }
+  };
+
+  useEffect(() => {
+    if (user?.user_id) {
+      fetchAssignedComplaints();
+    }
+  }, [user]);
+
+
   // Demo data
 
   const [reviews] = useState([

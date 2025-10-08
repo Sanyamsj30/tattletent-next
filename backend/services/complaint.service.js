@@ -47,24 +47,33 @@ export const saveComplaintToDB = async (newComplaint) => {
  * - If only one field is provided, keeps the other unchanged.
  * - If priority changes, automatically updates the SLA deadline based on the current time.
  */
-export const updateComplaintStatusInDB = async (id, newStatus) => {
+export const updateComplaintStatusInDB = async (id, newStatus, staffId) => {
   try {
-    // Standardize status format (if necessary, based on your previous findings)
-    const standardizedStatus = (newStatus === 'In Progress') ? 'IN_PROGRESS' : newStatus;
 
     // 1️⃣ Update status in the database
+    if(staffId) {
+      const staffName = await pool.query(
+        `SELECT name FROM users WHERE user_id = $1`, [staffId]
+      );
+      await pool.query(
+        `UPDATE complaints
+        SET staff_id = $1, assigned_to = $2
+        WHERE complaint_id = $3`,
+        [staffId, staffName.rows[0].name, id]
+      );
+    }
     const updatedComplaint = await pool.query(
       `UPDATE complaints
        SET status = $1,
            updated_at = NOW()
        WHERE complaint_id = $2
        RETURNING complaint_id, title, description, photo, location, category, status, priority, sla_deadline, updated_at`,
-      [standardizedStatus, id]
+      [newStatus, id]
     );
 
     return updatedComplaint.rows[0];
   } catch (err) {
-    console.error("❌ Error updating complaint status:", err.message);
+    console.error("Error updating complaint status:", err.message);
     throw err;
   }
 };
@@ -106,7 +115,7 @@ export const updateComplaintPriorityInDB = async (id, newPriority) => {
       const deadlineRes = await pool.query("SELECT NOW() + $1 AS new_deadline", [timeLimit]);
       newSlaDeadline = deadlineRes.rows[0].new_deadline;
     } else {
-        console.warn(`⚠️ No SLA rule found for Dept ID ${complaint.dept_id} and Priority ${newPriority}. Keeping old SLA deadline.`);
+        console.warn(`No SLA rule found for Dept ID ${complaint.dept_id} and Priority ${newPriority}. Keeping old SLA deadline.`);
     }
 
     // 4️⃣ Update priority and sla_deadline in the database
@@ -122,7 +131,7 @@ export const updateComplaintPriorityInDB = async (id, newPriority) => {
 
     return updatedComplaint.rows[0];
   } catch (err) {
-    console.error("❌ Error updating complaint priority:", err.message);
+    console.error("Error updating complaint priority:", err.message);
     throw err;
   }
 };

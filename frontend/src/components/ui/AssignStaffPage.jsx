@@ -2,31 +2,26 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import Logo from "./Logo"
+import axios from "axios";
 
 const AssignStaffPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const complaint = location.state?.complaint;
+  const { complaint } = location.state || {};
   const [staffList, setstaffList] = useState([]);
 
-  // const staffList = [
-  //   { id: 1, name: "John Doe", role: "Staff", performance: { Resolved: 10, "In Progress": 3, Pending: 2 } },
-  //   { id: 2, name: "Jane Smith", role: "Field Staff", performance: { Resolved: 8, "In Progress": 4, Pending: 1 } },
-  //   { id: 3, name: "Mike Johnson", role: "Field Staff", performance: { Resolved: 12, "In Progress": 2, Pending: 3 } },
-  //   { id: 4, name: "Sarah Lee", role: "Field Staff", performance: { Resolved: 7, "In Progress": 5, Pending: 2 } },
-  // ];
 
-  // inside AssignStaffPage
-const onAssign = location.state?.onAssign;
+  const handleAssign = (staffId) => {
+    axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
+      status: "In Progress",
+      staffId: staffId,
+    }).then(() => {
+      navigate("/admin-dashboard"); // go back after saving
+    }).catch(err => console.error(err));
+  };
 
-const handleAssign = (staffName) => {
-  if (onAssign && complaint) {
-    onAssign(complaint.id, staffName); // call back to AdminDashboard
-  }
-  navigate("/admin-dashboard");
-};
 
   const fetchStaff = async () => {
     try {
@@ -93,7 +88,7 @@ const handleAssign = (staffName) => {
               <div className="flex gap-2 mt-4">
                 <button
                   className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition flex-1"
-                  onClick={() => handleAssign(s.name)}
+                  onClick={() => handleAssign(s.id)}
                 >
                   Assign
                 </button>
