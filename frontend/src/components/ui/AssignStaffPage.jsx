@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import Logo from "./Logo"
@@ -6,15 +6,56 @@ import Logo from "./Logo"
 const AssignStaffPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user"));
 
   const complaint = location.state?.complaint;
+  const [staffList, setstaffList] = useState([]);
 
-  const staffList = [
-    { id: 1, name: "John Doe", role: "Field Staff", performance: { Resolved: 10, "In Progress": 3, Pending: 2 } },
-    { id: 2, name: "Jane Smith", role: "Field Staff", performance: { Resolved: 8, "In Progress": 4, Pending: 1 } },
-    { id: 3, name: "Mike Johnson", role: "Field Staff", performance: { Resolved: 12, "In Progress": 2, Pending: 3 } },
-    { id: 4, name: "Sarah Lee", role: "Field Staff", performance: { Resolved: 7, "In Progress": 5, Pending: 2 } },
-  ];
+  // const staffList = [
+  //   { id: 1, name: "John Doe", role: "Staff", performance: { Resolved: 10, "In Progress": 3, Pending: 2 } },
+  //   { id: 2, name: "Jane Smith", role: "Field Staff", performance: { Resolved: 8, "In Progress": 4, Pending: 1 } },
+  //   { id: 3, name: "Mike Johnson", role: "Field Staff", performance: { Resolved: 12, "In Progress": 2, Pending: 3 } },
+  //   { id: 4, name: "Sarah Lee", role: "Field Staff", performance: { Resolved: 7, "In Progress": 5, Pending: 2 } },
+  // ];
+
+  // inside AssignStaffPage
+const onAssign = location.state?.onAssign;
+
+const handleAssign = (staffName) => {
+  if (onAssign && complaint) {
+    onAssign(complaint.id, staffName); // call back to AdminDashboard
+  }
+  navigate("/admin-dashboard");
+};
+
+  const fetchStaff = async () => {
+    try {
+      if (!user?.user_id) return;
+
+      const queryParams = new URLSearchParams({ role: "Staff" }).toString();
+      const response = await fetch(`http://localhost:5000/api/users/search?${queryParams}`);
+
+      if (!response.ok) throw new Error("Failed to fetch staff");
+
+      const data = await response.json();
+      setstaffList(data.map(c => ({
+        id: c.user_id,
+        name: c.name,
+        email: c.email,
+        role: c.role,
+      })));
+
+    } catch (err) {
+      console.error("Error fetching staff:", err);
+      setstaffList([]); // fallback to empty array
+    }
+  };
+
+  useEffect(() => {
+    if (user?.user_id) {
+      fetchStaff();
+    }
+  }, [user]);
 
   const [selectedStaff, setSelectedStaff] = useState(null);
 
@@ -22,9 +63,9 @@ const AssignStaffPage = () => {
     navigate("/admin-dashboard"); // fallback
   }
 
-  const handleAssign = (staffName) => {
+ {/*} const handleAssign = (staffName) => {
     navigate("/admin-dashboard", { state: { assigned: { complaintId: complaint.id, staffName } } });
-  };
+  };*/}
 
   return (
     <div className="min-h-screen bg-[#FCF5EE] p-6">
@@ -42,28 +83,36 @@ const AssignStaffPage = () => {
       </div>
       <h2 className="pt-28 text-4xl font-bold mb-6 text-center">Assign Complaint #{complaint?.id}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {staffList.map((s) => (
-          <div key={s.id} className="bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-between hover:shadow-2xl transition">
-            <div>
-              <h3 className="text-xl font-semibold text-orange-600">{s.name}</h3>
-              <p className="text-gray-600 mb-3">{s.role}</p>
+        {staffList.length > 0 ? (
+          staffList.map((s) => (
+            <div key={s.id} className="bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-between hover:shadow-2xl transition">
+              <div>
+                <h3 className="text-xl font-semibold text-orange-600">{s.name}</h3>
+                <p className="text-gray-600 mb-3">{s.email}</p>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button
+                  className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition flex-1"
+                  onClick={() => handleAssign(s.name)}
+                >
+                  Assign
+                </button>
+                <button
+                  className="px-3 py-1.5 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600 transition flex-1"
+                  onClick={() => setSelectedStaff(s)}
+                >
+                  Performance
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <button
-                className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition flex-1"
-                onClick={() => handleAssign(s.name)}
-              >
-                Assign
-              </button>
-              <button
-                className="px-3 py-1.5 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600 transition flex-1"
-                onClick={() => setSelectedStaff(s)}
-              >
-                Performance
-              </button>
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <tr>
+            <td colSpan="5" className="text-center p-4 text-gray-500">
+              No Staff found.
+            </td>
+          </tr>
+        )}
       </div>
 
       {/* Performance Modal */}

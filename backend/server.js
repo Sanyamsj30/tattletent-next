@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import passport from 'passport';
 import './config/passport-setup.js'; // Import the passport config
-import complaintRoutes from "./routes/complaint.routes.js"
+import userRoute from "./routes/userRoute.js";
+import complaintRoutes from "./routes/complaint.routes.js";
 import "./jobs/escalation.job.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
 import cors from 'cors';
@@ -23,6 +24,7 @@ app.use(express.json());
 
 
 //Routes
+app.use("/api/users",userRoute);
 app.use("/api/complaints",complaintRoutes);
 app.use("/api/feedback", feedbackRoutes);
 

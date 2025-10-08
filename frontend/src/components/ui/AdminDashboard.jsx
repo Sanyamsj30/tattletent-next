@@ -9,6 +9,29 @@ const AdminDashboard = () => {
 
   const [complaints, setComplaints] = useState([]);
 
+  // Add this at the top with other states
+const [assignedComplaints, setAssignedComplaints] = useState([]);
+
+// Update handleAssignClick
+const handleAssignClick = (complaint) => {
+  navigate("/assign-staff", { state: { complaint } });
+};
+
+// New function to handle assignment from AssignStaffPage
+// const handleAssignConfirm = (complaintId, staffName) => {
+//   const assigned = complaints.find(c => c.id === complaintId);
+//   if (!assigned) return;
+
+//   // Remove from new complaints
+//   setComplaints(prev => prev.filter(c => c.id !== complaintId));
+
+//   // Add to assigned complaints
+//   setAssignedComplaints(prev => [
+//     ...prev,
+//     { ...assigned, assignedTo: staffName, status: "In Progress" }
+//   ]);
+// };
+
   const fetchComplaintsByUser = async () => {
     try {
       if (!user?.user_id) return;
@@ -49,9 +72,6 @@ const AdminDashboard = () => {
     { id: 5, citizen: "Ella", comment: "Impressed with how they handled it.", rating: 5 },
   ]);
 
-  const handleAssignClick = (complaint) => {
-    navigate("/assign-staff", { state: { complaint } });
-  };
 
   // --- Pagination Logic for Complaints ---
   const complaintsPerPage = 5;
@@ -187,6 +207,43 @@ const AdminDashboard = () => {
             </button>
           </div>
         </div>
+        {/* Assigned Complaints Section */}
+<div className="mt-12">
+  <div className="flex justify-between items-center mb-4">
+    <h3 className="text-3xl font-bold text-gray-900">Assigned Complaints</h3>
+  </div>
+  {assignedComplaints.length > 0 ? (
+    <div className="overflow-x-auto rounded-lg border border-gray-300">
+      <table className="min-w-full divide-y divide-blue-200">
+        <thead className="bg-white">
+          <tr>
+            {["ID", "Category", "Location", "Status", "Assigned To"].map((h) => (
+              <th
+                key={h}
+                className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider"
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-blue-200 bg-white">
+          {assignedComplaints.map((c) => (
+            <tr key={c.id} className="hover:bg-blue-50 transition">
+              <td className="p-4 font-bold">{c.id}</td>
+              <td className="p-4">{c.category}</td>
+              <td className="p-4">{c.location}</td>
+              <td className="p-4">{c.status}</td>
+              <td className="p-4">{c.assignedTo}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <p className="text-gray-500 text-center py-4">No assigned complaints yet.</p>
+  )}
+</div>
 
         {/* Citizen Reviews Carousel */}
         <div className="relative">
