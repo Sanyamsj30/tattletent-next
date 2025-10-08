@@ -2,41 +2,129 @@
 import pool from '../db/db.js';
 
 
-// ✅ Save complaint
+// ✅ Save complaint — auto-assign dept_id based on category
 export const saveComplaintToDB = async (newComplaint) => {
-  const complaint = await pool.query(
-    "INSERT INTO complaints (user_id, title, description, status, photo, category, location) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING complaint_id, title, description, photo, category, location",
-    [newComplaint.user_id, newComplaint.title, newComplaint.description, newComplaint.status, newComplaint.photo, newComplaint.category, newComplaint.location]
-  );
-  return complaint.rows[0];
+  try {
+    // 1️⃣ Find the department ID based on the category selected by user
+    const deptResult = await pool.query(
+      "SELECT dept_id FROM departments WHERE dept_name ILIKE $1",
+      [newComplaint.category]
+    );
+
+    if (deptResult.rowCount === 0) {
+      throw new Error(`No department found for category: ${newComplaint.category}`);
+    }
+
+    const dept_id = deptResult.rows[0].dept_id;
+
+    // 2️⃣ Insert complaint into the database with default values
+    const complaintResult = await pool.query(
+      `INSERT INTO complaints 
+        (title, description, status, photo, category, location, dept_id, priority)
+       VALUES ($1, $2, 'OPEN', $3, $4, $5, $6, 'Low')
+       RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, created_at`,
+      [
+        newComplaint.title,
+        newComplaint.description,
+        newComplaint.photo,
+        newComplaint.category,
+        newComplaint.location,
+        dept_id
+      ]
+    );
+
+    // 3️⃣ Return the inserted complaint
+    return complaintResult.rows[0];
+  } catch (err) {
+    console.error("❌ Error saving complaint:", err.message);
+    throw err;
+  }
 };
 
-// ✅ Update complaint
-export const updateComplaintInDB = async (id, updates) => {
-  const complaintR = await pool.query(
-    'SELECT complaint_id, status, priority FROM complaints WHERE complaint_id = $1',
-    [id]
-  );
-  if (complaintR.rows.length === 0) return null;
+// ✅ Update complaint (Revised to fix specific bugs)
+/**
+ * Update complaint status or priority in the database.
+ * - If only one field is provided, keeps the other unchanged.
+ * - If priority changes, automatically updates the SLA deadline based on the current time.
+ */
+export const updateComplaintStatusInDB = async (id, newStatus) => {
+  try {
+    // Standardize status format (if necessary, based on your previous findings)
+    const standardizedStatus = (newStatus === 'In Progress') ? 'IN_PROGRESS' : newStatus;
 
-  if(!updates[0]) updates[0] = complaintR.rows[0].status;
-  if(!updates[1]) updates[1] = complaintR.rows[0].priority;
+    // 1️⃣ Update status in the database
+    const updatedComplaint = await pool.query(
+      `UPDATE complaints
+       SET status = $1,
+           updated_at = NOW()
+       WHERE complaint_id = $2
+       RETURNING complaint_id, title, description, photo, location, category, status, priority, sla_deadline, updated_at`,
+      [standardizedStatus, id]
+    );
 
-  // Update fields dynamically
-  const upC = await pool.query(
-    'UPDATE complaints SET status = $1, priority = $2 WHERE complaint_id = $3 RETURNING complaint_id, title, description, photo, location, category, status, priority', [updates[0], updates[1], id]
-  );
+    return updatedComplaint.rows[0];
+  } catch (err) {
+    console.error("❌ Error updating complaint status:", err.message);
+    throw err;
+  }
+};
 
-  // If status changed, push to history
-  // if (updates.status) {
-  //   complaints[index].statusHistory.push({
-  //     status: updates.status,
-  //     date: new Date().toISOString(),
-  //     note: "Status updated",
-  //   });
-  // }
+export const updateComplaintPriorityInDB = async (id, newPriority) => {
+  try {
+    // 1️⃣ Fetch existing complaint, including necessary fields for SLA calculation
+    const existingComplaint = await pool.query(
+      `SELECT complaint_id, status, priority, dept_id, sla_deadline
+       FROM complaints WHERE complaint_id = $1`,
+      [id]
+    );
+    
+    if (existingComplaint.rowCount === 0) return null;
+    const complaint = existingComplaint.rows[0];
 
-  return upC.rows[0];
+    // Check if priority is actually changing
+    if (newPriority === complaint.priority) {
+        console.log(`Priority for ID ${id} is already ${newPriority}. No update needed.`);
+        return complaint; // Return the existing complaint data
+    }
+    
+    let newSlaDeadline = complaint.sla_deadline; // Initialize with the existing deadline
+
+    // 2️⃣ Fetch the new SLA rule (time_limit)
+    const slaRes = await pool.query(
+      `SELECT time_limit 
+       FROM sla_rules 
+       WHERE dept_id = $1 AND priority = $2 
+       LIMIT 1`,
+      [complaint.dept_id, newPriority]
+    );
+    
+    // 3️⃣ Recalculate the deadline if a rule is found
+    if (slaRes.rowCount > 0) {
+      const timeLimit = slaRes.rows[0].time_limit; // PostgreSQL INTERVAL
+
+      // Let the database calculate the new deadline (NOW() + INTERVAL)
+      const deadlineRes = await pool.query("SELECT NOW() + $1 AS new_deadline", [timeLimit]);
+      newSlaDeadline = deadlineRes.rows[0].new_deadline;
+    } else {
+        console.warn(`⚠️ No SLA rule found for Dept ID ${complaint.dept_id} and Priority ${newPriority}. Keeping old SLA deadline.`);
+    }
+
+    // 4️⃣ Update priority and sla_deadline in the database
+    const updatedComplaint = await pool.query(
+      `UPDATE complaints
+       SET priority = $1,
+           sla_deadline = $2,
+           updated_at = NOW()
+       WHERE complaint_id = $3
+       RETURNING complaint_id, title, description, photo, location, category, status, priority, sla_deadline, updated_at`,
+      [newPriority, newSlaDeadline, id]
+    );
+
+    return updatedComplaint.rows[0];
+  } catch (err) {
+    console.error("❌ Error updating complaint priority:", err.message);
+    throw err;
+  }
 };
 
 // ✅ Delete complaint
@@ -155,29 +243,48 @@ export const searchComplaints = async (filters) => {
 };
 
 
+/**
+ * 🔁 Escalate complaints whose SLA deadline is breached.
+ * Returns all complaints that were escalated.
+ */
 export const escalateComplaintsByCategory = async () => {
-  const now = new Date();
-  const escalated = [];
+  try {
+    // 1️⃣ Get all overdue complaints
+    const overdue = await pool.query(`
+      SELECT complaint_id, title, category, status, sla_deadline
+      FROM complaints
+      WHERE status IN ('OPEN', 'IN_PROGRESS')
+      AND sla_deadline < NOW();
+    `);
 
-  for (const c of complaints) {
-    if (c.status === "RESOLVED") continue; // skip completed complaints
-
-    const lastUpdate = new Date(c.updatedAt);
-    const daysOld = (now - lastUpdate) / (1000 * 60 * 60 * 24);
-    const threshold = categoryThresholds[c.category] || 3; // default 3 days
-
-    if (daysOld > threshold && c.priority_level !== "Escalated") {
-      c.priority_level = "Escalated";
-      c.assigned_to = "supervisor";
-      c.updatedAt = now.toISOString();
-      c.statusHistory.push({
-        status: c.status,
-        date: now.toISOString(),
-        note: `Escalated automatically after ${Math.floor(daysOld)} days (limit: ${threshold})`,
-      });
-      escalated.push(c);
+    if (overdue.rowCount === 0) {
+      console.log("✅ No overdue complaints found for escalation.");
+      return [];
     }
-  }
 
-  return escalated;
+    const escalatedComplaints = [];
+
+    // 2️⃣ Loop and update each overdue complaint
+    for (const row of overdue.rows) {
+      const updated = await pool.query(
+        `
+        UPDATE complaints
+        SET status = 'ESCALATED',
+            updated_at = NOW()
+        WHERE complaint_id = $1
+        RETURNING complaint_id, title, category, status, sla_deadline;
+      `,
+        [row.complaint_id]
+      );
+
+      escalatedComplaints.push(updated.rows[0]);
+      console.log(`🚨 Escalated complaint ID ${row.complaint_id} (${row.title})`);
+    }
+
+    console.log(`⚡ Escalated ${escalatedComplaints.length} complaints.`);
+    return escalatedComplaints;
+  } catch (err) {
+    console.error("❌ Escalation failed:", err.message);
+    throw err;
+  }
 };
