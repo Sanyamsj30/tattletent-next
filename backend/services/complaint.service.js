@@ -4,13 +4,6 @@ import pool from '../db/db.js';
 
 // ✅ Save complaint — auto-assign dept_id based on category
 export const saveComplaintToDB = async (newComplaint) => {
-<<<<<<< HEAD
-  const complaint = await pool.query(
-    "INSERT INTO complaints (user_id, title, description, status, photo, category, location) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING complaint_id, title, description, photo, category, location",
-    [newComplaint.user_id, newComplaint.title, newComplaint.description, newComplaint.status, newComplaint.photo, newComplaint.category, newComplaint.location]
-  );
-  return complaint.rows[0];
-=======
   try {
     // 1️⃣ Find the department ID based on the category selected by user
     const deptResult = await pool.query(
@@ -46,7 +39,6 @@ export const saveComplaintToDB = async (newComplaint) => {
     console.error("❌ Error saving complaint:", err.message);
     throw err;
   }
->>>>>>> sanyam
 };
 
 // ✅ Update complaint (Revised to fix specific bugs)
