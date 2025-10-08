@@ -55,6 +55,7 @@ export const deleteComplaintFromDB = async (id) => {
 
 export const searchComplaints = async (filters) => {
   let {
+    user_id,
     searchText,
     category,
     status,
@@ -81,6 +82,12 @@ export const searchComplaints = async (filters) => {
   if (searchText) {
     query += ` AND (title ILIKE $${idx} OR description ILIKE $${idx})`;
     params.push(`%${searchText}%`);
+    idx++;
+  }
+
+  if (user_id) {
+    query += ` AND user_id = $${idx}`;
+    params.push(user_id);
     idx++;
   }
 

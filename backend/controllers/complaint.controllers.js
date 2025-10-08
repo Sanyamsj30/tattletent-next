@@ -85,6 +85,7 @@ const deleteComplaint = asynchandler(async (req, res) => {
 const getComplaints = async (req, res) => {
   try {
     const filters = {
+      user_id: req.query.user_id,
       searchText: req.query.q,
       category: req.query.category,
       status: req.query.status,

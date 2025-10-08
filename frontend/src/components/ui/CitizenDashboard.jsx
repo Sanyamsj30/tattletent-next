@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import Logo from "./Logo";
 import AppButton from "./app-button";
@@ -7,28 +7,46 @@ import axios from "axios";
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [complaints, setComplaints] = useState([]);
   const navigate = useNavigate(); 
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const complaints = [
-    { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
-    { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
-    { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
-  ];
+  // const complaints = [
+  //   { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
+  //   { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
+  //   { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
+  // ];
 
-  <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
-        <div className="flex items-center">
-          <Logo />
-        </div>
-        <div className="flex items-center">
-          <button
-            onClick={() => navigate("/")} // 👈 Redirect to Home page
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
-          >
-            <span className="text-xl">Logout</span>
-          </button>
-        </div>
-      </div>
+  const fetchComplaintsByUser = async () => {
+  try {
+    if (!user?.user_id) return;
+
+    const queryParams = new URLSearchParams({ user_id: user.user_id }).toString();
+    const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+
+    if (!response.ok) throw new Error("Failed to fetch complaints");
+
+    const data = await response.json();
+    setComplaints(data.map(c => ({
+      id: c.complaint_id,
+      category: c.category,
+      status: c.status,
+      description: c.description,
+      date: new Date(c.submitted_at).toLocaleDateString()
+    })));
+
+  } catch (err) {
+    console.error("Error fetching complaints:", err);
+    setComplaints([]); // fallback to empty array
+  }
+};
+
+useEffect(() => {
+  if (user?.user_id) {
+    fetchComplaintsByUser();
+  }
+}, [user]);
+// refetch if user changes
 
 
   const getStatusBadge = (status) => {
@@ -74,6 +92,7 @@ const CitizenDashboard = () => {
         alert("Complaint submitted successfully!");
         e.target.reset();
         setIsSubmitOpen(false);
+        fetchComplaintsByUser();
       }
     } catch (error) {
       console.error("Error submitting complaint:", error);
@@ -206,22 +225,30 @@ const CitizenDashboard = () => {
           </tr>
         </thead>
         {/* Body - Plain white background, blue dividers */}
-        <tbody className="divide-y divide-blue-200 bg-white"> 
-          {complaints.map((c) => (
-            <tr key={c.id} className="hover:bg-blue-50 transition"> {/* Subtle blue hover */}
-              <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td> {/* Dark 'ink' color */}
-              <td className="p-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>
-                  {c.status}
-                </span>
-              </td>
-              <td className="p-4 text-gray-700 font-mono">{c.description}</td> 
-              <td className="p-4 text-gray-600 text-sm font-mono">{c.date}</td> 
-              <td className="p-4 text-right">
-                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono">View Details</button>
+        <tbody className="divide-y divide-blue-200 bg-white">
+          {complaints.length > 0 ? (
+            complaints.map((c) => (
+              <tr key={c.id} className="hover:bg-blue-50 transition">
+                <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
+                <td className="p-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>
+                    {c.status}
+                  </span>
+                </td>
+                <td className="p-4 text-gray-700 font-mono">{c.description}</td>
+                <td className="p-4 text-gray-600 text-sm font-mono">{c.date}</td>
+                <td className="p-4 text-right">
+                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono">View Details</button>
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="5" className="text-center p-4 text-gray-500">
+                No complaints found.
               </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
