@@ -252,6 +252,12 @@ export default function LandingPage() {
           >
             Admin Dahboard
           </AppButton>
+          {/*<AppButton
+            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
+            onClick={() => navigate("/citizen-dashboard")}
+          >
+            Citizen Dahboard
+          </AppButton>*/}
         </motion.div>
       </section>
 
