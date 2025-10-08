@@ -6,8 +6,7 @@ import './config/passport-setup.js'; // Import the passport config
 import complaintRoutes from "./routes/complaint.routes.js"
 import "./jobs/escalation.job.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
-
-
+import cors from 'cors';
 
 
 // Load environment variables
@@ -19,6 +18,8 @@ const app = express();
 app.use(express.json());
 app.use(passport.initialize());
 app.use("/public", express.static("public"));
+app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(express.json());
 
 
 //Routes
