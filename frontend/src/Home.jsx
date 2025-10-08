@@ -32,27 +32,90 @@ export default function LandingPage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [cpassword, setCPassword] = useState("");
+
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  
   const navigate = useNavigate();
 
-  const handleSignupSubmit = (e) => {
+  // STEP 1 — Send OTP and open OTP modal
+  const handleSignupSubmit = async (e) => {
     e.preventDefault();
-    const newUser = { fullName, email, password };
-    console.log("Signed Up User:", newUser);
-    navigate("/citizen-dashboard");
+    if (password !== cpassword) return;
+
+    try {
+      setIsLoading(true);
+      const res = await fetch("http://localhost:5000/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      // ✅ Switch to OTP modal
+      setOtpOpen(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleLoginSubmit = (e) => {
-  e.preventDefault();
-  const user = { email, password };
-  console.log("Logged In User:", user);
+  // STEP 2 — Verify OTP + Register user
+  const handleVerifyOtpSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setIsLoading(true);
 
-  // Example: redirect to citizen dashboard (change as per your login logic)
-  navigate("/citizen-dashboard");
-};
+      const registerRes = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fullName,
+          email,
+          password,
+          otp,
+        }),
+      });
+
+      const registerData = await registerRes.json();
+
+      if (registerRes.ok) {
+        localStorage.setItem("token", registerData.token);
+        setOtpOpen(false);
+        setSignupOpen(false);
+        setFullName("");
+        setEmail("");
+        setPassword("");
+        setCPassword("");
+        setOtp("");
+      } else {
+        console.error(registerData.message);
+      }
+    } catch (err) {
+      console.error("OTP Verify Error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  const handleLoginSubmit = (e) => {
+    e.preventDefault();
+    const user = { email, password };
+    console.log("Logged In User:", user);
+
+    // Example: redirect to citizen dashboard (change as per your login logic)
+    navigate("/citizen-dashboard");
+  };
 
 
   const handleGoogleLoginSuccess = (credentialResponse) => {
@@ -378,7 +441,7 @@ export default function LandingPage() {
 
 
       {/* Signup Modal */}
-      {signupOpen && (
+      {signupOpen && !otpOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -497,6 +560,59 @@ export default function LandingPage() {
           </motion.div>
         </motion.div>
       )}
+
+      {/* OTP MODAL */}
+      {otpOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 flex items-center justify-center bg-black/40 z-[100]"
+          onClick={() => setOtpOpen(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 120 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4"
+          >
+            <h2 className="text-2xl font-bold text-[#A0522D] mb-6 text-center">
+              Verify Your Email
+            </h2>
+            <p className="text-gray-600 text-sm text-center mb-4">
+              Enter the 6-digit code sent to <span className="font-semibold">{email}</span>
+            </p>
+            <form onSubmit={handleVerifyOtpSubmit}>
+              <div className="mb-6">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="Enter OTP"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-center text-lg tracking-widest focus:ring-2 focus:ring-[#A0522D] outline-none"
+                />
+              </div>
+
+              <AppButton
+                type="submit"
+                disabled={otp.length !== 6 || isLoading}
+                className={`w-full py-3 rounded-lg text-white transition-colors duration-200 ${
+                  otp.length !== 6
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-[#A0522D] hover:bg-[#8B4513]"
+                }`}
+              >
+                {isLoading ? "Verifying..." : "Verify OTP"}
+              </AppButton>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+
     </div>
   );
 }
