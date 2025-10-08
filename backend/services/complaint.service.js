@@ -1,13 +1,6 @@
-// 🧠 TEMPORARY MOCK FUNCTION
-import pool from '../db/db.js';
-let complaints = []; // 🧠 temporary in-memory storage
 
-const categoryThresholds = {
-  "Roads & Infrastructure": 3,
-  "Water & Sanitation": 2,
-  "Public Safety": 1,
-  "Waste Management": 4,
-};
+import pool from '../db/db.js';
+
 
 // ✅ Save complaint
 export const saveComplaintToDB = async (newComplaint) => {
