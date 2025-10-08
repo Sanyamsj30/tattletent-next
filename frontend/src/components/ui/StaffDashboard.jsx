@@ -1,10 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Logo from "./Logo.jsx"
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const StaffDashboard = () => {
 
   const navigate=useNavigate();
+  const user = JSON.parse(localStorage.getItem("user"));
+  
+    const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
+
+    const fetchCounts = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      setCounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
 
   const initialComplaints = [
     { id: 1, category: "Water Leak", status: "Pending", description: "Leak near Tent #5, pipe burst", location: "Tent #5, Sector A", date: "2025-10-02", citizen: "John Doe", priority: "" },
@@ -79,7 +96,7 @@ const StaffDashboard = () => {
       {/* Welcome Bar */}
 <div className="flex flex-col items-center justify-center text-center pt-36 px-6 sm:px-12 mb-12 space-y-6">
   <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent leading-tight tracking-tight">
-    Welcome, Staff Member 👷
+    Welcome, {user.name} 👷
   </h1>
   <p className="text-2xl text-gray-700 mt-4 italic">
     Manage and resolve citizen complaints efficiently.
@@ -88,11 +105,15 @@ const StaffDashboard = () => {
   <div className="flex flex-col sm:flex-row items-center gap-6 mt-4">
     <div className="text-center px-6 py-4 bg-orange-100 rounded-xl shadow-md">
       <p className="text-sm text-gray-600">Total Complaints</p>
-      <p className="text-2xl font-bold text-orange-700">{complaints.length}</p>
+      <p className="text-2xl font-bold text-orange-700">{ (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) }</p>
+    </div>
+    <div className="text-center px-6 py-4 bg-yellow-100 rounded-xl shadow-md">
+      <p className="text-sm text-gray-600">In Progress</p>
+      <p className="text-2xl font-bold text-yellow-700">{counts.in_progress}</p>
     </div>
     <div className="text-center px-6 py-4 bg-yellow-100 rounded-xl shadow-md">
       <p className="text-sm text-gray-600">Pending</p>
-      <p className="text-2xl font-bold text-yellow-700">{newComplaints.length}</p>
+      <p className="text-2xl font-bold text-yellow-700">{counts.pending}</p>
     </div>
   </div>
 </div>
