@@ -10,14 +10,28 @@ const CitizenDashboard = () => {
   const [complaints, setComplaints] = useState([]);
   const navigate = useNavigate(); 
   const user = JSON.parse(localStorage.getItem("user"));
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+const [isViewOpen, setIsViewOpen] = useState(false);
 
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
-  // const complaints = [
-  //   { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
-  //   { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
-  //   { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
-  // ];
+  const demoComplaints = [
+    { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
+    { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
+    { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
+     { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
+    { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
+    { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
+    { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
+    { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
+    { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" },
+   
+   ];
+
+   const handleDetails = (complaint) => {
+    setSelectedComplaint(complaint);
+    setIsViewOpen(true);
+  };
 
   const fetchComplaintsByUser = async () => {
   try {
@@ -39,7 +53,7 @@ const CitizenDashboard = () => {
 
   } catch (err) {
     console.error("Error fetching complaints:", err);
-    setComplaints([]); // fallback to empty array
+    setComplaints(demoComplaints); // fallback to empty array
   }
 };
 
@@ -132,6 +146,7 @@ useEffect(() => {
   };
 
 
+
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans">
       {/* Navbar */}
@@ -139,7 +154,13 @@ useEffect(() => {
   <div className="flex items-center">
     <Logo />
   </div>
-  <div className="flex items-center">
+  <div className="flex items-center gap-2">
+    <button
+      onClick={() => navigate("/all-complaints")} // 👈 this now works properly
+      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
+    >
+      <span className="text-lg">All Complaints</span>
+    </button>
     <button
       onClick={() => navigate("/")} // 👈 this now works properly
       className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
@@ -244,64 +265,74 @@ useEffect(() => {
     {/* Title - Changed color to look like dark ink */}
     <h2 className="text-2xl font-bold mb-6 text-gray-900 font-mono">📋 Your Complaint History</h2> 
     
-    <div className="overflow-x-auto rounded-lg border border-gray-300"> 
-      <table className="min-w-full divide-y divide-blue-200"> {/* Blue divider for 'ruled paper' effect */}
-        <thead className="bg-white"> {/* White header background */}
-          <tr>
-            {/* Headers - Using slightly smaller font for a printed look */}
-            <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Category</th> 
-            <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Status</th>
-            <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Details</th>
-            <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Date</th>
-            <th className="p-4"></th>
-          </tr>
-        </thead>
-        {/* Body - Plain white background, blue dividers */}
-        <tbody className="divide-y divide-blue-200 bg-white">
-          {complaints.length > 0 ? (
-            complaints.map((c) => (
-              <tr key={c.id} className="hover:bg-blue-50 transition">
-                <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
-                <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>
-                    {c.status}
-                  </span>
-                </td>
-                <td className="p-4 text-gray-700 font-mono">{c.description}</td>
-                <td className="p-4 text-gray-600 text-sm font-mono">{c.date}</td>
-                <td className="p-4 text-right">
-                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono">View Details</button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="5" className="text-center p-4 text-gray-500">
-                No complaints found.
+    <div className="overflow-hidden rounded-lg border border-gray-300">
+  <div className="max-h-[400px] overflow-y-auto"> {/* Scrollable body */}
+    <table className="min-w-full divide-y divide-blue-200">
+      <thead className="bg-white sticky top-0 z-10"> {/* Sticky header */}
+        <tr>
+          <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Category</th> 
+          <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Status</th>
+          <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Details</th>
+          <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Date</th>
+          <th className="p-4"></th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-blue-200 bg-white">
+        {complaints.length > 0 ? (
+          complaints.map((c) => (
+            <tr key={c.id} className="hover:bg-blue-50 transition">
+              <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
+              <td className="p-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>
+                  {c.status}
+                </span>
+              </td>
+              <td className="p-4 text-gray-900 font-medium font-mono">{c.description}</td>
+              <td className="p-4 text-gray-900 font-medium font-mono">{c.date}</td>
+
+              <td className="p-4 text-right text-gray-600 text-sm font-mono">
+                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono" 
+                onClick={()=>(handleDetails(c.id))}>
+                  View Details
+                </button>
               </td>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+          ))
+        ) : (
+          <tr>
+            <td colSpan="5" className="text-center p-4 text-gray-500">
+              No complaints found.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 
     {/* View All button - Changed to a blue button to match the notebook theme */}
-    <div className="flex justify-center mt-8">
-      <button className="px-6 py-3 rounded-xl bg-orange-600 text-white font-semibold shadow-md hover:bg-orange-700 transition">
+    {/*<div className="flex justify-center mt-8">
+      <button className="px-6 py-3 rounded-xl bg-orange-600 text-white font-semibold shadow-md hover:bg-orange-700 transition"
+      onClick={() => {
+      setSelectedComplaint(c); // set the clicked complaint
+      setIsViewOpen(true);     // open the modal
+    }}>
         View All Complaints
       </button>
-    </div>
+    </div>*/}
 </div>
 </main>
 
       {/* Modal (unchanged) */}
       {isSubmitOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className=" fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
           onClick={() => setIsSubmitOpen(false)}
         >
+          <div className="overflow-hidden">
           <div
-            className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8 transform transition-all duration-300 scale-100"
+            className="max-h-[80vh] overflow-y-auto bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8 transform transition-all duration-300 scale-100"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-2xl font-bold text-orange-600 mb-6 border-b pb-2">Submit New Complaint</h3>
@@ -398,10 +429,67 @@ useEffect(() => {
     </button>
   </div>
 </form>
-
+ 
           </div>
+          </div>
+
         </div>
       )}
+
+      {isViewOpen && selectedComplaint && (
+  <div
+    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+    onClick={() => setIsViewOpen(false)}
+  >
+    <div
+      className={`bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative flex overflow-hidden`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Left Side - Photo (conditionally) */}
+      {selectedComplaint.photo && (
+        <div className="w-1/2 h-full bg-gray-50 flex items-center justify-center p-4 border-r">
+          <img
+            src={selectedComplaint.photo}
+            alt={selectedComplaint.category}
+            className="rounded-xl object-cover h-full w-full"
+          />
+        </div>
+      )}
+
+      {/* Right Side - Scrollable Details */}
+      <div
+        className={`h-full overflow-y-auto p-6 relative ${
+          selectedComplaint.photo ? "w-1/2" : "w-full"
+        }`}
+      >
+        <button
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
+          onClick={() => setIsViewOpen(false)}
+        >
+          ✕
+        </button>
+
+        <h2 className="text-3xl font-bold text-orange-600 mb-4">
+          Complaint #{selectedComplaint.id}: {selectedComplaint.category}
+        </h2>
+
+        <div className="space-y-3 pr-2">
+          <p><strong>Description:</strong> {selectedComplaint.description}</p>
+          <p><strong>Location:</strong> {selectedComplaint.location}</p>
+          <p><strong>Status:</strong> {selectedComplaint.status}</p>
+          <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
+          <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
+          <p><strong>Date:</strong> {selectedComplaint.date}</p>
+          {selectedComplaint.solution && (
+            <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 };

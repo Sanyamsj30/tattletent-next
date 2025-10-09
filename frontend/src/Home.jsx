@@ -6,6 +6,7 @@ import Logo from "./components/ui/Logo";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import jwtDecode from "jwt-decode"; // ✅ correct import
+import {FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 
 const portals = [
   ["Citizen Portal", "Easily lodge complaints and track updates.", "M12 4v16m8-8H4"],
@@ -41,6 +42,10 @@ export default function LandingPage() {
   const [otpOpen, setOtpOpen] = useState(false);
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  //const [loginWarning, setLoginWarning] = useState(""); // for login modal
+//const [signupWarning, setSignupWarning] = useState(""); // for signup modal
+
   
   const navigate = useNavigate();
 
@@ -230,15 +235,16 @@ export default function LandingPage() {
           transition={{ delay: 0.6, duration: 0.7 }}
           className="flex justify-center gap-5"
         >
-          {/*<AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg"
-          onClick={() => navigate("/all-complaints")}>
-            View all Complaints
-          </AppButton>*/}
+
           <AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
             onClick={() => navigate("/learn-more")}
           >
             Learn More
+          </AppButton>
+          {/*<AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg"
+          onClick={() => navigate("/all-complaints")}>
+            View all Complaints
           </AppButton>
           <AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
@@ -252,11 +258,17 @@ export default function LandingPage() {
           >
             Admin Dahboard
           </AppButton>
-          {/*<AppButton
+          <AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
             onClick={() => navigate("/citizen-dashboard")}
           >
             Citizen Dahboard
+          </AppButton>
+          <AppButton
+            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
+            onClick={() => navigate("/assign-staff")}
+          >
+            Staff
           </AppButton>*/}
         </motion.div>
       </section>
@@ -345,35 +357,93 @@ export default function LandingPage() {
 
       {/* Footer */}
       <motion.footer
-        initial={{ opacity: 0, y: 60 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        viewport={{ once: true }}
-        className="bg-[#FCF5EE] text-black text-center py-16 mt-10 border-t border-[#e6d9cc]"
+  initial={{ opacity: 0, y: 60 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.8 }}
+  viewport={{ once: true }}
+  className="bg-[#FCF5EE] text-black mt-10 pt-12 border-t border-[#e6d9cc]"
+>
+  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
+    {/* About Us */}
+    <div>
+      <h4 className="text-xl font-semibold mb-4 text-[#3b2c20]">About TattleTent</h4>
+      <p className="text-sm text-[#555]">
+        TattleTent empowers citizens to report issues, track resolutions, and collaborate for a safer, cleaner, and smarter community.
+      </p>
+      <div className="flex gap-3 mt-4">
+        {[FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram].map((Icon, idx) => (
+          <a
+            key={idx}
+            href="#"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-[#d55d1f]/20 text-[#d55d1f] hover:bg-[#d55d1f] hover:text-white transition"
+          >
+            <Icon size={20} />
+          </a>
+        ))}
+      </div>
+    </div>
+
+    {/* Quick Links */}
+    <div>
+      <h4 className="text-xl font-semibold mb-4 text-[#3b2c20]">Quick Links</h4>
+      <ul className="space-y-2 text-sm text-[#555]">
+        <li><a href="/" className="hover:text-[#d55d1f] transition">Home</a></li>
+        <li><a href="/all-complaints" className="hover:text-[#d55d1f] transition">All Complaints</a></li>
+        <li><a href="/about" className="hover:text-[#d55d1f] transition">About Us</a></li>
+        <li><a href="/contact" className="hover:text-[#d55d1f] transition">Contact</a></li>
+        <li><a href="/faq" className="hover:text-[#d55d1f] transition">FAQ</a></li>
+      </ul>
+    </div>
+
+    {/* Support / Resources */}
+    <div>
+      <h4 className="text-xl font-semibold mb-4 text-[#3b2c20]">Resources</h4>
+      <ul className="space-y-2 text-sm text-[#555]">
+        <li><a href="/terms" className="hover:text-[#d55d1f] transition">Terms of Service</a></li>
+        <li><a href="/privacy" className="hover:text-[#d55d1f] transition">Privacy Policy</a></li>
+        <li><a href="/help" className="hover:text-[#d55d1f] transition">Help Center</a></li>
+      </ul>
+    </div>
+
+    {/* GitHub / CTA */}
+{/* GitHub Section with Floating Circles */}
+<div>
+  <h4 className="text-xl font-semibold mb-4 text-[#3b2c20]">Our GitHub Projects</h4>
+  <p className="text-sm text-[#555] mb-6">
+    Explore our repositories and contributions. Click to view on GitHub.
+  </p>
+
+  <div className="flex justify-start gap-6 relative">
+    {[
+      { name: "Yamini Pal", url: "https://github.com/YaminiPal" },
+      { name: "Shah Yug", url: "https://github.com/yugshah7777" },
+      { name: "Sanyam Jain", url: "https://github.com/Sanyamsj30" },
+    ].map((repo, idx) => (
+      <a
+        key={idx}
+        href={repo.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`group w-8 h-8 rounded-full bg-[#d55d1f] flex items-center justify-center text-white shadow-lg hover:shadow-2xl transition transform hover:scale-110 relative`}
+        style={{ zIndex: 10 - idx }}
       >
-        <h3 className="text-2xl md:text-3xl font-semibold mb-3 text-[#3b2c20]">Ready to Make a Difference?</h3>
-        <p className="text-sm md:text-base text-[#555] mb-8 max-w-xl mx-auto">
-          Join thousands of citizens working together to improve our city. Every report counts towards a cleaner, safer, smarter community.
-        </p>
-        <div className="flex flex-wrap justify-center gap-5">
-          {["Submit Complaint", "Learn More"].map((text, i) => (
-            <motion.div
-              key={text}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.2, duration: 0.5 }}
-              viewport={{ once: true }}
-            >
-              <AppButton className="border border-[#d55d1f] text-[#d55d1f] hover:!bg-[#d55d1f] hover:text-white font-medium py-3 px-6 rounded-full shadow-md hover:shadow-lg transition-all duration-300">
-                {text}
-              </AppButton>
-            </motion.div>
-          ))}
-        </div>
-        <p className="mt-10 text-xs text-[#777] font-medium">
-          © {new Date().getFullYear()} TattleTent. All rights reserved.
-        </p>
-      </motion.footer>
+        <FaGithub size={28} />
+        <span className="absolute -bottom-8 w-max opacity-0 group-hover:opacity-100 bg-white text-[#d55d1f] px-2 py-1 rounded-md text-xs font-medium shadow-lg transition">
+          {repo.name}
+        </span>
+      </a>
+    ))}
+  </div>
+</div>
+</div>
+
+  {/* Bottom Bar */}
+  <div className="mt-12 py-6 border-t border-[#e6d9cc] text-center text-sm text-[#777]">
+    © {new Date().getFullYear()} TattleTent. All rights reserved.
+  </div>
+</motion.footer>
+
+
 
       {/* Login Modal */}
       {/* Login Modal */}

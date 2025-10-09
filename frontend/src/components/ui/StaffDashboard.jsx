@@ -1,21 +1,37 @@
 import React, { useState, useEffect } from "react";
-import Logo from "./Logo.jsx"
+import Logo from "./Logo.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+  ResponsiveContainer,
+} from "recharts";
 
 const StaffDashboard = () => {
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user")) || { name: "Guest" };
 
-  const navigate=useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
-  
-    const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
+  const [counts, setCounts] = useState({
+    resolved: 5,
+    pending: 2,
+    in_progress: 3,
+  });
+  const [showPerformance, setShowPerformance] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
 
-    const fetchCounts = async () => {
+  const fetchCounts = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      const res = await axios.get("http://localhost:5000/api/complaints/counts");
       setCounts(res.data);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      console.warn("Backend not connected, using demo data");
     }
   };
 
@@ -24,203 +40,374 @@ const StaffDashboard = () => {
   }, []);
 
   const initialComplaints = [
-    { id: 1, category: "Water Leak", status: "Pending", description: "Leak near Tent #5, pipe burst", location: "Tent #5, Sector A", date: "2025-10-02", citizen: "John Doe", priority: "" },
-    { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", location: "Sector C, Main Road", date: "2025-09-28", citizen: "Jane Smith", priority: "Medium", solution: "Tiles replaced" },
-    { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", location: "Central Park, Bin #7", date: "2025-10-01", citizen: "Mike Johnson", priority: "Low" },
-    { id: 4, category: "Electrical", status: "Pending", description: "Street light not working", location: "Street 12, Sector B", date: "2025-10-03", citizen: "Sarah Wilson", priority: "" },
+    {
+      id: 1,
+      category: "Water Leak",
+      status: "In Progress",
+      description: "Leak near Tent #5",
+      location: "Tent #5, Sector A",
+      date: "2025-10-02",
+      citizen: "John Doe",
+      priority: "High",
+      photo: "https://via.placeholder.com/400x250?text=Leak+Photo",
+    },
+    {
+      id: 2,
+      category: "Pathway Damage",
+      status: "Resolved",
+      description: "Broken tiles repaired",
+      location: "Sector C",
+      date: "2025-09-28",
+      citizen: "Jane Smith",
+      priority: "Medium",
+      solution: "Tiles replaced",
+      photo: "https://via.placeholder.com/400x250?text=Pathway",
+    },
+    {
+      id: 3,
+      category: "Garbage",
+      status: "In Progress",
+      description: "Overflowing bin near park",
+      location: "Central Park",
+      date: "2025-10-01",
+      citizen: "Mike Johnson",
+      priority: "Low",
+      photo: "https://via.placeholder.com/400x250?text=Garbage",
+    },
+    {
+      id: 4,
+      category: "Electrical",
+      status: "Resolved",
+      description: "Street light not working",
+      location: "Street 12",
+      date: "2025-10-03",
+      citizen: "Sarah Wilson",
+      priority: "Medium",
+     // photo: "https://via.placeholder.com/400x250?text=Electrical",
+    },
+    {
+      id: 5,
+      category: "Drainage",
+      status: "Resolved",
+      description: "Drainage clog cleared",
+      location: "Sector D",
+      date: "2025-09-22",
+      citizen: "Aman Verma",
+      priority: "High",
+      photo: "https://via.placeholder.com/400x250?text=Drainage",
+    },
   ];
 
   const [complaints, setComplaints] = useState(initialComplaints);
-  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
 
-  const newComplaints = complaints.filter(c => c.status === "Pending");
-  const assignedComplaints = complaints.filter(c => c.status !== "Pending");
+  const newComplaints = complaints.filter(
+    (c) =>  c.status === "In Progress"
+  );
+  const resolvedComplaints = complaints.filter((c) => c.status === "Resolved");
 
-   
+  const complaintsPerPage = 3;
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Resolved": return "bg-green-100 text-green-800";
-      case "In Progress": return "bg-yellow-100 text-yellow-800";
-      default: return "bg-red-100 text-red-800";
-    }
-  };
+  // Pagination for new complaints
+  const [currentNewPage, setCurrentNewPage] = useState(1);
+  const totalNewPages = Math.ceil(newComplaints.length / complaintsPerPage);
+  const paginatedNewComplaints = newComplaints.slice(
+    (currentNewPage - 1) * complaintsPerPage,
+    currentNewPage * complaintsPerPage
+  );
 
-  const getPriorityBadge = (priority) => {
-    switch (priority) {
-      case "High": return "bg-red-50 text-red-700 border-red-200";
-      case "Medium": return "bg-yellow-50 text-yellow-700 border-yellow-200";
-      case "Low": return "bg-blue-50 text-blue-700 border-blue-200";
-      default: return "bg-gray-50 text-gray-700 border-gray-200";
-    }
-  };
-
-  const handleUpdateClick = (complaint) => {
-    setSelectedComplaint({ ...complaint }); // clone to edit
-    setIsUpdateOpen(true);
-  };
+  // Pagination for resolved complaints
+  const [currentResolvedPage, setCurrentResolvedPage] = useState(1);
+  const totalResolvedPages = Math.ceil(
+    resolvedComplaints.length / complaintsPerPage
+  );
+  const paginatedResolvedComplaints = resolvedComplaints.slice(
+    (currentResolvedPage - 1) * complaintsPerPage,
+    currentResolvedPage * complaintsPerPage
+  );
 
   const handleViewClick = (complaint) => {
     setSelectedComplaint(complaint);
     setIsViewOpen(true);
   };
 
-  const handleSaveUpdate = () => {
-    setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? selectedComplaint : c));
-    setIsUpdateOpen(false);
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "Resolved":
+        return "bg-green-100 text-green-800";
+      case "In Progress":
+        return "bg-yellow-100 text-yellow-800";
+      default:
+        return "bg-red-100 text-red-800";
+    }
   };
 
+  const getPriorityBadge = (priority) => {
+    switch (priority) {
+      case "High":
+        return "bg-red-50 text-red-700 border border-red-300";
+      case "Medium":
+        return "bg-yellow-50 text-yellow-700 border border-yellow-300";
+      case "Low":
+        return "bg-blue-50 text-blue-700 border border-blue-300";
+      default:
+        return "bg-gray-50 text-gray-700 border border-gray-300";
+    }
+  };
+
+  const performanceData = [
+    { name: "Resolved", count: counts.resolved || 0 },
+    { name: "In Progress", count: counts.in_progress || 0 },
+    { name: "Pending", count: counts.pending || 0 },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#FCF5EE] font-sans">
+    <div className="min-h-screen bg-[#FCF5EE] font-sans flex flex-col justify-between">
       {/* Navbar */}
       <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
-        <Logo/>
+        <Logo />
         <div className="flex items-center gap-4">
           <div className="text-right">
             <p className="text-sm text-gray-600">Logged in as</p>
             <p className="font-semibold text-gray-800">Staff Member</p>
           </div>
           <button
-            onClick={() => navigate("/")} // 👈 Redirect to Home page
+            onClick={() => setShowPerformance(true)}
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-3 py-2 transition duration-200"
+          >
+            Performance
+          </button>
+          <button
+            onClick={() => navigate("/")}
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
           >
-            <span className="text-xl">Logout</span>
+            Logout
           </button>
         </div>
-      </div> 
+      </div>
 
+      {/* Welcome */}
+      <div className="flex flex-col items-center justify-center text-center pt-36 px-6 mb-12 space-y-6">
+        <h1 className="text-5xl sm:text-6xl font-extrabold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent">
+          Welcome, {user.name} 👷
+        </h1>
+        <p className="text-2xl text-gray-700 mt-4 italic">
+          Manage and resolve citizen complaints efficiently.
+        </p>
+      </div>
 
-      {/* Welcome Bar */}
-      {/* Welcome Bar */}
-<div className="flex flex-col items-center justify-center text-center pt-36 px-6 sm:px-12 mb-12 space-y-6">
-  <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent leading-tight tracking-tight">
-    Welcome, {user.name} 👷
-  </h1>
-  <p className="text-2xl text-gray-700 mt-4 italic">
-    Manage and resolve citizen complaints efficiently.
-  </p>
-
-  <div className="flex flex-col sm:flex-row items-center gap-6 mt-4">
-    <div className="text-center px-6 py-4 bg-orange-100 rounded-xl shadow-md">
-      <p className="text-sm text-gray-600">Total Complaints</p>
-      <p className="text-2xl font-bold text-orange-700">{ (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) }</p>
-    </div>
-    <div className="text-center px-6 py-4 bg-yellow-100 rounded-xl shadow-md">
-      <p className="text-sm text-gray-600">In Progress</p>
-      <p className="text-2xl font-bold text-yellow-700">{counts.in_progress}</p>
-    </div>
-    <div className="text-center px-6 py-4 bg-yellow-100 rounded-xl shadow-md">
-      <p className="text-sm text-gray-600">Pending</p>
-      <p className="text-2xl font-bold text-yellow-700">{counts.pending}</p>
-    </div>
-  </div>
-</div>
-
-
+      {/* Complaints Section */}
       <main className="px-12 space-y-16">
-        {/* New Complaints Section */}
+        {/* Active Complaints */}
         <section>
           <div className="flex justify-between items-center mb-6 border-l-4 border-red-400 pl-3">
-            <h3 className="text-2xl font-bold text-gray-900">🆕 New Complaints</h3>
-            <button className="text-sm text-red-500 font-semibold hover:underline">View All</button>
+            <h3 className="text-2xl font-bold text-gray-900">🚨 Complaints</h3>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {newComplaints.map(c => (
-              <div key={c.id} className="bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-between hover:shadow-xl transition">
-                <div>
+            {paginatedNewComplaints.map((c) => (
+              <div
+                key={c.id}
+                className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition"
+              >
+                <div className="flex items-center gap-2">
                   <h4 className="text-xl font-semibold text-gray-800">{c.category}</h4>
-                  <p className="text-gray-600 mt-2">{c.location}</p>
-                  <p className="text-gray-500 text-sm mt-1">Reported by: {c.citizen}</p>
-                  <p className="text-gray-400 text-xs mt-1">{c.date}</p>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(c.priority)}`}>{c.priority}</span>
                 </div>
+                <p className="text-gray-600 mt-2">{c.location}</p>
+                <p className="text-gray-500 text-sm mt-1">Reported by: {c.citizen}</p>
                 <div className="flex gap-3 mt-5">
-                  <button onClick={() => handleViewClick(c)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Open</button>
-                  <button onClick={() => handleUpdateClick(c)} className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition">Update</button>
+                  <button onClick={() => handleViewClick(c)} className="flex-1 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                    Open
+                  </button>
+                  <button
+                    onClick={() =>
+                      setComplaints((prev) =>
+                        prev.map((comp) =>
+                          comp.id === c.id ? { ...comp, status: "Resolved" } : comp
+                        )
+                      )
+                    }
+                    className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
+                  >
+                    Resolve
+                  </button>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <button
+              onClick={() => setCurrentNewPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentNewPage === 1}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
+            >
+              Prev
+            </button>
+            <span className="text-lg font-semibold">
+              Page {currentNewPage} of {totalNewPages}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentNewPage((prev) => (prev < totalNewPages ? prev + 1 : prev))
+              }
+              disabled={currentNewPage === totalNewPages}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
+            >
+              Next
+            </button>
           </div>
         </section>
 
-        {/* Assigned Complaints Section */}
+        {/* Resolved Complaints */}
         <section>
           <div className="flex justify-between items-center mb-6 border-l-4 border-green-400 pl-3">
-            <h3 className="text-2xl font-bold text-gray-900">📋 Assigned Complaints</h3>
-            <button className="text-sm text-green-600 font-semibold hover:underline">View All</button>
+            <h3 className="text-2xl font-bold text-gray-900">✅ Resolved Complaints</h3>
           </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assignedComplaints.map(c => (
-              <div key={c.id} className="bg-white rounded-2xl shadow-lg p-6 flex flex-col justify-between hover:shadow-xl transition">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-xl font-semibold text-gray-800">{c.category}</h4>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status}</span>
-                    {c.priority && <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${getPriorityBadge(c.priority)}`}>{c.priority}</span>}
-                  </div>
-                  <p className="text-gray-600 mt-2">{c.location}</p>
-                  <p className="text-gray-500 text-sm mt-1">Reported by: {c.citizen}</p>
-                  <p className="text-gray-400 text-xs mt-1">{c.date}</p>
+            {paginatedResolvedComplaints.map((c) => (
+              <div key={c.id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xl font-semibold text-gray-800">{c.category}</h4>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(c.priority)}`}>{c.priority}</span>
                 </div>
+                <p className="text-gray-600 mt-2">{c.location}</p>
+                <p className="text-gray-500 text-sm mt-1">Reported by: {c.citizen}</p>
                 <div className="flex gap-3 mt-5">
-                  <button onClick={() => handleViewClick(c)} className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition">Open</button>
-                  <button onClick={() => handleUpdateClick(c)} className="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition">Update</button>
+                  <button
+                    onClick={() => handleViewClick(c)}
+                    className="flex-1 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                  >
+                    Open
+                  </button>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <button
+              onClick={() =>
+                setCurrentResolvedPage((prev) => Math.max(prev - 1, 1))
+              }
+              disabled={currentResolvedPage === 1}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
+            >
+              Prev
+            </button>
+            <span className="text-lg font-semibold">
+              Page {currentResolvedPage} of {totalResolvedPages}
+            </span>
+            <button
+              onClick={() =>
+                setCurrentResolvedPage((prev) =>
+                  prev < totalResolvedPages ? prev + 1 : prev
+                )
+              }
+              disabled={currentResolvedPage === totalResolvedPages}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
+            >
+              Next
+            </button>
           </div>
         </section>
       </main>
 
-      {/* Update Modal */}
-      {isUpdateOpen && selectedComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setIsUpdateOpen(false)}>
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-8 overflow-y-auto max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-2xl font-bold text-orange-600 mb-4">Update Complaint #{selectedComplaint.id}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div>
-                <label>Status</label>
-                <select className="w-full p-3 border rounded-xl" value={selectedComplaint.status} onChange={e => setSelectedComplaint({...selectedComplaint, status: e.target.value})}>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
-              </div>
-              <div>
-                <label>Priority</label>
-                <select className="w-full p-3 border rounded-xl" value={selectedComplaint.priority} onChange={e => setSelectedComplaint({...selectedComplaint, priority: e.target.value})}>
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
-              </div>
-            </div>
-            <div className="mb-4">
-              <label>Solution / Notes</label>
-              <textarea className="w-full p-3 border rounded-xl" rows={4} value={selectedComplaint.solution || ""} onChange={e => setSelectedComplaint({...selectedComplaint, solution: e.target.value})} />
-            </div>
-            <div className="flex justify-end gap-3">
-              <button className="px-6 py-3 bg-gray-200 rounded-xl" onClick={() => setIsUpdateOpen(false)}>Cancel</button>
-              <button className="px-6 py-3 bg-orange-600 text-white rounded-xl" onClick={handleSaveUpdate}>Save</button>
-            </div>
-          </div>
+      {/* Footer */}
+      <footer className="text-center py-6 mt-16 text-gray-600 text-sm border-t border-gray-300">
+        © {new Date().getFullYear()} Tattle Tent | All rights reserved.
+      </footer>
+
+      {/* Complaint Details Modal */}
+      {isViewOpen && selectedComplaint && (
+  <div
+    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+    onClick={() => setIsViewOpen(false)}
+  >
+    <div
+      className={`bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative flex overflow-hidden`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Left Side - Photo (conditionally) */}
+      {selectedComplaint.photo && (
+        <div className="w-1/2 h-full bg-gray-50 flex items-center justify-center p-4 border-r">
+          <img
+            src={selectedComplaint.photo}
+            alt={selectedComplaint.category}
+            className="rounded-xl object-cover h-full w-full"
+          />
         </div>
       )}
 
-      {/* View Modal */}
-      {isViewOpen && selectedComplaint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setIsViewOpen(false)}>
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-8 overflow-y-auto max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-2xl font-bold text-orange-600 mb-4">{selectedComplaint.category}</h3>
-            <p className="text-gray-600 mb-2"><strong>Location:</strong> {selectedComplaint.location}</p>
-            <p className="text-gray-600 mb-2"><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
-            <p className="text-gray-600 mb-2"><strong>Status:</strong> {selectedComplaint.status}</p>
-            {selectedComplaint.priority && <p className="text-gray-600 mb-2"><strong>Priority:</strong> {selectedComplaint.priority}</p>}
-            <p className="text-gray-700 mt-4">{selectedComplaint.description}</p>
-            {selectedComplaint.solution && <p className="text-gray-700 mt-4"><strong>Solution:</strong> {selectedComplaint.solution}</p>}
-            <div className="flex justify-end mt-6">
-              <button className="px-6 py-3 bg-gray-200 rounded-xl" onClick={() => setIsViewOpen(false)}>Close</button>
+      {/* Right Side - Scrollable Details */}
+      <div
+        className={`h-full overflow-y-auto p-6 relative ${
+          selectedComplaint.photo ? "w-1/2" : "w-full"
+        }`}
+      >
+        <button
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
+          onClick={() => setIsViewOpen(false)}
+        >
+          ✕
+        </button>
+
+        <h2 className="text-3xl font-bold text-orange-600 mb-4">
+          Complaint #{selectedComplaint.id}: {selectedComplaint.category}
+        </h2>
+
+        <div className="space-y-3 pr-2">
+          <p><strong>Description:</strong> {selectedComplaint.description}</p>
+          <p><strong>Location:</strong> {selectedComplaint.location}</p>
+          <p><strong>Status:</strong> {selectedComplaint.status}</p>
+          <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
+          <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
+          <p><strong>Date:</strong> {selectedComplaint.date}</p>
+          {selectedComplaint.solution && (
+            <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+      {/* Performance Modal */}
+      {showPerformance && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowPerformance(false)}
+        >
+          <div
+            className="bg-white p-8 rounded-2xl max-w-3xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-3xl font-bold text-orange-600 mb-6 text-center">
+              📊 My Performance
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={performanceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="count" fill="#d55d1f" />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="flex justify-center mt-6">
+              <button
+                className="px-6 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700"
+                onClick={() => setShowPerformance(false)}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
