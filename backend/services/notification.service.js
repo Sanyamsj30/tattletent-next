@@ -20,24 +20,24 @@ export const notifyStatusChange = async (complaintId) => {
     const c = result.rows[0];
 
     // 🧠 Email to citizen
-    // await sendEmail({
-    //     email: c.citizen_email,
-    //     subject: `Update on Complaint #${c.complaint_id}: Status is now "${c.status}"`,
-    //     html: `
-    //         <h2>Complaint Status Updated</h2>
-    //         <p>Hello,</p>
-    //         <p>This is a notification that the status of your complaint has been changed.</p>
+    await sendEmail({
+        email: c.citizen_email,
+        subject: `Update on Complaint #${c.complaint_id}: Status is now "${c.status}"`,
+        html: `
+            <h2>Complaint Status Updated</h2>
+            <p>Hello,</p>
+            <p>This is a notification that the status of your complaint has been changed.</p>
             
-    //         <p><b>Complaint Title:</b> ${c.title}</p>
-    //         <p><b>Reference ID:</b> #${c.complaint_id}</p>
-    //         <p><b>New Status:</b> ${c.status}</p>
+            <p><b>Complaint Title:</b> ${c.title}</p>
+            <p><b>Reference ID:</b> #${c.complaint_id}</p>
+            <p><b>New Status:</b> ${c.status}</p>
 
-    //         <p>You can view full details and track the progress from your TattleTent dashboard.</p>
-    //         <br/>
-    //         <p>Regards,</p>
-    //         <p>The TattleTent Team</p>
-    //     `,
-    // });
+            <p>You can view full details and track the progress from your TattleTent dashboard.</p>
+            <br/>
+            <p>Regards,</p>
+            <p>The TattleTent Team</p>
+        `,
+    });
 
     
 
