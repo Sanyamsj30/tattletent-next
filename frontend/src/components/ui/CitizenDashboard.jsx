@@ -167,7 +167,7 @@ useEffect(() => {
     {[
       { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
       { title: "Resolved", count: counts.resolved },
-      { title: "Awaiting Action", count: counts.in_progress },
+      { title: "In Progress", count: counts.in_progress },
     ].map((s) => (
       <div
         key={s.title}

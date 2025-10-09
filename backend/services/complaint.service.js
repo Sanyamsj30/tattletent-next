@@ -21,7 +21,7 @@ export const saveComplaintToDB = async (newComplaint) => {
     const complaintResult = await pool.query(
       `INSERT INTO complaints 
         (title, description, status, photo, category, location, dept_id, priority)
-       VALUES ($1, $2, 'OPEN', $3, $4, $5, $6, 'Low')
+       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low')
        RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at`,
       [
         newComplaint.title,
