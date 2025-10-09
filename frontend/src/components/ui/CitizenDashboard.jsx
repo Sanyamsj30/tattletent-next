@@ -93,6 +93,20 @@ useEffect(() => {
       // Add logged-in user ID automatically
       formData.append("user_id", user.user_id);
 
+      let lat = null, lon = null;
+
+      if (navigator.geolocation) {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
+        });
+        lat = parseFloat(position.coords.latitude);
+        lon = parseFloat(position.coords.longitude);
+
+        // Add coordinates to form data
+        formData.append("latitude", lat);
+        formData.append("longitude", lon);
+      }
+
       const response = await axios.post(
         "http://localhost:5000/api/complaints",  // 👈 your backend route
         formData,
@@ -167,7 +181,7 @@ useEffect(() => {
     {[
       { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
       { title: "Resolved", count: counts.resolved },
-      { title: "Awaiting Action", count: counts.in_progress },
+      { title: "In Progress", count: counts.in_progress },
     ].map((s) => (
       <div
         key={s.title}

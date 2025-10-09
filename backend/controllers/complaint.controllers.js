@@ -8,14 +8,14 @@ import {
   getComplaintCounts,
   searchComplaints,
   escalateComplaintsByCategory,
+  fetchHeatmapData 
 } from "../services/complaint.service.js";
 
 import { notifyStatusChange } from "../services/notification.service.js";
 
 // ✅ Create a new complaint
 const createComplaint = asynchandler(async (req, res) => {
-  const { title, description, category, location } = Object.assign({}, req.body);
-  const user_id = req.body.user_id;
+  const { title, description, category, location, user_id, latitude, longitude } = Object.assign({}, req.body);
   if (!user_id || !title || !description || !category || !location) {
     return res
       .status(400)
@@ -31,6 +31,8 @@ const createComplaint = asynchandler(async (req, res) => {
     location,
     photo: req.file ? `/temp/${req.file.filename}` : null,
     status: "New",
+    latitude,
+    longitude,
     // statusHistory: [
     //   {
     //     status: "OPEN",
@@ -175,4 +177,14 @@ const escalateComplaints = asynchandler(async (req, res) => {
   );
 });
 
-export { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint, fetchComplaintCounts ,getComplaints,escalateComplaints};
+const getHeatmapData = async (req, res) => {
+  try {
+    const complaints = await fetchHeatmapData();
+    res.status(200).json(complaints);
+  } catch (error) {
+    console.error("Error fetching heatmap data:", error);
+    res.status(500).json({ error: "Failed to fetch heatmap data" });
+  }
+};
+
+export { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint, fetchComplaintCounts ,getComplaints,escalateComplaints, getHeatmapData};

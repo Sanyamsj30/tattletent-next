@@ -20,8 +20,8 @@ export const saveComplaintToDB = async (newComplaint) => {
     // 2️⃣ Insert complaint into the database with default values
     const complaintResult = await pool.query(
       `INSERT INTO complaints 
-        (title, description, status, photo, category, location, dept_id, priority)
-       VALUES ($1, $2, 'NEW', $3, $4, $5, $6, 'Low')
+        (title, description, status, photo, category, location, dept_id, priority, user_id, longitude, latitude, geolocation)
+       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low', $7, $8, $9, ST_SetSRID(ST_MakePoint($10::double precision, $11::double precision), 4326))
        RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at`,
       [
         newComplaint.title,
@@ -29,7 +29,12 @@ export const saveComplaintToDB = async (newComplaint) => {
         newComplaint.photo,
         newComplaint.category,
         newComplaint.location,
-        dept_id
+        dept_id,
+        newComplaint.user_id,
+        newComplaint.longitude,
+        newComplaint.latitude,
+        newComplaint.longitude,
+        newComplaint.latitude
       ]
     );
 
@@ -299,4 +304,17 @@ export const escalateComplaintsByCategory = async () => {
     console.error("❌ Escalation failed:", err.message);
     throw err;
   }
+};
+
+export const fetchHeatmapData = async () => {
+  const query = `
+    SELECT 
+      id, 
+      ST_Y(geoLocation::geometry) AS latitude,
+      ST_X(geoLocation::geometry) AS longitude
+    FROM complaints
+    WHERE geoLocation IS NOT NULL;
+  `;
+  const { rows } = await pool.query(query);
+  return rows;
 };
