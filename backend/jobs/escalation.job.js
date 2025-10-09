@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { escalateComplaintsByCategory } from "../services/complaint.service.js";
+import { notifyOverdueReminder } from "../services/notification.service.js";
 
 /**
  * 🔁 Scheduled Job: Complaint Escalation Check
@@ -25,3 +26,9 @@ cron.schedule("0 0 * * *", async () => {
     console.error("❌ Error during escalation job:", err.message);
   }
 });
+
+
+cron.schedule("0 8 * * *", async () => {
+  console.log("⏰ Running daily SLA reminder emails...");
+  await notifyOverdueReminder();
+})

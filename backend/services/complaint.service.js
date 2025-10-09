@@ -21,7 +21,7 @@ export const saveComplaintToDB = async (newComplaint) => {
     const complaintResult = await pool.query(
       `INSERT INTO complaints 
         (title, description, status, photo, category, location, dept_id, priority)
-       VALUES ($1, $2, 'OPEN', $3, $4, $5, $6, 'Low')
+       VALUES ($1, $2, 'NEW', $3, $4, $5, $6, 'Low')
        RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at`,
       [
         newComplaint.title,
@@ -62,6 +62,9 @@ export const updateComplaintStatusInDB = async (id, newStatus, staffId) => {
         [staffId, staffName.rows[0].name, id]
       );
     }
+    if(newStatus==='In Progress'){
+      newStatus="IN_PROGRESS";
+    }
     const updatedComplaint = await pool.query(
       `UPDATE complaints
        SET status = $1,
@@ -91,7 +94,7 @@ export const updateComplaintPriorityInDB = async (id, newPriority) => {
     const complaint = existingComplaint.rows[0];
 
     // Check if priority is actually changing
-    if (newPriority === complaint.priority) {
+    if (newPriority === complaint.priority && complaint.sla_deadline!==null) {
         console.log(`Priority for ID ${id} is already ${newPriority}. No update needed.`);
         return complaint; // Return the existing complaint data
     }
