@@ -11,6 +11,7 @@ import AdminDashboard from "./components/ui/AdminDashboard";
 import LearnMorePage from "./components/ui/LearnMorePage"
 import AllComplaintsPage from "./components/ui/AllComplaintsPage"
 import AssignStaffPage from "./components/ui/AssignStaffPage"
+import Heatmap from "./components/ui/Heatmap"
 
 
 // Replace with your actual Google client ID
@@ -28,6 +29,8 @@ createRoot(document.getElementById("root")).render(
           <Route path="/learn-more" element={<LearnMorePage />} />
           <Route path="/all-complaints" element={<AllComplaintsPage />} />
           <Route path="/assign-staff" element={<AssignStaffPage />} />
+          <Route path="/heatmap" element={<Heatmap />} />
+
         </Routes>
       </BrowserRouter>
     </GoogleOAuthProvider>

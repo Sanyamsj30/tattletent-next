@@ -138,6 +138,12 @@ const handleAssignClick = (complaint) => {
           </button>
           <button
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
+            onClick={() => navigate("/heatmap")}
+          >
+            Heatmap
+          </button>
+          <button
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
             onClick={() => navigate("/all-complaints")}
           >
             All Complaints

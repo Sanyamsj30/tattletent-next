@@ -306,11 +306,11 @@ export const escalateComplaintsByCategory = async () => {
 export const fetchHeatmapData = async () => {
   const query = `
     SELECT 
-      id, 
-      ST_Y(geoLocation::geometry) AS latitude,
-      ST_X(geoLocation::geometry) AS longitude
+      complaint_id, 
+      ST_Y(geolocation::geometry) AS latitude,
+      ST_X(geolocation::geometry) AS longitude
     FROM complaints
-    WHERE geoLocation IS NOT NULL;
+    WHERE geolocation IS NOT NULL;
   `;
   const { rows } = await pool.query(query);
   return rows;
