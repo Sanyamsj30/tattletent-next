@@ -7,16 +7,36 @@ const AdminDashboard = () => {
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // Complaints state
   const [complaints, setComplaints] = useState([]);
+  const [assignedComplaints, setAssignedComplaints] = useState([]);
 
-  // Add this at the top with other states
-const [assignedComplaints, setAssignedComplaints] = useState([]);
+  // Pagination states
+  const [currentNewPage, setCurrentNewPage] = useState(1);
+  const [currentAssignedPage, setCurrentAssignedPage] = useState(1);
+  const complaintsPerPage = 5;
 
-// Update handleAssignClick
-const handleAssignClick = (complaint) => {
-  navigate("/assign-staff", { state: { complaint } });
-};
+  // Demo data for New Complaints
+  const demoNewComplaints = [
+    { id: 101, category: "Water Leak", location: "Tent #12", status: "New", assignedTo: null },
+    { id: 102, category: "Electrical", location: "Sector 5", status: "New", assignedTo: null },
+    { id: 103, category: "Garbage Overflow", location: "Park Zone", status: "New", assignedTo: null },
+    { id: 104, category: "Pathway Damage", location: "Street 3", status: "New", assignedTo: null },
+    { id: 105, category: "Noise Complaint", location: "Sector 7", status: "New", assignedTo: null },
+    { id: 106, category: "Drainage Issue", location: "Sector 2", status: "New", assignedTo: null },
+  ];
 
+  // Demo data for Assigned Complaints
+  const demoAssignedComplaints = [
+    { id: 201, category: "Water Leak", location: "Tent #9", status: "In Progress", assignedTo: "Staff A" },
+    { id: 202, category: "Electrical", location: "Street 5", status: "In Progress", assignedTo: "Staff B" },
+    { id: 203, category: "Garbage Overflow", location: "Park Zone 2", status: "In Progress", assignedTo: "Staff C" },
+    { id: 204, category: "Pathway Damage", location: "Sector 4", status: "In Progress", assignedTo: "Staff D" },
+    { id: 205, category: "Noise Complaint", location: "Sector 6", status: "In Progress", assignedTo: "Staff E" },
+    { id: 206, category: "Drainage Issue", location: "Sector 8", status: "In Progress", assignedTo: "Staff F" },
+  ];
+
+  // Fetch complaints by user (with demo fallback)
   const fetchComplaintsByUser = async () => {
     try {
       if (!user?.user_id) return;
@@ -38,17 +58,15 @@ const handleAssignClick = (complaint) => {
 
     } catch (err) {
       console.error("Error fetching complaints:", err);
-      setComplaints([]); // fallback to empty array
+      setComplaints(demoNewComplaints); // fallback to demo
     }
   };
 
   useEffect(() => {
-    if (user?.user_id) {
-      fetchComplaintsByUser();
-    }
+    if (user?.user_id) fetchComplaintsByUser();
   }, [user]);
 
-
+  // Fetch assigned complaints (with demo fallback)
   const fetchAssignedComplaints = async () => {
     try {
       if (!user?.user_id) return;
@@ -69,20 +87,34 @@ const handleAssignClick = (complaint) => {
       })));
 
     } catch (err) {
-      console.error("Error fetching complaints:", err);
-      setAssignedComplaints([]); // fallback to empty array
+      console.error("Error fetching assigned complaints:", err);
+      setAssignedComplaints(demoAssignedComplaints); // fallback to demo
     }
   };
 
   useEffect(() => {
-    if (user?.user_id) {
-      fetchAssignedComplaints();
-    }
+    if (user?.user_id) fetchAssignedComplaints();
   }, [user]);
 
+  // Pagination slices
+  const totalNewPages = Math.ceil(complaints.length / complaintsPerPage);
+  const paginatedNewComplaints = complaints.slice(
+    (currentNewPage - 1) * complaintsPerPage,
+    currentNewPage * complaintsPerPage
+  );
 
-  // Demo data
+  const totalAssignedPages = Math.ceil(assignedComplaints.length / complaintsPerPage);
+  const paginatedAssignedComplaints = assignedComplaints.slice(
+    (currentAssignedPage - 1) * complaintsPerPage,
+    currentAssignedPage * complaintsPerPage
+  );
 
+  // Handle assign button
+  const handleAssignClick = (complaint) => {
+    navigate("/assign-staff", { state: { complaint } });
+  };
+
+  // Demo reviews (unchanged)
   const [reviews] = useState([
     { id: 1, citizen: "Alice", comment: "Great service by staff!", rating: 5 },
     { id: 2, citizen: "Bob", comment: "Complaint resolved quickly.", rating: 4 },
@@ -91,30 +123,10 @@ const handleAssignClick = (complaint) => {
     { id: 5, citizen: "Ella", comment: "Impressed with how they handled it.", rating: 5 },
   ]);
 
-
-  // --- Pagination Logic for Complaints ---
-  const complaintsPerPage = 5;
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(complaints.length / complaintsPerPage);
-
-  const paginatedComplaints = complaints.slice(
-    (currentPage - 1) * complaintsPerPage,
-    currentPage * complaintsPerPage
-  );
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
-
   // --- Review Carousel ---
   const [currentReviewPage, setCurrentReviewPage] = useState(0);
   const reviewsPerPage = 4;
   const totalReviewPages = Math.ceil(reviews.length / reviewsPerPage);
-
   const reviewSubset = reviews.slice(
     currentReviewPage * reviewsPerPage,
     (currentReviewPage + 1) * reviewsPerPage
@@ -162,7 +174,7 @@ const handleAssignClick = (complaint) => {
           </p>
         </div>
 
-        {/* Complaints Table */}
+        {/* New Complaints Table */}
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-3xl font-bold text-gray-900">New Complaints</h3>
@@ -182,8 +194,8 @@ const handleAssignClick = (complaint) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-blue-200 bg-white">
-                {complaints.length > 0 ? (
-                  paginatedComplaints.map((c) => (
+                {paginatedNewComplaints.length > 0 ? (
+                  paginatedNewComplaints.map((c) => (
                     <tr key={c.id} className="hover:bg-blue-50 transition">
                       <td className="p-4 font-bold">{c.id}</td>
                       <td className="p-4">{c.category}</td>
@@ -201,78 +213,104 @@ const handleAssignClick = (complaint) => {
                     </tr>
                   ))
                 ) : (
-                    <tr>
-                      <td colSpan="5" className="text-center p-4 text-gray-500">
-                        No complaints found.
-                      </td>
-                    </tr>
+                  <tr>
+                    <td colSpan="6" className="text-center p-4 text-gray-500">
+                      No complaints found.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
           </div>
 
-          {/* Pagination Buttons */}
+          {/* Pagination for New Complaints */}
           <div className="flex justify-center items-center gap-4 mt-6">
             <button
-              onClick={handlePrevPage}
-              disabled={currentPage === 1}
+              onClick={() => setCurrentNewPage((p) => Math.max(p - 1, 1))}
+              disabled={currentNewPage === 1}
               className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
             >
               Prev
             </button>
             <span className="text-lg font-semibold">
-              Page {currentPage} of {totalPages}
+              Page {currentNewPage} of {totalNewPages}
             </span>
             <button
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentNewPage((p) => Math.min(p + 1, totalNewPages))}
+              disabled={currentNewPage === totalNewPages}
               className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
             >
               Next
             </button>
           </div>
         </div>
-        {/* Assigned Complaints Section */}
-<div className="mt-12">
-  <div className="flex justify-between items-center mb-4">
-    <h3 className="text-3xl font-bold text-gray-900">Assigned Complaints</h3>
-  </div>
-  {assignedComplaints.length > 0 ? (
-    <div className="overflow-x-auto rounded-lg border border-gray-300">
-      <table className="min-w-full divide-y divide-blue-200">
-        <thead className="bg-white">
-          <tr>
-            {["ID", "Category", "Location", "Status", "Assigned To"].map((h) => (
-              <th
-                key={h}
-                className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider"
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-blue-200 bg-white">
-          {assignedComplaints.map((c) => (
-            <tr key={c.id} className="hover:bg-blue-50 transition">
-              <td className="p-4 font-bold">{c.id}</td>
-              <td className="p-4">{c.category}</td>
-              <td className="p-4">{c.location}</td>
-              <td className="p-4">{c.status}</td>
-              <td className="p-4">{c.assignedTo}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  ) : (
-    <p className="text-gray-500 text-center py-4">No assigned complaints yet.</p>
-  )}
-</div>
+
+        {/* Assigned Complaints Table */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-3xl font-bold text-gray-900">Assigned Complaints</h3>
+          </div>
+          <div className="overflow-x-auto rounded-lg border border-gray-300">
+            <table className="min-w-full divide-y divide-blue-200">
+              <thead className="bg-white">
+                <tr>
+                  {["ID", "Category", "Location", "Status", "Assigned To"].map((h) => (
+                    <th
+                      key={h}
+                      className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-blue-200 bg-white">
+                {paginatedAssignedComplaints.length > 0 ? (
+                  paginatedAssignedComplaints.map((c) => (
+                    <tr key={c.id} className="hover:bg-blue-50 transition">
+                      <td className="p-4 font-bold">{c.id}</td>
+                      <td className="p-4">{c.category}</td>
+                      <td className="p-4">{c.location}</td>
+                      <td className="p-4">{c.status}</td>
+                      <td className="p-4">{c.assignedTo }</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="text-center p-4 text-gray-500">
+                      No complaints found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination for Assigned Complaints */}
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <button
+              onClick={() => setCurrentAssignedPage((p) => Math.max(p - 1, 1))}
+              disabled={currentAssignedPage === 1}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
+            >
+              Prev
+            </button>
+            <span className="text-lg font-semibold">
+              Page {currentAssignedPage} of {totalAssignedPages}
+            </span>
+            <button
+              onClick={() => setCurrentAssignedPage((p) => Math.min(p + 1, totalAssignedPages))}
+              disabled={currentAssignedPage === totalAssignedPages}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg disabled:opacity-50 hover:bg-gray-400 transition"
+            >
+              Next
+            </button>
+          </div>
+        </div>
 
         {/* Citizen Reviews Carousel */}
         <div className="relative">
-          <h3 className="text-3xl font-bold text-gray-900 mb-6 ">
+          <h3 className="text-3xl font-bold text-gray-900 mb-6">
             Citizen Reviews
           </h3>
 

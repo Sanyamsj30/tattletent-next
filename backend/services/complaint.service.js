@@ -67,6 +67,9 @@ export const updateComplaintStatusInDB = async (id, newStatus, staffId) => {
         [staffId, staffName.rows[0].name, id]
       );
     }
+    if(newStatus==='In Progress'){
+      newStatus="IN_PROGRESS";
+    }
     const updatedComplaint = await pool.query(
       `UPDATE complaints
        SET status = $1,
@@ -96,7 +99,7 @@ export const updateComplaintPriorityInDB = async (id, newPriority) => {
     const complaint = existingComplaint.rows[0];
 
     // Check if priority is actually changing
-    if (newPriority === complaint.priority) {
+    if (newPriority === complaint.priority && complaint.sla_deadline!==null) {
         console.log(`Priority for ID ${id} is already ${newPriority}. No update needed.`);
         return complaint; // Return the existing complaint data
     }
@@ -267,7 +270,7 @@ export const escalateComplaintsByCategory = async () => {
     const overdue = await pool.query(`
       SELECT complaint_id, title, category, status, sla_deadline
       FROM complaints
-      WHERE status IN ('OPEN', 'IN_PROGRESS')
+      WHERE status IN ('NEW', 'IN_PROGRESS')
       AND sla_deadline < NOW();
     `);
 

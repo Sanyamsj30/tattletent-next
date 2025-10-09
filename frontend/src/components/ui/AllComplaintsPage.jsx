@@ -21,13 +21,15 @@ const AllComplaintsPage = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+
+
+  const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
-  const [assignStaff, setAssignStaff] = useState(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const complaintsPerPage = 5; // number of complaints per page
 
-  const staffList = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Lee"];
+  //const staffList = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Lee"];
 
   const filteredComplaints = complaints.filter(c => {
     const matchesStatus = filterStatus === "all" || c.status.toLowerCase() === filterStatus.toLowerCase();
@@ -42,7 +44,7 @@ const AllComplaintsPage = () => {
   const currentComplaints = filteredComplaints.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filteredComplaints.length / complaintsPerPage);
 
-  const handleAssign = (complaint) => setAssignStaff(complaint);
+ /* const handleAssign = (complaint) => setAssignStaff(complaint);
   const confirmAssign = (staffName) => {
     setComplaints(prev => prev.map(c => c.id === assignStaff.id ? { ...c, assignedTo: staffName, status: "In Progress" } : c));
     setAssignStaff(null);
@@ -52,6 +54,11 @@ const AllComplaintsPage = () => {
   const saveUpdate = () => {
     setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? selectedComplaint : c));
     setSelectedComplaint(null);
+  };*/
+
+  const handleView = (complaint) => {
+    setSelectedComplaint(complaint);
+    setIsViewOpen(true);
   };
 
   const exportCSV = () => {
@@ -147,7 +154,7 @@ const AllComplaintsPage = () => {
         <table className="min-w-full divide-y divide-blue-200">
           <thead className="bg-white">
             <tr>
-              {["ID","Category","Location","Status","Citizen","Priority","Assigned To","Actions"].map(h=>(
+              {["ID","Category","Location","Status","Citizen","Priority","Assigned To","View"].map(h=>(
                 <th key={h} className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
@@ -167,8 +174,7 @@ const AllComplaintsPage = () => {
                 <td className="p-4">{c.priority || "Not Set"}</td>
                 <td className="p-4">{c.assignedTo || "Unassigned"}</td>
                 <td className="p-4 flex gap-2">
-                  <button className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition" onClick={()=>handleAssign(c)}>Assign</button>
-                  <button className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition" onClick={()=>handleUpdate(c)}>Update</button>
+                  <button className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition" onClick={()=>handleView(c.id)}>OPEN</button>
                 </td>
               </tr>
             ))}
@@ -206,7 +212,7 @@ const AllComplaintsPage = () => {
       )}
 
       {/* Assign Modal */}
-      {assignStaff && (
+      {/*{assignStaff && (
         <Modal title={`Assign Complaint #${assignStaff.id}`} onClose={()=>setAssignStaff(null)}>
           <div className="space-y-3">
             {staffList.map(staff=>(
@@ -219,7 +225,7 @@ const AllComplaintsPage = () => {
       )}
 
       {/* Update Modal */}
-      {selectedComplaint && (
+      {/*{selectedComplaint && (
         <Modal title={`Update Complaint #${selectedComplaint.id}`} onClose={()=>setSelectedComplaint(null)}>
           <div className="space-y-4">
             <label className="block text-sm font-semibold">Status</label>
@@ -249,7 +255,62 @@ const AllComplaintsPage = () => {
             </div>
           </div>
         </Modal>
+      )}*/}
+
+      {isViewOpen && selectedComplaint && (
+  <div
+    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+    onClick={() => setIsViewOpen(false)}
+  >
+    <div
+      className={`bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative flex overflow-hidden`}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Left Side - Photo (conditionally) */}
+      {selectedComplaint.photo && (
+        <div className="w-1/2 h-full bg-gray-50 flex items-center justify-center p-4 border-r">
+          <img
+            src={selectedComplaint.photo}
+            alt={selectedComplaint.category}
+            className="rounded-xl object-cover h-full w-full"
+          />
+        </div>
       )}
+
+      {/* Right Side - Scrollable Details */}
+      <div
+        className={`h-full overflow-y-auto p-6 relative ${
+          selectedComplaint.photo ? "w-1/2" : "w-full"
+        }`}
+      >
+        <button
+          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
+          onClick={() => setIsViewOpen(false)}
+        >
+          ✕
+        </button>
+
+        <h2 className="text-3xl font-bold text-orange-600 mb-4">
+          Complaint #{selectedComplaint.id}: {selectedComplaint.category}
+        </h2>
+
+        <div className="space-y-3 pr-2">
+          <p><strong>Description:</strong> {selectedComplaint.description}</p>
+          <p><strong>Location:</strong> {selectedComplaint.location}</p>
+          <p><strong>Status:</strong> {selectedComplaint.status}</p>
+          <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
+          <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
+          <p><strong>Date:</strong> {selectedComplaint.date}</p>
+          {selectedComplaint.solution && (
+            <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </div>
   );
 };

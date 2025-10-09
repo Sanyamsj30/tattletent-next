@@ -11,6 +11,8 @@ import {
   fetchHeatmapData 
 } from "../services/complaint.service.js";
 
+import { notifyStatusChange } from "../services/notification.service.js";
+
 // ✅ Create a new complaint
 const createComplaint = asynchandler(async (req, res) => {
   const { title, description, category, location, user_id, latitude, longitude } = Object.assign({}, req.body);
@@ -70,6 +72,8 @@ const updateComplaintStatus = asynchandler(async (req, res) => {
     return res
       .status(404)
       .json(new ApiResponse(404, "Complaint not found"));
+
+  notifyStatusChange(complaintId);
 
   return res
     .status(200)
