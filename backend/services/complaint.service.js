@@ -22,7 +22,7 @@ export const saveComplaintToDB = async (newComplaint) => {
       `INSERT INTO complaints 
         (title, description, status, photo, category, location, dept_id, priority)
        VALUES ($1, $2, 'OPEN', $3, $4, $5, $6, 'Low')
-       RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, created_at`,
+       RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at`,
       [
         newComplaint.title,
         newComplaint.description,
@@ -225,12 +225,12 @@ export const searchComplaints = async (filters) => {
     idx++;
   }
   if (fromDate) {
-    query += ` AND created_at >= $${idx}`;
+    query += ` AND submitted_at >= $${idx}`;
     params.push(fromDate);
     idx++;
   }
   if (toDate) {
-    query += ` AND created_at <= $${idx}`;
+    query += ` AND submitted_at <= $${idx}`;
     params.push(toDate);
     idx++;
   }

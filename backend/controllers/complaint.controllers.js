@@ -38,7 +38,7 @@ const createComplaint = asynchandler(async (req, res) => {
     // ],
   };
 
-  // Save complaint (currently mock, later DB)
+  // Save complaint 
   const savedComplaint = await saveComplaintToDB(newComplaint);
 
   return res
