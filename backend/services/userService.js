@@ -57,9 +57,9 @@ export const searchUsers = async (filters) => {
   query += ` ORDER BY ${sortColumn} ${sortOrder}`;
 
   // Pagination
-  const offset = (page - 1) * limit;
-  query += ` LIMIT $${idx} OFFSET $${idx + 1}`;
-  params.push(limit, offset);
+  // const offset = (page - 1) * limit;
+  // query += ` LIMIT $${idx} OFFSET $${idx + 1}`;
+  // params.push(limit, offset);
 
   const result = await pool.query(query, params);
   return result.rows;

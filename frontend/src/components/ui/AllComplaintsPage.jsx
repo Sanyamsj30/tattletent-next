@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Logo from './Logo'
 import { useNavigate } from "react-router-dom";
 
@@ -6,17 +6,47 @@ const AllComplaintsPage = () => {
 
   const navigate=useNavigate();
 
-  const [complaints, setComplaints] = useState([
-    { id: 1, category: "Water Leak", location: "Tent #5", status: "Pending", citizen: "John Doe", priority: null, description: "Leak near Tent #5, pipe burst", assignedTo: null },
-    { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", citizen: "Mike Johnson", priority: "Low", description: "Overflowing bin near park", assignedTo: "John Doe" },
-    { id: 3, category: "Electrical", location: "Sector B", status: "Pending", citizen: "Sarah Lee", priority: null, description: "Street light not working", assignedTo: null },
-    { id: 4, category: "Pathway Damage", location: "Sector C", status: "Resolved", citizen: "Jane Smith", priority: "Medium", description: "Broken tiles in Sector C repaired", assignedTo: "Mike Johnson", solution: "Tiles replaced" },
-    // Add more complaints for testing pagination
-    { id: 5, category: "Garbage", location: "Sector D", status: "Pending", citizen: "Anna Lee", priority: null, description: "Trash not collected", assignedTo: null },
-    { id: 6, category: "Water Leak", location: "Sector E", status: "Pending", citizen: "Bob Smith", priority: null, description: "Pipe leak near road", assignedTo: null },
-    { id: 7, category: "Electrical", location: "Sector F", status: "Resolved", citizen: "Carol White", priority: "High", description: "Power outage fixed", assignedTo: "Jane Smith", solution: "Replaced transformer" },
-    { id: 8, category: "Pathway Damage", location: "Sector G", status: "In Progress", citizen: "David Green", priority: "Medium", description: "Uneven pavement", assignedTo: "Mike Johnson" },
-  ]);
+  const [complaints, setComplaints] = useState([]);
+  // const [complaints, setComplaints] = useState([
+  //   { id: 1, category: "Water Leak", location: "Tent #5", status: "Pending", citizen: "John Doe", priority: null, description: "Leak near Tent #5, pipe burst", assignedTo: null },
+  //   { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", citizen: "Mike Johnson", priority: "Low", description: "Overflowing bin near park", assignedTo: "John Doe" },
+  //   { id: 3, category: "Electrical", location: "Sector B", status: "Pending", citizen: "Sarah Lee", priority: null, description: "Street light not working", assignedTo: null },
+  //   { id: 4, category: "Pathway Damage", location: "Sector C", status: "Resolved", citizen: "Jane Smith", priority: "Medium", description: "Broken tiles in Sector C repaired", assignedTo: "Mike Johnson", solution: "Tiles replaced" },
+  //   // Add more complaints for testing pagination
+  //   { id: 5, category: "Garbage", location: "Sector D", status: "Pending", citizen: "Anna Lee", priority: null, description: "Trash not collected", assignedTo: null },
+  //   { id: 6, category: "Water Leak", location: "Sector E", status: "Pending", citizen: "Bob Smith", priority: null, description: "Pipe leak near road", assignedTo: null },
+  //   { id: 7, category: "Electrical", location: "Sector F", status: "Resolved", citizen: "Carol White", priority: "High", description: "Power outage fixed", assignedTo: "Jane Smith", solution: "Replaced transformer" },
+  //   { id: 8, category: "Pathway Damage", location: "Sector G", status: "In Progress", citizen: "David Green", priority: "Medium", description: "Uneven pavement", assignedTo: "Mike Johnson" },
+  // ]);
+
+    const fetchComplaintsByUser = async () => {
+    try {
+  
+      const response = await fetch(`http://localhost:5000/api/complaints/search`);
+  
+      if (!response.ok) throw new Error("Failed to fetch complaints");
+  
+      const data = await response.json();
+      setComplaints(data.map(c => ({
+        id: c.complaint_id,
+        category: c.category,
+        status: c.status,
+        location: c.location,
+        priority: c.priority,
+        description: c.description,
+        assignedTo: c.assigned_to,
+        date: new Date(c.submitted_at).toLocaleDateString()
+      })));
+  
+    } catch (err) {
+      console.error("Error fetching complaints:", err);
+      setComplaints([]); // fallback to empty array
+    }
+  };
+  
+  useEffect(() => {
+      fetchComplaintsByUser();
+  }, []);
 
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -34,7 +64,7 @@ const AllComplaintsPage = () => {
   const filteredComplaints = complaints.filter(c => {
     const matchesStatus = filterStatus === "all" || c.status.toLowerCase() === filterStatus.toLowerCase();
     const matchesCategory = filterCategory === "all" || c.category.toLowerCase() === filterCategory.toLowerCase();
-    const matchesSearch = searchTerm === "" || c.category.toLowerCase().includes(searchTerm.toLowerCase()) || c.citizen.toLowerCase().includes(searchTerm.toLowerCase()) || c.location.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchTerm === "" || c.category.toLowerCase().includes(searchTerm.toLowerCase()) || c.location.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesCategory && matchesSearch;
   });
 
@@ -63,8 +93,8 @@ const AllComplaintsPage = () => {
 
   const exportCSV = () => {
     const csvContent = [
-      ["ID", "Category", "Location", "Status", "Citizen", "Priority", "Assigned To", "Description"],
-      ...complaints.map(c => [c.id, c.category, c.location, c.status, c.citizen, c.priority || "", c.assignedTo || "", c.description])
+      ["ID", "Category", "Location", "Status", "Date", "Priority", "Assigned To", "Description"],
+      ...complaints.map(c => [c.id, c.category, c.location, c.status, c.date, c.priority || "", c.assignedTo || "", c.description])
     ].map(e => e.join(",")).join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -91,7 +121,7 @@ const AllComplaintsPage = () => {
  
   <div className="text-center mb-8">
     <h2 className="text-5xl font-bold text-orange-700 mb-2">All Complaints</h2>
-    <p className="text-gray-700 text-lg">View, assign, and update all complaints efficiently.</p>
+    <p className="text-gray-700 text-lg">View and Export all complaints efficiently.</p>
   </div>
 
       {/* Search & Filters */}
@@ -111,7 +141,7 @@ const AllComplaintsPage = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="all">All Status</option>
-            <option value="pending">Pending</option>
+            <option value="pending">New</option>
             <option value="in progress">In Progress</option>
             <option value="resolved">Resolved</option>
           </select>
@@ -154,7 +184,7 @@ const AllComplaintsPage = () => {
         <table className="min-w-full divide-y divide-blue-200">
           <thead className="bg-white">
             <tr>
-              {["ID","Category","Location","Status","Citizen","Priority","Assigned To","View"].map(h=>(
+              {["ID","Category","Location","Status","Date","Priority","Assigned To","View"].map(h=>(
                 <th key={h} className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
@@ -170,7 +200,7 @@ const AllComplaintsPage = () => {
                     {c.status}
                   </span>
                 </td>
-                <td className="p-4">{c.citizen}</td>
+                <td className="p-4">{c.date}</td>
                 <td className="p-4">{c.priority || "Not Set"}</td>
                 <td className="p-4">{c.assignedTo || "Unassigned"}</td>
                 <td className="p-4 flex gap-2">

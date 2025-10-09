@@ -416,7 +416,7 @@ export default function LandingPage() {
   <div className="flex justify-start gap-6 relative">
     {[
       { name: "Yamini Pal", url: "https://github.com/YaminiPal" },
-      { name: "Shah Yug", url: "https://github.com/yugshah7777" },
+      { name: "Yug Shah", url: "https://github.com/yugshah7777" },
       { name: "Sanyam Jain", url: "https://github.com/Sanyamsj30" },
     ].map((repo, idx) => (
       <a
