@@ -270,7 +270,7 @@ export const escalateComplaintsByCategory = async () => {
     const overdue = await pool.query(`
       SELECT complaint_id, title, category, status, sla_deadline
       FROM complaints
-      WHERE status IN ('OPEN', 'IN_PROGRESS')
+      WHERE status IN ('NEW', 'IN_PROGRESS')
       AND sla_deadline < NOW();
     `);
 

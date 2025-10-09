@@ -59,7 +59,7 @@ export const notifyOverdueReminder = async () => {
         u.email AS staff_email, u.name AS staff_name
       FROM complaints c
       JOIN users u ON c.assigned_to = u.user_id
-      WHERE c.status IN ('OPEN', 'IN_PROGRESS')
+      WHERE c.status IN ('NEW', 'IN_PROGRESS')
       AND c.sla_deadline IS NOT NULL
       AND c.sla_deadline > NOW()
       AND c.sla_deadline < NOW() + INTERVAL '2 day';
