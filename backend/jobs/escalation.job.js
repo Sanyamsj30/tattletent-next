@@ -4,11 +4,11 @@ import { notifyOverdueReminder } from "../services/notification.service.js";
 
 /**
  * 🔁 Scheduled Job: Complaint Escalation Check
- * Runs every night at midnight (00:00)
+ * Runs every 6 hours starting from midnight
  * Checks all complaints whose SLA deadline has passed and status != RESOLVED
  * Updates their status to "ESCALATED" and optionally reassigns staff
  */
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("0 */6 * * *", async () => {
   console.log("⏰ Running scheduled SLA escalation check...");
 
   try {

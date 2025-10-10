@@ -238,9 +238,9 @@ useEffect(() => {
     {/* Category Buttons Grid */}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {[
-        { icon: "🚧", label: "Pathway Damage" },
-        { icon: "💧", label: "Water Leak" },
-        { icon: "🗑️", label: "Garbage" },
+        { icon: "🚧", label: "infrastructure & roads" },
+        { icon: "💧", label: "Water Services" },
+        { icon: "🗑️", label: "Waste management" },
         { icon: "⚡", label: "Electrical" },
       ].map((cat) => (
         <button
@@ -351,10 +351,11 @@ useEffect(() => {
       className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner appearance-none bg-white"
     >
       <option value="">Select Category</option>
-      <option>Pathway Damage</option>
-      <option>Water Leak</option>
-      <option>Garbage</option>
+      <option>infrastructure & roads</option>
+      <option>Water Services</option>
+      <option>Water Services</option>
       <option>Electrical</option>
+      <option>Other/Miscellaneous</option>
     </select>
   </div>
 

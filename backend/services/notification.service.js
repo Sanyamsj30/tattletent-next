@@ -19,6 +19,21 @@ export const notifyStatusChange = async (complaintId) => {
     if (result.rowCount === 0) return;
     const c = result.rows[0];
 
+    const FEEDBACK_URL = `https://yourdomain.com/feedback?complaintId=${complaint.complaint_id}`;
+
+      // Check if the status is resolved to include the special link
+    if (c.status === 'Resolved') {
+      feedbackContent = `
+        <p>The TattleTent team is pleased to inform you that your complaint is now fully resolved!</p>
+        <p>To help us improve our service, please take a moment to provide feedback on your experience:</p>
+        <p style="text-align: center; margin: 20px 0;">
+            <a href="${FEEDBACK_URL}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;">
+                Leave Feedback Now
+            </a>
+        </p>
+      `;
+    }
+
     // 🧠 Email to citizen
     await sendEmail({
         email: c.citizen_email,
@@ -30,7 +45,11 @@ export const notifyStatusChange = async (complaintId) => {
             
             <p><b>Complaint Title:</b> ${c.title}</p>
             <p><b>Reference ID:</b> #${c.complaint_id}</p>
-            <p><b>New Status:</b> ${c.status}</p>
+            <p><b>New Status:</b> <span style="font-weight: bold; color: #007bff;">${c.status}</span></p>
+
+            <!-- Conditional content inserted here -->
+            ${feedbackContent}
+            <!-- End conditional content -->
 
             <p>You can view full details and track the progress from your TattleTent dashboard.</p>
             <br/>
@@ -93,5 +112,28 @@ export const notifyOverdueReminder = async () => {
     }
   } catch (err) {
     console.error("❌ Error sending SLA reminders:", err.message);
+  }
+};
+
+export const notifyAdminForManualReassignment = async (complaintId) => {
+  const admins = await pool.query(`SELECT email FROM users WHERE role = 'Ringmaster'`);
+  const emails = admins.rows.map(a => a.email);
+
+  const complaint = await pool.query(`
+    SELECT complaint_id, title, priority
+    FROM complaints
+    WHERE complaint_id = $1;
+  `, [complaintId]);
+
+  for (const email of emails) {
+    await sendEmail({
+      email,
+      subject: `⚠️ Complaint #${complaintId} Escalation Limit Reached`,
+      html: `
+        <h2>Manual Reassignment Required</h2>
+        <p>Complaint "<b>${complaint.rows[0].title}</b>" (Priority: ${complaint.rows[0].priority}) has reached its maximum escalation limit.</p>
+        <p>Please review and assign a new staff member manually.</p>
+      `,
+    });
   }
 };
