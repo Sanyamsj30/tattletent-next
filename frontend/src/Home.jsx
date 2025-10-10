@@ -305,57 +305,57 @@ const handleLoginSubmit = async (e) => {
 
       {/* Navbar */}
       <motion.nav
-        initial={{ y: -60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.7 }}
-        className="flex justify-between items-center py-6 px-8 bg-[#fffaf6]/80 backdrop-blur-md sticky top-0 z-50 shadow-sm"
-      >
-        <Logo />
-        <div className="flex gap-5">
-          {user ? (
-  <div className="flex items-center gap-4">
-    <AppButton
-      onClick={() => {
-        if (user.role === "Citizen") navigate("/citizen-dashboard");
-        else if(user.role==="Staff")navigate("/staff-dashboard");
-        else navigate("/admin-dashboard")
-      }}
-      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
-    >
-      Dashboard
-    </AppButton>
-    <AppButton
-      onClick={() => {
-        sessionStorage.removeItem("user");
-        sessionStorage.removeItem("token");
-        setUser(null);
-        navigate("/"); // reload to homepage
-      }}
-      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
-    >
-      Logout
-    </AppButton>
-  </div>
-) : (
-  <div className="flex items-center gap-4">
-    <AppButton
-      onClick={() => setLoginOpen(true)}
-      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
-      
-    >
-      Login
-    </AppButton>
-    <AppButton
-      onClick={() => setSignupOpen(true)}
-      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
-    >
-      Sign Up
-    </AppButton>
-  </div>
-)}
+  initial={{ y: -60, opacity: 0 }}
+  animate={{ y: 0, opacity: 1 }}
+  transition={{ duration: 0.7 }}
+  className="flex flex-col sm:flex-row justify-between items-center py-4 sm:py-6 px-4 sm:px-8 bg-[#fffaf6]/80 backdrop-blur-md sticky top-0 z-50 shadow-sm"
+>
+  <Logo />
 
-        </div>
-      </motion.nav>
+  <div className="flex flex-col sm:flex-row gap-2 sm:gap-5 mt-4 sm:mt-0 w-full sm:w-auto items-center">
+    {user ? (
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+        <AppButton
+          onClick={() => {
+            if (user.role === "Citizen") navigate("/citizen-dashboard");
+            else if(user.role === "Staff") navigate("/staff-dashboard");
+            else navigate("/admin-dashboard");
+          }}
+          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+        >
+          Dashboard
+        </AppButton>
+        <AppButton
+          onClick={() => {
+            sessionStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            setUser(null);
+            navigate("/");
+          }}
+          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+        >
+          Logout
+        </AppButton>
+      </div>
+    ) : (
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+        <AppButton
+          onClick={() => setLoginOpen(true)}
+          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+        >
+          Login
+        </AppButton>
+        <AppButton
+          onClick={() => setSignupOpen(true)}
+          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+        >
+          Sign Up
+        </AppButton>
+      </div>
+    )}
+  </div>
+</motion.nav>
+
 
       {/* Hero Section */}
       <section className="text-center py-28 relative">
@@ -391,14 +391,14 @@ const handleLoginSubmit = async (e) => {
             Learn More
           </AppButton>
 
-          {/*<AppButton
+          <AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
             onClick={() => navigate("/admin-dashboard")}
           >
             Admin
           </AppButton>
 
-          <AppButton
+          {/*<AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
             onClick={() => navigate("/invite-staff")}
           >
@@ -545,6 +545,47 @@ const handleLoginSubmit = async (e) => {
           ))}
         </div>
       </section>
+
+      {/* User Reviews Section */}
+<section className="py-20 bg-[#fffaf6] relative z-10">
+  <div className="text-center mb-12">
+    <h3 className="text-3xl font-bold mb-4">User Reviews ⭐</h3>
+    <p className="text-[#7a6f65] text-base">See what our users are saying about TattleTent.</p>
+  </div>
+
+  <motion.div
+    className="flex gap-6 overflow-x-auto px-6 scrollbar-hide"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 1 }}
+  >
+    {[
+      { name: "Alice", rating: 5, comment: "Very helpful platform! Fast response from authorities." },
+      { name: "Bob", rating: 4, comment: "Makes reporting issues super easy and transparent." },
+      { name: "Charlie", rating: 5, comment: "Love how I can track my complaints in real-time." },
+      { name: "Diana", rating: 4, comment: "Simple UI and responsive staff. Great experience!" },
+    ].map((review, idx) => (
+      <motion.div
+        key={idx}
+        className="min-w-[250px] bg-white rounded-2xl p-6 shadow-md flex-shrink-0"
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: "spring", stiffness: 120 }}
+      >
+        <div className="flex items-center mb-3">
+          {[...Array(review.rating)].map((_, i) => (
+            <span key={i} className="text-yellow-400 text-xl">★</span>
+          ))}
+          {[...Array(5 - review.rating)].map((_, i) => (
+            <span key={i} className="text-gray-300 text-xl">★</span>
+          ))}
+        </div>
+        <p className="text-gray-700 mb-3">"{review.comment}"</p>
+        <p className="text-sm font-semibold text-gray-900">- {review.name}</p>
+      </motion.div>
+    ))}
+  </motion.div>
+</section>
+
 
       {/* Footer */}
       <motion.footer

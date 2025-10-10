@@ -47,7 +47,7 @@ const AdminDashboard = () => {
         navigate("/"); 
       };
     
-      useEffect(() => {
+     useEffect(() => {
         const token = sessionStorage.getItem("token");
         const user = sessionStorage.getItem("user");
         
@@ -156,22 +156,22 @@ const AdminDashboard = () => {
   };
 
   // Demo reviews (unchanged)
-  const [reviews] = useState([
+  /* const [reviews] = useState([
     { id: 1, citizen: "Alice", comment: "Great service by staff!", rating: 5 },
     { id: 2, citizen: "Bob", comment: "Complaint resolved quickly.", rating: 4 },
     { id: 3, citizen: "Charlie", comment: "Staff were helpful and polite.", rating: 5 },
     { id: 4, citizen: "David", comment: "Good work, could be faster.", rating: 3 },
     { id: 5, citizen: "Ella", comment: "Impressed with how they handled it.", rating: 5 },
-  ]);
+  ]); */
 
   // --- Review Carousel ---
-  const [currentReviewPage, setCurrentReviewPage] = useState(0);
+ /*  const [currentReviewPage, setCurrentReviewPage] = useState(0);
   const reviewsPerPage = 4;
   const totalReviewPages = Math.ceil(reviews.length / reviewsPerPage);
   const reviewSubset = reviews.slice(
     currentReviewPage * reviewsPerPage,
     (currentReviewPage + 1) * reviewsPerPage
-  );
+  ); */
 
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans flex flex-col justify-between">
@@ -377,7 +377,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Citizen Reviews Carousel */}
-        <div className="relative">
+        {/*<div className="relative">
           <h3 className="text-3xl font-bold text-gray-900 mb-6">
             Citizen Reviews
           </h3>
@@ -401,7 +401,7 @@ const AdminDashboard = () => {
             ))}
           </div>
 
-          {/* Review Dots */}
+          
           <div className="flex justify-center mt-4 space-x-2">
             {Array.from({ length: totalReviewPages }).map((_, index) => (
               <button
@@ -413,7 +413,7 @@ const AdminDashboard = () => {
               ></button>
             ))}
           </div>
-        </div>
+        </div>*/}
       </main>
 
       {/* Footer */}
