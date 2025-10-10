@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import AppButton from "./components/ui/app-button";
 import Logo from "./components/ui/Logo";
@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import jwtDecode from "jwt-decode"; // ✅ correct import
 import {FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
+import axios from "axios";
 
 const portals = [
   ["Citizen Portal", "Easily lodge complaints and track updates.", "M12 4v16m8-8H4"],
@@ -370,6 +371,52 @@ const handleLoginSubmit = async (e) => {
     }
   };
 
+  const [avgResolutionTime, setAvgResolutionTime] = useState(0);
+
+  const fetchComplaints = async () => {
+    try {  
+      const queryParams = new URLSearchParams({ status: "Resolved" }).toString();
+      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+  
+      if (!response.ok) throw new Error("Failed to fetch complaints");
+  
+      const data = await response.json();
+      
+      if (data.length > 0) {
+        const totalHours = data.reduce((acc, complaint) => {
+          const submitted = new Date(complaint.submitted_at);
+          const updated = new Date(complaint.updated_at);
+          const diffHours = (updated - submitted) / (1000 * 60 * 60); // convert ms → hours
+          return acc + diffHours;
+        }, 0);
+
+        const avgHours = totalHours / data.length;
+        setAvgResolutionTime(Math.round(avgHours));
+      }
+    } catch (err) {
+      console.error("Error fetching complaints:", err);
+    }
+  };
+  
+  useEffect(() => {
+      fetchComplaints();
+  }, []);
+
+  const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
+
+  const fetchCounts = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      setCounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
+
   return (
     <div className="bg-[#FCF5EE] text-gray-900">
       {/* Floating background shapes */}
@@ -448,6 +495,62 @@ const handleLoginSubmit = async (e) => {
 
       {/* Portals, Features, Categories, Footer */}
       {/* ... keep unchanged ... */}
+
+      <hr className="border-gray-200" /> 
+
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
+          🎪 Complaints Insights
+        </h2>
+        {/* Row 1: Total Complaints & Average Resolution Count */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {[
+            {
+              title: "Total Complaints 📋",
+              count:
+                (parseInt(counts.resolved, 10) || 0) +
+                (parseInt(counts.in_progress, 10) || 0) +
+                (parseInt(counts.pending, 10) || 0),
+            },
+            {
+              title: "Avg Resolution ⏱️",
+              count: avgResolutionTime,
+            }
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="rounded-3xl px-8 py-12 shadow-lg flex flex-col items-center
+                        bg-gradient-to-r from-green-50 via-green-100 to-green-50
+                        transform transition duration-500 hover:scale-105 text-green-800"
+            >
+              <div className="text-4xl font-extrabold">{item.count}</div>
+              <div className="mt-3 font-semibold text-lg text-center">{item.title}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Row 2: Resolved, In Progress, Pending */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+          {[
+            { title: "Resolved ✅", count: counts.resolved },
+            { title: "In Progress 🔄", count: counts.in_progress },
+            { title: "Pending ⏳", count: counts.pending },
+          ].map((s) => (
+            <div
+              key={s.title}
+              className="rounded-3xl px-8 py-12 shadow-lg flex flex-col items-center
+                bg-gradient-to-r from-orange-50 via-orange-100 to-orange-50
+                transform transition duration-500 hover:scale-105 text-orange-800"
+            >
+              <div className="text-4xl font-extrabold">{s.count}</div>
+              <div className="mt-3 font-semibold text-lg text-center">{s.title}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+
+
 
        {/* Portals Section */}
       <section className="py-20 bg-white relative z-10">
