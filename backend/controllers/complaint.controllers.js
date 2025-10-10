@@ -15,12 +15,14 @@ import { notifyStatusChange } from "../services/notification.service.js";
 
 // ✅ Create a new complaint
 const createComplaint = asynchandler(async (req, res) => {
-  const { title, description, category, location, user_id, latitude, longitude } = Object.assign({}, req.body);
+  const { title, description, category, location, user_id, latitude, longitude,priority } = Object.assign({}, req.body);
   if (!user_id || !title || !description || !category || !location) {
     return res
       .status(400)
       .json(new ApiResponse(400, "All fields are required"));
   }
+
+  const finalPriority = priority || "Low";
 
   // Create object
   const newComplaint = {
@@ -29,6 +31,7 @@ const createComplaint = asynchandler(async (req, res) => {
     description,
     category,
     location,
+    priority: finalPriority,
     photo: req.file ? `/temp/${req.file.filename}` : null,
     status: "New",
     latitude,

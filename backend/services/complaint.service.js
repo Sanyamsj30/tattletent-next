@@ -1,5 +1,13 @@
 
 import pool from '../db/db.js';
+import { notifyAdminForManualReassignment } from './notification.service.js';
+
+const getMaxEscalations = (priority) => {
+  if (priority === "High") return 3;
+  if (priority === "Medium") return 2;
+  return 1;
+};
+
 
 
 // ✅ Save complaint — auto-assign dept_id based on category
@@ -17,12 +25,14 @@ export const saveComplaintToDB = async (newComplaint) => {
 
     const dept_id = deptResult.rows[0].dept_id;
 
+    const maxEscalations = getMaxEscalations(newComplaint.priority||"Low");
+
     // 2️⃣ Insert complaint into the database with default values
     const complaintResult = await pool.query(
       `INSERT INTO complaints 
-        (title, description, status, photo, category, location, dept_id, priority, user_id, longitude, latitude, geolocation)
-       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low', $7, $8, $9, ST_SetSRID(ST_MakePoint($10::double precision, $11::double precision), 4326))
-       RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at`,
+        (title, description, status, photo, category, location, dept_id, priority, user_id, longitude, latitude, geolocation,escalation_count,max_escalations)
+       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low', $7, $8, $9, ST_SetSRID(ST_MakePoint($10::double precision, $11::double precision), 4326),0,$13)
+       RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at, escalation_count, max_escalations`,
       [
         newComplaint.title,
         newComplaint.description,
@@ -34,7 +44,8 @@ export const saveComplaintToDB = async (newComplaint) => {
         newComplaint.longitude,
         newComplaint.latitude,
         newComplaint.longitude,
-        newComplaint.latitude
+        newComplaint.latitude,
+        maxEscalations
       ]
     );
 
@@ -259,16 +270,39 @@ export const searchComplaints = async (filters) => {
   return result.rows;
 };
 
+/**
+ * Calculate SLA deadline based on dept_id and priority.
+ * Looks up SLA days from the sla_rules table.
+ */
+export const calculateSlaDeadline = async (dept_id, priority) => {
+  const slaResult = await pool.query(
+    `SELECT sla_days FROM sla_rules WHERE dept_id = $1 AND priority = $2 LIMIT 1;`,
+    [dept_id, priority]
+  );
+
+  if (slaResult.rowCount === 0) {
+    console.warn(`⚠️ No SLA rule found for dept_id ${dept_id} and priority ${priority}`);
+    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default 7 days fallback
+  }
+
+  const slaDays = slaResult.rows[0].sla_days;
+  const deadline = new Date();
+  deadline.setDate(deadline.getDate() + slaDays);
+  return deadline;
+};
+
+
 
 /**
  * 🔁 Escalate complaints whose SLA deadline is breached.
  * Returns all complaints that were escalated.
  */
+
 export const escalateComplaintsByCategory = async () => {
   try {
-    // 1️⃣ Get all overdue complaints
+    // 1️⃣ Find overdue complaints (SLA passed, still unresolved)
     const overdue = await pool.query(`
-      SELECT complaint_id, title, category, status, sla_deadline
+      SELECT complaint_id, title, priority, status, escalation_count, max_escalations
       FROM complaints
       WHERE status IN ('NEW', 'IN_PROGRESS')
       AND sla_deadline < NOW();
@@ -281,27 +315,47 @@ export const escalateComplaintsByCategory = async () => {
 
     const escalatedComplaints = [];
 
-    // 2️⃣ Loop and update each overdue complaint
-    for (const row of overdue.rows) {
-      const updated = await pool.query(
-        `
-        UPDATE complaints
-        SET status = 'ESCALATED',
-            updated_at = NOW()
-        WHERE complaint_id = $1
-        RETURNING complaint_id, title, category, status, sla_deadline;
-      `,
-        [row.complaint_id]
-      );
+    for (const c of overdue.rows) {
+      // 2️⃣ Check if it can still escalate
+      if (c.escalation_count < c.max_escalations) {
+        const newCount = c.escalation_count + 1;
 
-      escalatedComplaints.push(updated.rows[0]);
-      console.log(`🚨 Escalated complaint ID ${row.complaint_id} (${row.title})`);
+        // Escalate normally
+       await pool.query(`
+        UPDATE complaints
+        SET escalation_count = $1,
+            updated_at = NOW()
+        WHERE complaint_id = $2;
+    `, [newCount, c.complaint_id]);
+
+        console.log(`⚡ Escalated complaint ${c.complaint_id} (${newCount}/${c.max_escalations})`);
+        escalatedComplaints.push({ complaint_id: c.complaint_id, escalation_count: newCount });
+
+        // Send escalation notification
+        // await notifyEscalation(c.complaint_id);
+      } 
+      else {
+        // 3️⃣ Max limit reached → stop escalation
+        const newSlaDeadline = await calculateSlaDeadline(c.dept_id, c.priority);
+        await pool.query(`
+          UPDATE complaints
+          SET status = 'NEW',
+              escalation_count = 0,
+              sla_deadline = $1,
+              assigned_to=NULL,
+              updated_at = NOW()
+          WHERE complaint_id = $2;
+        `, [newSlaDeadline,c.complaint_id]);
+
+        notifyAdminForManualReassignment(c.complaint_id);
+
+        console.log(`⚠️ Complaint ${c.complaint_id} reached max escalations — waiting for admin reassignment.`);
+      }
     }
 
-    console.log(`⚡ Escalated ${escalatedComplaints.length} complaints.`);
     return escalatedComplaints;
   } catch (err) {
-    console.error("❌ Escalation failed:", err.message);
+    console.error("❌ Escalation process failed:", err.message);
     throw err;
   }
 };
