@@ -174,7 +174,7 @@ export const getComplaintCounts = async () => {
       SELECT
         COUNT(*) FILTER (WHERE status='Resolved') AS resolved,
         COUNT(*) FILTER (WHERE status='New') AS pending,
-        COUNT(*) FILTER (WHERE status='In Progress') AS in_progress
+        COUNT(*) FILTER (WHERE status='IN_PROGRESS') AS in_progress
       FROM complaints
     `;
 
@@ -262,9 +262,9 @@ export const searchComplaints = async (filters) => {
   query += ` ORDER BY ${sortColumn} ${sortOrder}`;
 
   // Pagination
-  const offset = (page - 1) * limit;
-  query += ` LIMIT $${idx} OFFSET $${idx + 1}`;
-  params.push(limit, offset);
+  // const offset = (page - 1) * limit;
+  // query += ` LIMIT $${idx} OFFSET $${idx + 1}`;
+  // params.push(limit, offset);
 
   const result = await pool.query(query, params);
   return result.rows;
