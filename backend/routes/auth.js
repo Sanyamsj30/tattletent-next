@@ -274,4 +274,22 @@ router.get('/google/callback', passport.authenticate('google', { session: false 
     res.status(200).json({ token });
 });
 
+// Check if email exists
+router.get('/check-email', async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email) return res.status(400).json({ message: 'Email is required.' });
+
+    const result = await pool.query('SELECT user_id FROM users WHERE email = $1', [email]);
+    if (result.rows.length > 0) {
+      return res.status(200).json({ exists: true });
+    } else {
+      return res.status(404).json({ exists: false });
+    }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 export default router;

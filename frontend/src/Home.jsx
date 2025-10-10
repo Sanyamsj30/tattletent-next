@@ -50,7 +50,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   // STEP 1 — Send OTP and open OTP modal
-  const handleSignupSubmit = async (e) => {
+ /* const handleSignupSubmit = async (e) => {
     e.preventDefault();
     if (password !== cpassword) return;
 
@@ -155,7 +155,208 @@ export default function LandingPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  };*/
+
+  // Add these state variables
+const [signupMessage, setSignupMessage] = useState(""); // for signup modal messages
+const [loginMessage, setLoginMessage] = useState(""); // for login modal messages
+
+// ------------------- SIGNUP -------------------
+const handleSignupSubmit = async (e) => {
+  e.preventDefault();
+  if (password !== cpassword) return;
+
+  try {
+    setIsLoading(true);
+    setSignupMessage(""); // clear previous message
+    const res = await fetch("http://localhost:5000/api/auth/send-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await res.json();
+
+    if (res.status === 409) {
+      // Email already exists
+      setSignupMessage("An account with this email already exists. Please log in.");
+      // Optionally switch to login modal
+      setSignupOpen(false);
+      setLoginOpen(true);
+      setLoginMessage("An account with this email already exists. Please log in.");
+      return;
+    }
+
+    if (!res.ok) throw new Error(data.message);
+
+    // ✅ Switch to OTP modal
+    setOtpOpen(true);
+  } catch (err) {
+    setSignupMessage(err.message || "Signup failed. Try again.");
+    console.error(err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+// ------------------- VERIFY OTP -------------------
+const handleVerifyOtpSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    setIsLoading(true);
+    setSignupMessage("");
+    const registerRes = await fetch("http://localhost:5000/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: fullName,
+        email,
+        password,
+        otp,
+      }),
+    });
+
+    const registerData = await registerRes.json();
+
+    if (registerRes.status === 409) {
+      setSignupMessage("An account with this email already exists. Please log in.");
+      setOtpOpen(false);
+      setSignupOpen(false);
+      setLoginOpen(true);
+      setLoginMessage("An account with this email already exists. Please log in.");
+      return;
+    }
+
+    if (registerRes.ok) {
+      localStorage.setItem("token", registerData.token);
+      setOtpOpen(false);
+      setSignupOpen(false);
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setCPassword("");
+      setOtp("");
+    } else {
+      setSignupMessage(registerData.message);
+      console.error(registerData.message);
+    }
+  } catch (err) {
+    setSignupMessage("OTP Verify Error: " + err.message);
+    console.error(err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
+// ------------------- LOGIN -------------------
+const handleLoginSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    setIsLoading(true);
+    setLoginMessage(""); // clear previous message
+
+    const loginRes = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const loginData = await loginRes.json();
+
+    // Handle errors before successful login
+    if (!loginRes.ok) {
+      // If backend says invalid credentials → check if email exists
+      if (loginRes.status === 401 && loginData.message.includes("Invalid credentials")) {
+        try {
+          // Check if the email exists in DB
+          const emailCheck = await fetch(`http://localhost:5000/api/auth/check-email?email=${encodeURIComponent(email)}`);
+          const emailExists = await emailCheck.json();
+
+          if (!emailCheck.ok || !emailExists.exists) {
+            // Email not registered → redirect to signup
+            setLoginOpen(false);
+            setSignupOpen(true);
+            setSignupMessage("No account found with this email. Please sign up.");
+          } else {
+            // Email exists → wrong password
+            setLoginMessage("Incorrect password. Please try again.");
+          }
+        } catch (emailErr) {
+          setLoginMessage("Unable to verify email. Please try again later.");
+          console.error(emailErr);
+        }
+      } else {
+        // Any other message (403, etc.)
+        setLoginMessage(loginData.message);
+      }
+      return;
+    }
+
+    // ✅ Successful login
+    localStorage.setItem("token", loginData.token);
+    localStorage.setItem("user", JSON.stringify(loginData.user));
+    setLoginOpen(false);
+    setEmail("");
+    setPassword("");
+
+    if (loginData.user.role === "Ringmaster") navigate("/admin-dashboard");
+    else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
+    else navigate("/citizen-dashboard");
+
+  } catch (err) {
+    setLoginMessage("Login Unsuccessful: " + err.message);
+    console.error(err);
+  } finally {
+    setIsLoading(false);
+  }
+};
+// ------------------- LOGIN -------------------
+/*const handleLoginSubmit = async (e) => {
+  e.preventDefault();
+  try {
+    setIsLoading(true);
+    setLoginMessage(""); // clear previous message
+    const loginRes = await fetch("http://localhost:5000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const loginData = await loginRes.json();
+
+    if (loginRes.status === 401 || loginRes.status === 403) {
+      // User not found or must change password
+      if (loginData.message.includes("Invalid credentials")) {
+        setLoginMessage("No account found with this email. Please sign up.");
+        setLoginOpen(false);
+        setSignupOpen(true);
+        setSignupMessage("No account found with this email. Please sign up.");
+      } else {
+        setLoginMessage(loginData.message);
+      }
+      return;
+    }
+
+    if (loginRes.ok) {
+      localStorage.setItem("token", loginData.token);
+      localStorage.setItem("user", JSON.stringify(loginData.user));
+      setLoginOpen(false);
+      setEmail("");
+      setPassword("");
+      if (loginData.user.role === "Ringmaster") navigate("/admin-dashboard");
+      else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
+      else navigate("/citizen-dashboard");
+    } else {
+      setLoginMessage(loginData.message);
+    }
+  } catch (err) {
+    setLoginMessage("Login Unsuccessful: " + err.message);
+    console.error(err);
+  } finally {
+    setIsLoading(false);
+  }
+};*/
 
 
   const handleGoogleLoginSuccess = (credentialResponse) => {
@@ -468,6 +669,10 @@ export default function LandingPage() {
         <form onSubmit={handleLoginSubmit}
         >
           <h2 className="text-2xl font-bold text-[#d55d1f] mb-6 text-center">Login</h2>
+
+          {loginMessage && (
+  <p className="text-red-500 text-sm mb-4 text-center">{loginMessage}</p>
+)}
           
           {/* Email */}
           <div className="mb-4">
@@ -540,6 +745,7 @@ export default function LandingPage() {
         <form>
           {/* Your existing forgot password fields */}
         </form>
+        
       )}
     </motion.div>
   </motion.div>
@@ -564,6 +770,9 @@ export default function LandingPage() {
             className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4"
           >
             <h2 className="text-2xl font-bold text-[#A0522D] mb-6 text-center">Create Your Account</h2>
+            {signupMessage && (
+  <p className="text-red-500 text-sm mb-4 text-center">{signupMessage}</p>
+)}
             <form onSubmit={handleSignupSubmit}>
               <div className="mb-4">
                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
