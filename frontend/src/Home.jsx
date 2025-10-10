@@ -443,7 +443,7 @@ const handleLoginSubmit = async (e) => {
           >
             Learn More
           </AppButton>
-          {/*<AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg"
+          <AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg"
           onClick={() => navigate("/all-complaints")}>
             View all Complaints
           </AppButton>
@@ -470,7 +470,13 @@ const handleLoginSubmit = async (e) => {
             onClick={() => navigate("/assign-staff")}
           >
             Staff
-          </AppButton>*/}
+          </AppButton>
+          <AppButton
+            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
+            onClick={() => navigate("/feedback-page")}
+          >
+            Feedback
+          </AppButton>
         </motion.div>
       </section>
 
@@ -617,7 +623,7 @@ const handleLoginSubmit = async (e) => {
   <div className="flex justify-start gap-6 relative">
     {[
       { name: "Yamini Pal", url: "https://github.com/YaminiPal" },
-      { name: "Shah Yug", url: "https://github.com/yugshah7777" },
+      { name: "Yug Shah", url: "https://github.com/yugshah7777" },
       { name: "Sanyam Jain", url: "https://github.com/Sanyamsj30" },
     ].map((repo, idx) => (
       <a
@@ -855,6 +861,12 @@ const handleLoginSubmit = async (e) => {
                 Sign Up
               </AppButton>
             </form>
+
+            <div className="flex items-center justify-center my-4">
+            <div className="h-px bg-gray-300 flex-grow"></div>
+            <span className="px-3 text-gray-500 text-sm">OR</span>
+            <div className="h-px bg-gray-300 flex-grow"></div>
+          </div>
 
             <div className="flex justify-center mt-4">
               <GoogleLogin onSuccess={handleGoogleLoginSuccess} onError={() => console.log("Google signup failed")} />
