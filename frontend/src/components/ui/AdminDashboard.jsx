@@ -198,6 +198,12 @@ const AdminDashboard = () => {
           </button>
           <button
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
+            onClick={() => navigate("/invite-staff")}
+          >
+            Invite Staff
+          </button>
+          <button
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
             onClick={handleLogout}
           >
             Logout

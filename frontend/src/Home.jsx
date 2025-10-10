@@ -391,7 +391,7 @@ const handleLoginSubmit = async (e) => {
             Learn More
           </AppButton>
 
-          <AppButton
+          {/*<AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
             onClick={() => navigate("/admin-dashboard")}
           >
@@ -400,10 +400,10 @@ const handleLoginSubmit = async (e) => {
 
           <AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
-            onClick={() => navigate("/staff-dashboard")}
+            onClick={() => navigate("/invite-staff")}
           >
-            Staff
-          </AppButton>
+            INvite
+          </AppButton>*/}
         </motion.div>
         
       </section>
@@ -415,7 +415,7 @@ const handleLoginSubmit = async (e) => {
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
-          🎪 Complaints Insights
+         Complaints Insights
         </h2>
         {/* Row 1: Total Complaints & Average Resolution Count */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
