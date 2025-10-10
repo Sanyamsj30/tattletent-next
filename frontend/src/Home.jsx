@@ -48,119 +48,27 @@ export default function LandingPage() {
 //const [signupWarning, setSignupWarning] = useState(""); // for signup modal
 
   
-  const navigate = useNavigate();
-
-  // STEP 1 — Send OTP and open OTP modal
- /* const handleSignupSubmit = async (e) => {
-    e.preventDefault();
-    if (password !== cpassword) return;
-
-    try {
-      setIsLoading(true);
-      const res = await fetch("http://localhost:5000/api/auth/send-otp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      // ✅ Switch to OTP modal
-      setOtpOpen(true);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // STEP 2 — Verify OTP + Register user
-  const handleVerifyOtpSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setIsLoading(true);
-
-      const registerRes = await fetch("http://localhost:5000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: fullName,
-          email,
-          password,
-          otp,
-        }),
-      });
-
-      const registerData = await registerRes.json();
-
-      if (registerRes.ok) {
-        localStorage.setItem("token", registerData.token);
-        setOtpOpen(false);
-        setSignupOpen(false);
-        setFullName("");
-        setEmail("");
-        setPassword("");
-        setCPassword("");
-        setOtp("");
-      } else {
-        console.error(registerData.message);
-      }
-    } catch (err) {
-      console.error("OTP Verify Error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
-  // const handleLoginSubmit = (e) => {
-  //   e.preventDefault();
-  //   const user = { email, password };
-  //   console.log("Logged In User:", user);
-
-  //   // Example: redirect to citizen dashboard (change as per your login logic)
-  //   navigate("/citizen-dashboard");
-  // };
-
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      setIsLoading(true);
-
-      const loginRes = await fetch("http://localhost:5000/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      const loginData = await loginRes.json();
-
-      if (loginRes.ok) {
-        localStorage.setItem("token", loginData.token);
-        localStorage.setItem("user", JSON.stringify(loginData.user));
-        setLoginOpen(false);
-        setEmail("");
-        setPassword("");
-        if (loginData.user.role === "Ringmaster") navigate("/admin-dashboard");
-        else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
-        else navigate("/citizen-dashboard");
-      } else {
-        console.error(loginData.message);
-      }
-    } catch (err) {
-      console.error("Login Unsuccessful:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };*/
 
   // Add these state variables
 const [signupMessage, setSignupMessage] = useState(""); // for signup modal messages
 const [loginMessage, setLoginMessage] = useState(""); // for login modal messages
+
+
+const navigate = useNavigate();
+const [user, setUser] = useState(null);
+
+useEffect(() => {
+  // Restore session
+  const storedUser = sessionStorage.getItem("user");
+  const storedToken = sessionStorage.getItem("token");
+
+  if (storedUser && storedToken) {
+    setUser(JSON.parse(storedUser));
+  } else {
+    setUser(null);
+  }
+}, []);
+
 
 // ------------------- SIGNUP -------------------
 const handleSignupSubmit = async (e) => {
@@ -229,7 +137,11 @@ const handleVerifyOtpSubmit = async (e) => {
     }
 
     if (registerRes.ok) {
-      localStorage.setItem("token", registerData.token);
+      sessionStorage.setItem("token", registerData.token);
+
+
+      sessionStorage.setItem("user", JSON.stringify(registerData.user)); // assuming registerData returns user object
+      setUser(registerData.user); // 💡 ADD THIS LINE: Update the state
       setOtpOpen(false);
       setSignupOpen(false);
       setFullName("");
@@ -295,8 +207,11 @@ const handleLoginSubmit = async (e) => {
     }
 
     // ✅ Successful login
-    localStorage.setItem("token", loginData.token);
-    localStorage.setItem("user", JSON.stringify(loginData.user));
+    sessionStorage.setItem("token", loginData.token);
+    sessionStorage.setItem("user", JSON.stringify(loginData.user));
+    // 💡 ADD THIS LINE: Update the state so the Navbar changes immediately
+    setUser(loginData.user); 
+
     setLoginOpen(false);
     setEmail("");
     setPassword("");
@@ -312,52 +227,7 @@ const handleLoginSubmit = async (e) => {
     setIsLoading(false);
   }
 };
-// ------------------- LOGIN -------------------
-/*const handleLoginSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    setIsLoading(true);
-    setLoginMessage(""); // clear previous message
-    const loginRes = await fetch("http://localhost:5000/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
 
-    const loginData = await loginRes.json();
-
-    if (loginRes.status === 401 || loginRes.status === 403) {
-      // User not found or must change password
-      if (loginData.message.includes("Invalid credentials")) {
-        setLoginMessage("No account found with this email. Please sign up.");
-        setLoginOpen(false);
-        setSignupOpen(true);
-        setSignupMessage("No account found with this email. Please sign up.");
-      } else {
-        setLoginMessage(loginData.message);
-      }
-      return;
-    }
-
-    if (loginRes.ok) {
-      localStorage.setItem("token", loginData.token);
-      localStorage.setItem("user", JSON.stringify(loginData.user));
-      setLoginOpen(false);
-      setEmail("");
-      setPassword("");
-      if (loginData.user.role === "Ringmaster") navigate("/admin-dashboard");
-      else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
-      else navigate("/citizen-dashboard");
-    } else {
-      setLoginMessage(loginData.message);
-    }
-  } catch (err) {
-    setLoginMessage("Login Unsuccessful: " + err.message);
-    console.error(err);
-  } finally {
-    setIsLoading(false);
-  }
-};*/
 
 
   const handleGoogleLoginSuccess = (credentialResponse) => {
@@ -442,18 +312,48 @@ const handleLoginSubmit = async (e) => {
       >
         <Logo />
         <div className="flex gap-5">
-          <AppButton
-            onClick={() => setLoginOpen(true)}
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
-          >
-            Login
-          </AppButton>
-          <AppButton
-            onClick={() => setSignupOpen(true)}
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
-          >
-            Sign Up
-          </AppButton>
+          {user ? (
+  <div className="flex items-center gap-4">
+    <AppButton
+      onClick={() => {
+        if (user.role === "Citizen") navigate("/citizen-dashboard");
+        else if(user.role==="Staff")navigate("/staff-dashboard");
+        else navigate("/admin-dashboard")
+      }}
+      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
+    >
+      Dashboard
+    </AppButton>
+    <AppButton
+      onClick={() => {
+        sessionStorage.removeItem("user");
+        sessionStorage.removeItem("token");
+        setUser(null);
+        navigate("/"); // reload to homepage
+      }}
+      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
+    >
+      Logout
+    </AppButton>
+  </div>
+) : (
+  <div className="flex items-center gap-4">
+    <AppButton
+      onClick={() => setLoginOpen(true)}
+      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
+      
+    >
+      Login
+    </AppButton>
+    <AppButton
+      onClick={() => setSignupOpen(true)}
+      className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition"
+    >
+      Sign Up
+    </AppButton>
+  </div>
+)}
+
         </div>
       </motion.nav>
 
@@ -490,7 +390,22 @@ const handleLoginSubmit = async (e) => {
           >
             Learn More
           </AppButton>
+
+          <AppButton
+            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
+            onClick={() => navigate("/admin-dashboard")}
+          >
+            Admin
+          </AppButton>
+
+          <AppButton
+            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
+            onClick={() => navigate("/learn-more")}
+          >
+            Learn More
+          </AppButton>
         </motion.div>
+        
       </section>
 
       {/* Portals, Features, Categories, Footer */}
@@ -739,7 +654,7 @@ const handleLoginSubmit = async (e) => {
       onClick={(e) => e.stopPropagation()}
       className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4"
     >
-      {!forgotPassword ? (
+      {!forgotPassword && (
         // --- Login Form ---
         <form onSubmit={handleLoginSubmit}
         >
@@ -815,16 +730,177 @@ const handleLoginSubmit = async (e) => {
             </button>
           </p>
         </form>
-      ) : (
-        // --- Forgot Password Form (keep as is) ---
-        <form>
-          {/* Your existing forgot password fields */}
-        </form>
+      
         
       )}
     </motion.div>
   </motion.div>
 )}
+
+{/* Forgot Password Modal */}
+{forgotPassword && (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 flex items-center justify-center bg-black/40 z-[100]"
+    onClick={() => setForgotPassword(false)}
+  >
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.8, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 120 }}
+      onClick={(e) => e.stopPropagation()}
+      className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4"
+    >
+      <h2 className="text-2xl font-bold text-[#A0522D] mb-6 text-center">
+        Forgot Password
+      </h2>
+
+      {!otpOpen ? (
+        // Step 1: Enter Email
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setIsLoading(true);
+            setLoginMessage("");
+            try {
+              const res = await fetch("http://localhost:5000/api/auth/send-reset-otp", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.message);
+              setOtpOpen(true); // move to OTP step
+            } catch (err) {
+              setLoginMessage(err.message || "Failed to send OTP");
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+        >
+          {loginMessage && (
+            <p className="text-red-500 text-sm mb-4 text-center">{loginMessage}</p>
+          )}
+
+          <div className="mb-6">
+            <label htmlFor="forgotEmail" className="block text-sm font-medium text-gray-700 mb-1">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="forgotEmail"
+              type="email"
+              placeholder="you@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#A0522D] outline-none"
+            />
+          </div>
+
+          <AppButton
+            type="submit"
+            className="w-full py-3 rounded-lg text-white bg-[#A0522D] hover:bg-[#8B4513]"
+          >
+            Send OTP
+          </AppButton>
+        </form>
+      ) : (
+        // Step 2: Verify OTP & Reset Password
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setIsLoading(true);
+            setLoginMessage("");
+            try {
+              const res = await fetch("http://localhost:5000/api/auth/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, otp, password }),
+              });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.message);
+              setForgotPassword(false);
+              setOtpOpen(false);
+              setPassword("");
+              setOtp("");
+              setLoginOpen(true);
+              setLoginMessage("Password reset successful. Please log in.");
+            } catch (err) {
+              setLoginMessage(err.message || "Failed to reset password");
+            } finally {
+              setIsLoading(false);
+            }
+          }}
+        >
+          {loginMessage && (
+            <p className="text-red-500 text-sm mb-4 text-center">{loginMessage}</p>
+          )}
+
+          <div className="mb-4">
+            <label htmlFor="resetOtp" className="block text-sm font-medium text-gray-700 mb-1">
+              OTP <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="resetOtp"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="Enter OTP"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 text-center text-lg focus:ring-2 focus:ring-[#A0522D] outline-none"
+            />
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              New Password <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="newPassword"
+              type="password"
+              placeholder="Min. 8 characters"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#A0522D] outline-none"
+            />
+          </div>
+
+          <AppButton
+            type="submit"
+            disabled={otp.length !== 6 || password.length < 8 || isLoading}
+            className={`w-full py-3 rounded-lg text-white transition-colors duration-200 ${
+              otp.length !== 6 || password.length < 8
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#A0522D] hover:bg-[#8B4513]"
+            }`}
+          >
+            {isLoading ? "Resetting..." : "Reset Password"}
+          </AppButton>
+        </form>
+      )}
+
+      <p className="text-sm text-center mt-4 text-gray-600">
+        Remember your password?{" "}
+        <button
+          onClick={() => {
+            setForgotPassword(false);
+            setLoginOpen(true);
+          }}
+          className="text-[#A0522D] hover:underline font-medium"
+        >
+          Log In
+        </button>
+      </p>
+    </motion.div>
+  </motion.div>
+)}
+
 
 
       {/* Signup Modal */}

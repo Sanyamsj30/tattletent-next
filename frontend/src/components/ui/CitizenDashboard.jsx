@@ -9,7 +9,7 @@ const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [complaints, setComplaints] = useState([]);
   const navigate = useNavigate(); 
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(sessionStorage.getItem("user"));
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 const [isViewOpen, setIsViewOpen] = useState(false);
 
@@ -150,6 +150,32 @@ useEffect(() => {
     }
   };
 
+  const handleLogout = () => {
+    // 1. Clear session data (must match what you used in LandingPage!)
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    
+    // 2. Redirect to the home page, which will now show Login/Sign Up buttons
+    navigate("/"); 
+  };
+
+  useEffect(() => {
+    const token = sessionStorage.getItem("token");
+    const user = sessionStorage.getItem("user");
+    
+    // Check if authenticated
+    if (!token || !user) {
+      // Redirect to login/home page if no session is found
+      navigate("/"); 
+    } 
+    
+    // 💡 Add Role Check (Crucial for security and correct routing!)
+    if (user && JSON.parse(user).role !== "Citizen") {
+        navigate("/"); // Or a specific Unauthorized page
+    }
+    
+  }, [navigate]);
+
 
 
   return (
@@ -171,7 +197,7 @@ useEffect(() => {
       <span className="text-lg">All Complaints</span>
     </button>
     <button
-      onClick={() => navigate("/")} // 👈 this now works properly
+      onClick={ handleLogout} // 👈 this now works properly
       className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
     >
       <span className="text-xl">Logout</span>

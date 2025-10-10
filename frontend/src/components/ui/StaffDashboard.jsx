@@ -15,7 +15,7 @@ import {
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user")) || { name: "Guest" };
+  const user = JSON.parse(sessionStorage.getItem("user")) || { name: "Guest" };
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
   const [showPerformance, setShowPerformance] = useState(false);
@@ -30,6 +30,32 @@ const StaffDashboard = () => {
       console.warn("Backend not connected, using demo data");
     }
   };
+
+   const handleLogout = () => {
+      // 1. Clear session data (must match what you used in LandingPage!)
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      
+      // 2. Redirect to the home page, which will now show Login/Sign Up buttons
+      navigate("/"); 
+    };
+  
+    useEffect(() => {
+      const token = sessionStorage.getItem("token");
+      const user = sessionStorage.getItem("user");
+      
+      // Check if authenticated
+      if (!token || !user) {
+        // Redirect to login/home page if no session is found
+        navigate("/"); 
+      } 
+      
+      // 💡 Add Role Check (Crucial for security and correct routing!)
+      if (user && JSON.parse(user).role !== "Staff") {
+          navigate("/"); // Or a specific Unauthorized page
+      }
+      
+    }, [navigate]);
 
   useEffect(() => {
     fetchCounts();
@@ -220,7 +246,7 @@ const StaffDashboard = () => {
             Performance
           </button>
           <button
-            onClick={() => navigate("/")}
+            onClick={handleLogout}
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
           >
             Logout

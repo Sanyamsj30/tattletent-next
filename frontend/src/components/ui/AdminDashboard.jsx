@@ -6,7 +6,7 @@ import axios from "axios";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(sessionStorage.getItem("user"));
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
   // Complaints state
@@ -37,6 +37,32 @@ const AdminDashboard = () => {
   //   { id: 205, category: "Noise Complaint", location: "Sector 6", status: "In Progress", assignedTo: "Staff E" },
   //   { id: 206, category: "Drainage Issue", location: "Sector 8", status: "In Progress", assignedTo: "Staff F" },
   // ];
+
+  const handleLogout = () => {
+        // 1. Clear session data (must match what you used in LandingPage!)
+        sessionStorage.removeItem("token");
+        sessionStorage.removeItem("user");
+        
+        // 2. Redirect to the home page, which will now show Login/Sign Up buttons
+        navigate("/"); 
+      };
+    
+      useEffect(() => {
+        const token = sessionStorage.getItem("token");
+        const user = sessionStorage.getItem("user");
+        
+        // Check if authenticated
+        if (!token || !user) {
+          // Redirect to login/home page if no session is found
+          navigate("/"); 
+        } 
+        
+        // 💡 Add Role Check (Crucial for security and correct routing!)
+        if (user && JSON.parse(user).role !== "Ringmaster") {
+            navigate("/"); // Or a specific Unauthorized page
+        }
+        
+      }, [navigate]);
 
   const fetchCounts = async () => {
     try {
@@ -172,7 +198,7 @@ const AdminDashboard = () => {
           </button>
           <button
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
-            onClick={() => navigate("/")}
+            onClick={handleLogout}
           >
             Logout
           </button>
