@@ -12,7 +12,7 @@ const AllComplaintsPage = () => {
   //   { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", citizen: "Mike Johnson", priority: "Low", description: "Overflowing bin near park", assignedTo: "John Doe" },
   //   { id: 3, category: "Electrical", location: "Sector B", status: "Pending", citizen: "Sarah Lee", priority: null, description: "Street light not working", assignedTo: null },
   //   { id: 4, category: "Pathway Damage", location: "Sector C", status: "Resolved", citizen: "Jane Smith", priority: "Medium", description: "Broken tiles in Sector C repaired", assignedTo: "Mike Johnson", solution: "Tiles replaced" },
-  //   // Add more complaints for testing pagination
+  //   // Add more complaints for testing pagination  
   //   { id: 5, category: "Garbage", location: "Sector D", status: "Pending", citizen: "Anna Lee", priority: null, description: "Trash not collected", assignedTo: null },
   //   { id: 6, category: "Water Leak", location: "Sector E", status: "Pending", citizen: "Bob Smith", priority: null, description: "Pipe leak near road", assignedTo: null },
   //   { id: 7, category: "Electrical", location: "Sector F", status: "Resolved", citizen: "Carol White", priority: "High", description: "Power outage fixed", assignedTo: "Jane Smith", solution: "Replaced transformer" },

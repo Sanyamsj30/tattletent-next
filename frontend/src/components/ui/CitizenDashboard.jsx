@@ -48,7 +48,12 @@ const [isViewOpen, setIsViewOpen] = useState(false);
       category: c.category,
       status: c.status,
       description: c.description,
-      date: new Date(c.submitted_at).toLocaleDateString()
+      location: c.location,
+      priority: c.priority,
+      title: c.title,
+      assignedTo: c.assigned_to,
+      subdate: new Date(c.submitted_at).toLocaleDateString(),
+      update: new Date(c.updated_at).toLocaleDateString()
     })));
 
   } catch (err) {
@@ -272,7 +277,7 @@ useEffect(() => {
         <tr>
           <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Category</th> 
           <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Status</th>
-          <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Details</th>
+          <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Title</th>
           <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Date</th>
           <th className="p-4"></th>
         </tr>
@@ -287,12 +292,12 @@ useEffect(() => {
                   {c.status}
                 </span>
               </td>
-              <td className="p-4 text-gray-900 font-medium font-mono">{c.description}</td>
-              <td className="p-4 text-gray-900 font-medium font-mono">{c.date}</td>
+              <td className="p-4 text-gray-900 font-medium font-mono">{c.title}</td>
+              <td className="p-4 text-gray-900 font-medium font-mono">{c.subdate}</td>
 
               <td className="p-4 text-right text-gray-600 text-sm font-mono">
                 <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono" 
-                onClick={()=>(handleDetails(c.id))}>
+                onClick={()=>(handleDetails(c))}>
                   View Details
                 </button>
               </td>
@@ -474,12 +479,14 @@ useEffect(() => {
         </h2>
 
         <div className="space-y-3 pr-2">
+          <p><strong>Title:</strong> {selectedComplaint.title}</p>
           <p><strong>Description:</strong> {selectedComplaint.description}</p>
           <p><strong>Location:</strong> {selectedComplaint.location}</p>
           <p><strong>Status:</strong> {selectedComplaint.status}</p>
           <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
-          <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
-          <p><strong>Date:</strong> {selectedComplaint.date}</p>
+          <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo}</p>
+          <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>
+          <p><strong>Last Update</strong> {selectedComplaint.update}</p>
           {selectedComplaint.solution && (
             <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
           )}
