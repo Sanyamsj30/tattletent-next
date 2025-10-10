@@ -270,6 +270,28 @@ export const searchComplaints = async (filters) => {
   return result.rows;
 };
 
+/**
+ * Calculate SLA deadline based on dept_id and priority.
+ * Looks up SLA days from the sla_rules table.
+ */
+export const calculateSlaDeadline = async (dept_id, priority) => {
+  const slaResult = await pool.query(
+    `SELECT sla_days FROM sla_rules WHERE dept_id = $1 AND priority = $2 LIMIT 1;`,
+    [dept_id, priority]
+  );
+
+  if (slaResult.rowCount === 0) {
+    console.warn(`⚠️ No SLA rule found for dept_id ${dept_id} and priority ${priority}`);
+    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default 7 days fallback
+  }
+
+  const slaDays = slaResult.rows[0].sla_days;
+  const deadline = new Date();
+  deadline.setDate(deadline.getDate() + slaDays);
+  return deadline;
+};
+
+
 
 /**
  * 🔁 Escalate complaints whose SLA deadline is breached.
@@ -314,13 +336,16 @@ export const escalateComplaintsByCategory = async () => {
       } 
       else {
         // 3️⃣ Max limit reached → stop escalation
+        const newSlaDeadline = await calculateSlaDeadline(c.dept_id, c.priority);
         await pool.query(`
           UPDATE complaints
           SET status = 'NEW',
+              escalation_count = 0,
+              sla_deadline = $1,
               assigned_to=NULL,
               updated_at = NOW()
-          WHERE complaint_id = $1;
-        `, [c.complaint_id]);
+          WHERE complaint_id = $2;
+        `, [newSlaDeadline,c.complaint_id]);
 
         notifyAdminForManualReassignment(c.complaint_id);
 

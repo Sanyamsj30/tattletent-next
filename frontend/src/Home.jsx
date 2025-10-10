@@ -443,40 +443,6 @@ const handleLoginSubmit = async (e) => {
           >
             Learn More
           </AppButton>
-          <AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg"
-          onClick={() => navigate("/all-complaints")}>
-            View all Complaints
-          </AppButton>
-          <AppButton
-            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
-            onClick={() => navigate("/staff-dashboard")}
-          >
-            Staff Dashboard
-          </AppButton>
-          <AppButton
-            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
-            onClick={() => navigate("/admin-dashboard")}
-          >
-            Admin Dahboard
-          </AppButton>
-          <AppButton
-            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
-            onClick={() => navigate("/citizen-dashboard")}
-          >
-            Citizen Dahboard
-          </AppButton>
-          <AppButton
-            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
-            onClick={() => navigate("/assign-staff")}
-          >
-            Staff
-          </AppButton>
-          <AppButton
-            className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
-            onClick={() => navigate("/feedback-page")}
-          >
-            Feedback
-          </AppButton>
         </motion.div>
       </section>
 
