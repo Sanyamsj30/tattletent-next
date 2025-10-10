@@ -117,6 +117,7 @@ const StaffDashboard = () => {
         priority: c.priority,
         title: c.title,
         assignedTo: c.assigned_to,
+        staff_id: c.staff_id,
         subdate: new Date(c.submitted_at).toLocaleDateString(),
         update: new Date(c.updated_at).toLocaleDateString()
       })));
