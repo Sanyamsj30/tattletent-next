@@ -160,6 +160,10 @@ useEffect(() => {
     <Logo />
   </div>
   <div className="flex items-center gap-2">
+    <div className="text-right">
+            <p className="text-sm text-gray-600">Logged in as</p>
+            <p className="font-semibold text-gray-800">Citizen</p>
+          </div>
     <button
       onClick={() => navigate("/all-complaints")} // 👈 this now works properly
       className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
