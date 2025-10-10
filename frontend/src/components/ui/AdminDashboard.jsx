@@ -142,12 +142,7 @@ const AdminDashboard = () => {
             <p className="text-sm text-gray-600">Logged in as</p>
             <p className="font-semibold text-gray-800">Admin</p>
           </div>
-          <button
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
-            onClick={() => navigate("/")}
-          >
-            Logout
-          </button>
+          
           <button
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
             onClick={() => navigate("/heatmap")}
@@ -159,6 +154,12 @@ const AdminDashboard = () => {
             onClick={() => navigate("/all-complaints")}
           >
             All Complaints
+          </button>
+          <button
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
+            onClick={() => navigate("/")}
+          >
+            Logout
           </button>
         </div>
       </div>

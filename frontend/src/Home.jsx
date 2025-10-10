@@ -242,7 +242,7 @@ export default function LandingPage() {
           >
             Learn More
           </AppButton>
-          {/*<AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg"
+          <AppButton className="bg-[#d55d1f] hover:bg-[#b54a16] text-white rounded-full shadow-lg hover:shadow-xl px-8 py-4 text-lg"
           onClick={() => navigate("/all-complaints")}>
             View all Complaints
           </AppButton>
@@ -269,7 +269,7 @@ export default function LandingPage() {
             onClick={() => navigate("/assign-staff")}
           >
             Staff
-          </AppButton>*/}
+          </AppButton>
         </motion.div>
       </section>
 
@@ -646,6 +646,12 @@ export default function LandingPage() {
                 Sign Up
               </AppButton>
             </form>
+
+            <div className="flex items-center justify-center my-4">
+            <div className="h-px bg-gray-300 flex-grow"></div>
+            <span className="px-3 text-gray-500 text-sm">OR</span>
+            <div className="h-px bg-gray-300 flex-grow"></div>
+          </div>
 
             <div className="flex justify-center mt-4">
               <GoogleLogin onSuccess={handleGoogleLoginSuccess} onError={() => console.log("Google signup failed")} />
