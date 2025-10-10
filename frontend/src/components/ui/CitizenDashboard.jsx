@@ -320,6 +320,7 @@ useEffect(() => {
 </div>
 
 
+
     {/* View All button - Changed to a blue button to match the notebook theme */}
     {/*<div className="flex justify-center mt-8">
       <button className="px-6 py-3 rounded-xl bg-orange-600 text-white font-semibold shadow-md hover:bg-orange-700 transition"
@@ -331,6 +332,55 @@ useEffect(() => {
       </button>
     </div>*/}
 </div>
+
+{/* 4a. Resolved Complaints Section with Feedback */}
+{complaints.some(c => c.status === "Resolved") && (
+  <div className="bg-[#e6f6ed] rounded-2xl shadow-inner-soft p-8 border border-gray-300 border-l-4 border-l-green-400">
+    <h2 className="text-2xl font-bold mb-6 text-green-800 font-mono">✅ Resolved Complaints</h2>
+    <div className="overflow-hidden rounded-lg border border-gray-300">
+      <div className="max-h-[300px] overflow-y-auto">
+        <table className="min-w-full divide-y divide-blue-200">
+          <thead className="bg-white sticky top-0 z-10">
+            <tr>
+              <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Category</th>
+              <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Title</th>
+              <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Date</th>
+              <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Details</th>
+              <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Feedback</th>
+              
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-blue-200 bg-white">
+            {complaints.filter(c => c.status === "Resolved").map(c => (
+              <tr key={c.id} className="hover:bg-blue-50 transition">
+                <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
+                <td className="p-4 text-gray-900 font-medium font-mono">{c.title}</td>
+                <td className="p-4 text-gray-900 font-medium font-mono">{c.subdate}</td>
+                <td className="p-4 text-gray-600 text-sm font-mono ">
+                  <button
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono"
+                    onClick={() => handleDetails(c)}
+                  >
+                    View Details
+                  </button>
+                   </td>
+                   <td>
+                  <button
+                    className="p-4 px-3 py-1 rounded-full bg-green-600 text-white text-sm hover:bg-green-700 transition"
+                    onClick={() => navigate("/feedback-page")}
+                  >
+                    Give Feedback
+                  </button>
+               </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
+
 </main>
 
       {/* Modal (unchanged) */}
@@ -496,7 +546,9 @@ useEffect(() => {
     </div>
   </div>
 )}
-
+<footer className="text-center py-4 bg-white shadow-inner text-gray-600 text-sm">
+        © {new Date().getFullYear()} TattleTent. All rights reserved.
+      </footer>
 
     </div>
   );
