@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from "react";
 import Logo from './Logo'
 import { useNavigate } from "react-router-dom";
+import { jsPDF } from "jspdf";
+
 
 const AllComplaintsPage = () => {
 
   const navigate=useNavigate();
 
   const [complaints, setComplaints] = useState([]);
-  // const [complaints, setComplaints] = useState([
-  //   { id: 1, category: "Water Leak", location: "Tent #5", status: "Pending", citizen: "John Doe", priority: null, description: "Leak near Tent #5, pipe burst", assignedTo: null },
-  //   { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", citizen: "Mike Johnson", priority: "Low", description: "Overflowing bin near park", assignedTo: "John Doe" },
-  //   { id: 3, category: "Electrical", location: "Sector B", status: "Pending", citizen: "Sarah Lee", priority: null, description: "Street light not working", assignedTo: null },
-  //   { id: 4, category: "Pathway Damage", location: "Sector C", status: "Resolved", citizen: "Jane Smith", priority: "Medium", description: "Broken tiles in Sector C repaired", assignedTo: "Mike Johnson", solution: "Tiles replaced" },
-  //   // Add more complaints for testing pagination  
-  //   { id: 5, category: "Garbage", location: "Sector D", status: "Pending", citizen: "Anna Lee", priority: null, description: "Trash not collected", assignedTo: null },
-  //   { id: 6, category: "Water Leak", location: "Sector E", status: "Pending", citizen: "Bob Smith", priority: null, description: "Pipe leak near road", assignedTo: null },
-  //   { id: 7, category: "Electrical", location: "Sector F", status: "Resolved", citizen: "Carol White", priority: "High", description: "Power outage fixed", assignedTo: "Jane Smith", solution: "Replaced transformer" },
-  //   { id: 8, category: "Pathway Damage", location: "Sector G", status: "In Progress", citizen: "David Green", priority: "Medium", description: "Uneven pavement", assignedTo: "Mike Johnson" },
-  // ]);
-
+ /*  const [complaints, setComplaints] = useState([
+    { id: 1, category: "Water Leak", location: "Tent #5", status: "Pending", citizen: "John Doe", priority: null, description: "Leak near Tent #5, pipe burst", assignedTo: null },
+    { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", citizen: "Mike Johnson", priority: "Low", description: "Overflowing bin near park", assignedTo: "John Doe" },
+    { id: 3, category: "Electrical", location: "Sector B", status: "Pending", citizen: "Sarah Lee", priority: null, description: "Street light not working", assignedTo: null },
+    { id: 4, category: "Pathway Damage", location: "Sector C", status: "Resolved", citizen: "Jane Smith", priority: "Medium", description: "Broken tiles in Sector C repaired", assignedTo: "Mike Johnson", solution: "Tiles replaced" },
+    // Add more complaints for testing pagination  
+    { id: 5, category: "Garbage", location: "Sector D", status: "Pending", citizen: "Anna Lee", priority: null, description: "Trash not collected", assignedTo: null },
+    { id: 6, category: "Water Leak", location: "Sector E", status: "Pending", citizen: "Bob Smith", priority: null, description: "Pipe leak near road", assignedTo: null },
+    { id: 7, category: "Electrical", location: "Sector F", status: "Resolved", citizen: "Carol White", priority: "High", description: "Power outage fixed", assignedTo: "Jane Smith", solution: "Replaced transformer" },
+    { id: 8, category: "Pathway Damage", location: "Sector G", status: "In Progress", citizen: "David Green", priority: "Medium", description: "Uneven pavement", assignedTo: "Mike Johnson" },
+  ]);
+ */
     const fetchComplaintsByUser = async () => {
     try {
   
@@ -90,6 +92,23 @@ const AllComplaintsPage = () => {
     setSelectedComplaint(complaint);
     setIsViewOpen(true);
   };
+
+  const exportComplaintPDF = (complaint) => {
+  const doc = new jsPDF();
+  doc.setFontSize(18);
+  doc.text(`Complaint #${complaint.id}`, 14, 22);
+  doc.setFontSize(12);
+  doc.text(`Category: ${complaint.category}`, 14, 40);
+  doc.text(`Location: ${complaint.location}`, 14, 50);
+  doc.text(`Status: ${complaint.status}`, 14, 60);
+  doc.text(`Priority: ${complaint.priority || "Not Set"}`, 14, 70);
+  doc.text(`Reported by: ${complaint.citizen || "Unknown"}`, 14, 80);
+  doc.text(`Date: ${complaint.date}`, 14, 90);
+  doc.text(`Description: ${complaint.description}`, 14, 100, { maxWidth: 180 });
+  if (complaint.solution) doc.text(`Solution: ${complaint.solution}`, 14, 120, { maxWidth: 180 });
+  doc.save(`Complaint_${complaint.id}.pdf`);
+};
+
 
   const exportCSV = () => {
     const csvContent = [
@@ -204,8 +223,19 @@ const AllComplaintsPage = () => {
                 <td className="p-4">{c.priority || "Not Set"}</td>
                 <td className="p-4">{c.assignedTo || "Unassigned"}</td>
                 <td className="p-4 flex gap-2">
-                  <button className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition" onClick={()=>handleView(c.id)}>OPEN</button>
-                </td>
+  <button
+    className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition"
+    onClick={() => handleView(c)}
+  >
+    OPEN
+  </button>
+  <button
+    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
+    onClick={() => exportComplaintPDF(c)}
+  >
+    PDF
+  </button>
+</td>
               </tr>
             ))}
           </tbody>

@@ -81,6 +81,25 @@ export const updateComplaintStatusInDB = async (id, newStatus, staffId) => {
     if(newStatus==='In Progress'){
       newStatus="IN_PROGRESS";
     }
+    if(newStatus==='Resolved') {
+      const points = await pool.query(`
+          SELECT points
+          FROM users
+          WHERE user_id=$1;
+        `, [staffId]);
+
+      const temp_points = await pool.query(`
+          SELECT temp_points
+          FROM complaints
+          WHERE complaints_id=$1;
+        `, [id]);
+
+        await pool.query(`
+          UPDATE users
+          SET points=$1,
+          WHERE user_id=$2;
+        `,[points+temp_points,c.staff_id]);
+    }
     const updatedComplaint = await pool.query(
       `UPDATE complaints
        SET status = $1,
@@ -304,8 +323,6 @@ export const calculateSlaDeadline = async (dept_id, priority) => {
     return '24 hours';
   }
 };
-
-
 
 /**
  * 🔁 Escalate complaints whose SLA deadline is breached.

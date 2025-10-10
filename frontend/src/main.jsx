@@ -13,6 +13,8 @@ import AllComplaintsPage from "./components/ui/AllComplaintsPage"
 import AssignStaffPage from "./components/ui/AssignStaffPage"
 import Heatmap from "./components/ui/Heatmap"
 import FeedbackPage from "./components/ui/FeedbackPage"
+import AdminInviteStaff from "./components/ui/AdminInviteStaff"
+
 
 
 
@@ -33,6 +35,8 @@ createRoot(document.getElementById("root")).render(
           <Route path="/assign-staff" element={<AssignStaffPage />} />
           <Route path="/heatmap" element={<Heatmap />} />
           <Route path="/feedback-page" element={<FeedbackPage/>} />
+          <Route path="/invite-staff" element={<AdminInviteStaff/>} />
+
 
 
         </Routes>

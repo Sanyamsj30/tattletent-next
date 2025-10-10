@@ -15,7 +15,7 @@ import {
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user")) || { name: "Guest" };
+  const user = JSON.parse(sessionStorage.getItem("user")) || { name: "Guest" };
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
   const [showPerformance, setShowPerformance] = useState(false);
@@ -31,6 +31,32 @@ const StaffDashboard = () => {
     }
   };
 
+   const handleLogout = () => {
+      // 1. Clear session data (must match what you used in LandingPage!)
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      
+      // 2. Redirect to the home page, which will now show Login/Sign Up buttons
+      navigate("/"); 
+    };
+  
+    useEffect(() => {
+      const token = sessionStorage.getItem("token");
+      const user = sessionStorage.getItem("user");
+      
+      // Check if authenticated
+      if (!token || !user) {
+        // Redirect to login/home page if no session is found
+        navigate("/"); 
+      } 
+      
+      // 💡 Add Role Check (Crucial for security and correct routing!)
+      if (user && JSON.parse(user).role !== "Staff") {
+          navigate("/"); // Or a specific Unauthorized page
+      }
+      
+    }, [navigate]);
+
   useEffect(() => {
     fetchCounts();
   }, []);
@@ -39,64 +65,64 @@ const StaffDashboard = () => {
   const [newComplaints, setNewComplaints] = useState([]);
   const [resolvedComplaints, setResolvedComplaints] = useState([]);
 
-  // const initialComplaints = [
-  //   {
-  //     id: 1,
-  //     category: "Water Leak",
-  //     status: "In Progress",
-  //     description: "Leak near Tent #5",
-  //     location: "Tent #5, Sector A",
-  //     date: "2025-10-02",
-  //     citizen: "John Doe",
-  //     priority: "High",
-  //     photo: "https://via.placeholder.com/400x250?text=Leak+Photo",
-  //   },
-  //   {
-  //     id: 2,
-  //     category: "Pathway Damage",
-  //     status: "Resolved",
-  //     description: "Broken tiles repaired",
-  //     location: "Sector C",
-  //     date: "2025-09-28",
-  //     citizen: "Jane Smith",
-  //     priority: "Medium",
-  //     solution: "Tiles replaced",
-  //     photo: "https://via.placeholder.com/400x250?text=Pathway",
-  //   },
-  //   {
-  //     id: 3,
-  //     category: "Garbage",
-  //     status: "In Progress",
-  //     description: "Overflowing bin near park",
-  //     location: "Central Park",
-  //     date: "2025-10-01",
-  //     citizen: "Mike Johnson",
-  //     priority: "Low",
-  //     photo: "https://via.placeholder.com/400x250?text=Garbage",
-  //   },
-  //   {
-  //     id: 4,
-  //     category: "Electrical",
-  //     status: "Resolved",
-  //     description: "Street light not working",
-  //     location: "Street 12",
-  //     date: "2025-10-03",
-  //     citizen: "Sarah Wilson",
-  //     priority: "Medium",
-  //    // photo: "https://via.placeholder.com/400x250?text=Electrical",
-  //   },
-  //   {
-  //     id: 5,
-  //     category: "Drainage",
-  //     status: "Resolved",
-  //     description: "Drainage clog cleared",
-  //     location: "Sector D",
-  //     date: "2025-09-22",
-  //     citizen: "Aman Verma",
-  //     priority: "High",
-  //     photo: "https://via.placeholder.com/400x250?text=Drainage",
-  //   },
-  // ];
+  /* const initialComplaints = [
+    {
+      id: 1,
+      category: "Water Leak",
+      status: "In Progress",
+      description: "Leak near Tent #5",
+      location: "Tent #5, Sector A",
+      date: "2025-10-02",
+      citizen: "John Doe",
+      priority: "High",
+      photo: "https://via.placeholder.com/400x250?text=Leak+Photo",
+    },
+    {
+      id: 2,
+      category: "Pathway Damage",
+      status: "Resolved",
+      description: "Broken tiles repaired",
+      location: "Sector C",
+      date: "2025-09-28",
+      citizen: "Jane Smith",
+      priority: "Medium",
+      solution: "Tiles replaced",
+      photo: "https://via.placeholder.com/400x250?text=Pathway",
+    },
+    {
+      id: 3,
+      category: "Garbage",
+      status: "In Progress",
+      description: "Overflowing bin near park",
+      location: "Central Park",
+      date: "2025-10-01",
+      citizen: "Mike Johnson",
+      priority: "Low",
+      photo: "https://via.placeholder.com/400x250?text=Garbage",
+    },
+    {
+      id: 4,
+      category: "Electrical",
+      status: "Resolved",
+      description: "Street light not working",
+      location: "Street 12",
+      date: "2025-10-03",
+      citizen: "Sarah Wilson",
+      priority: "Medium",
+     // photo: "https://via.placeholder.com/400x250?text=Electrical",
+    },
+    {
+      id: 5,
+      category: "Drainage",
+      status: "Resolved",
+      description: "Drainage clog cleared",
+      location: "Sector D",
+      date: "2025-09-22",
+      citizen: "Aman Verma",
+      priority: "High",
+      photo: "https://via.placeholder.com/400x250?text=Drainage",
+    },
+  ]; */
 
   const fetchComplaintsByUser = async () => {
     try {
@@ -117,6 +143,7 @@ const StaffDashboard = () => {
         priority: c.priority,
         title: c.title,
         assignedTo: c.assigned_to,
+        staff_id: c.staff_id,
         subdate: new Date(c.submitted_at).toLocaleDateString(),
         update: new Date(c.updated_at).toLocaleDateString()
       })));
@@ -220,7 +247,7 @@ const StaffDashboard = () => {
             Performance
           </button>
           <button
-            onClick={() => navigate("/")}
+            onClick={handleLogout}
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
           >
             Logout
@@ -240,23 +267,24 @@ const StaffDashboard = () => {
 
         <hr className="border-gray-200" /> 
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8"> {/* Increased gap for better spacing */}
-          {[
-            { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
-            { title: "In Progress", count: counts.in_progress },
-            { title: "Pending", count: counts.pending },
-          ].map((s) => (
-            <div
-              key={s.title}
-              className="rounded-2xl px-3 py-8 shadow-xl flex flex-col items-center 
-                bg-gradient-to-r from-orange-100 via-amber-50 to-orange-100
-                transform transition duration-500 hover:scale-[1.02] text-orange-700"
-            >
-              <div className="text-4xl font-extrabold">{s.count}</div>
-              <div className="mt-2 font-semibold text-lg text-center">{s.title}</div>
-            </div>
-          ))}
-        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 p-6 sm:p-10"> {/* Added padding */}
+  {[
+    { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
+    { title: "In Progress", count: counts.in_progress },
+    { title: "Pending", count: counts.pending },
+  ].map((s) => (
+    <div
+      key={s.title}
+      className="rounded-2xl px-3 py-8 shadow-xl flex flex-col items-center 
+        bg-gradient-to-r from-orange-100 via-amber-50 to-orange-100
+        transform transition duration-500 hover:scale-[1.02] text-orange-700"
+    >
+      <div className="text-4xl font-extrabold">{s.count}</div>
+      <div className="mt-2 font-semibold text-lg text-center">{s.title}</div>
+    </div>
+  ))}
+</div>
+
 
       {/* Complaints Section */}
       <main className="px-12 space-y-16">
