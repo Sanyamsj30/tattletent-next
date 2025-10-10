@@ -487,9 +487,6 @@ useEffect(() => {
           <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo}</p>
           <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>
           <p><strong>Last Update</strong> {selectedComplaint.update}</p>
-          {selectedComplaint.solution && (
-            <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
-          )}
         </div>
       </div>
     </div>

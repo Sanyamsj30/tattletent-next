@@ -39,71 +39,118 @@ const StaffDashboard = () => {
     fetchCounts();
   }, []);
 
-  const initialComplaints = [
-    {
-      id: 1,
-      category: "Water Leak",
-      status: "In Progress",
-      description: "Leak near Tent #5",
-      location: "Tent #5, Sector A",
-      date: "2025-10-02",
-      citizen: "John Doe",
-      priority: "High",
-      photo: "https://via.placeholder.com/400x250?text=Leak+Photo",
-    },
-    {
-      id: 2,
-      category: "Pathway Damage",
-      status: "Resolved",
-      description: "Broken tiles repaired",
-      location: "Sector C",
-      date: "2025-09-28",
-      citizen: "Jane Smith",
-      priority: "Medium",
-      solution: "Tiles replaced",
-      photo: "https://via.placeholder.com/400x250?text=Pathway",
-    },
-    {
-      id: 3,
-      category: "Garbage",
-      status: "In Progress",
-      description: "Overflowing bin near park",
-      location: "Central Park",
-      date: "2025-10-01",
-      citizen: "Mike Johnson",
-      priority: "Low",
-      photo: "https://via.placeholder.com/400x250?text=Garbage",
-    },
-    {
-      id: 4,
-      category: "Electrical",
-      status: "Resolved",
-      description: "Street light not working",
-      location: "Street 12",
-      date: "2025-10-03",
-      citizen: "Sarah Wilson",
-      priority: "Medium",
-     // photo: "https://via.placeholder.com/400x250?text=Electrical",
-    },
-    {
-      id: 5,
-      category: "Drainage",
-      status: "Resolved",
-      description: "Drainage clog cleared",
-      location: "Sector D",
-      date: "2025-09-22",
-      citizen: "Aman Verma",
-      priority: "High",
-      photo: "https://via.placeholder.com/400x250?text=Drainage",
-    },
-  ];
+  const [complaints, setComplaints] = useState([]);
+  const [newComplaints, setNewComplaints] = useState([]);
+  const [resolvedComplaints, setResolvedComplaints] = useState([]);
 
-  const [complaints, setComplaints] = useState(initialComplaints);
+  // const initialComplaints = [
+  //   {
+  //     id: 1,
+  //     category: "Water Leak",
+  //     status: "In Progress",
+  //     description: "Leak near Tent #5",
+  //     location: "Tent #5, Sector A",
+  //     date: "2025-10-02",
+  //     citizen: "John Doe",
+  //     priority: "High",
+  //     photo: "https://via.placeholder.com/400x250?text=Leak+Photo",
+  //   },
+  //   {
+  //     id: 2,
+  //     category: "Pathway Damage",
+  //     status: "Resolved",
+  //     description: "Broken tiles repaired",
+  //     location: "Sector C",
+  //     date: "2025-09-28",
+  //     citizen: "Jane Smith",
+  //     priority: "Medium",
+  //     solution: "Tiles replaced",
+  //     photo: "https://via.placeholder.com/400x250?text=Pathway",
+  //   },
+  //   {
+  //     id: 3,
+  //     category: "Garbage",
+  //     status: "In Progress",
+  //     description: "Overflowing bin near park",
+  //     location: "Central Park",
+  //     date: "2025-10-01",
+  //     citizen: "Mike Johnson",
+  //     priority: "Low",
+  //     photo: "https://via.placeholder.com/400x250?text=Garbage",
+  //   },
+  //   {
+  //     id: 4,
+  //     category: "Electrical",
+  //     status: "Resolved",
+  //     description: "Street light not working",
+  //     location: "Street 12",
+  //     date: "2025-10-03",
+  //     citizen: "Sarah Wilson",
+  //     priority: "Medium",
+  //    // photo: "https://via.placeholder.com/400x250?text=Electrical",
+  //   },
+  //   {
+  //     id: 5,
+  //     category: "Drainage",
+  //     status: "Resolved",
+  //     description: "Drainage clog cleared",
+  //     location: "Sector D",
+  //     date: "2025-09-22",
+  //     citizen: "Aman Verma",
+  //     priority: "High",
+  //     photo: "https://via.placeholder.com/400x250?text=Drainage",
+  //   },
+  // ];
 
-  const newComplaints = complaints.filter(
-    (c) =>  c.status === "In Progress"
-  );
-  const resolvedComplaints = complaints.filter((c) => c.status === "Resolved");
+  const fetchComplaintsByUser = async () => {
+    try {
+      if (!user?.user_id) return;
+  
+      const queryParams = new URLSearchParams({ staff_id: user.user_id }).toString();
+      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+  
+      if (!response.ok) throw new Error("Failed to fetch complaints");
+  
+      const data = await response.json();
+      setComplaints(data.map(c => ({
+        id: c.complaint_id,
+        category: c.category,
+        status: c.status,
+        description: c.description,
+        location: c.location,
+        priority: c.priority,
+        title: c.title,
+        assignedTo: c.assigned_to,
+        subdate: new Date(c.submitted_at).toLocaleDateString(),
+        update: new Date(c.updated_at).toLocaleDateString()
+      })));
+  
+    } catch (err) {
+      console.error("Error fetching complaints:", err);
+      setComplaints([]); // fallback to empty array
+    }
+  };
+  
+  useEffect(() => {
+      fetchComplaintsByUser();
+  }, []);
+
+  useEffect(() => {
+    setNewComplaints(complaints.filter((c) =>  c.status === "In Progress" ));
+    setResolvedComplaints(complaints.filter((c) => c.status === "Resolved"));
+  }, [complaints]);
+
+  const handleResolvedComplaints = (complaint) => {
+    axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
+      status: "Resolved",
+    }).catch(err => console.error(err));
+
+    setComplaints(prevComplaints =>
+      prevComplaints.map(c =>
+        c.id === complaint.id ? { ...c, status: "Resolved" } : c
+      )
+    );
+  }
 
   const complaintsPerPage = 3;
 
@@ -215,19 +262,13 @@ const StaffDashboard = () => {
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(c.priority)}`}>{c.priority}</span>
                 </div>
                 <p className="text-gray-600 mt-2">{c.location}</p>
-                <p className="text-gray-500 text-sm mt-1">Reported by: {c.citizen}</p>
+                <p className="text-gray-500 text-sm mt-1">{c.subdate}</p>
                 <div className="flex gap-3 mt-5">
                   <button onClick={() => handleViewClick(c)} className="flex-1 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                     Open
                   </button>
                   <button
-                    onClick={() =>
-                      setComplaints((prev) =>
-                        prev.map((comp) =>
-                          comp.id === c.id ? { ...comp, status: "Resolved" } : comp
-                        )
-                      )
-                    }
+                    onClick={() => handleResolvedComplaints(c) }
                     className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                   >
                     Resolve
@@ -273,14 +314,13 @@ const StaffDashboard = () => {
                 <div className="flex items-center gap-2">
                   <h4 className="text-xl font-semibold text-gray-800">{c.category}</h4>
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status}</span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(c.priority)}`}>{c.priority}</span>
                 </div>
                 <p className="text-gray-600 mt-2">{c.location}</p>
-                <p className="text-gray-500 text-sm mt-1">Reported by: {c.citizen}</p>
+                <p className="text-gray-500 text-sm mt-1">{c.update}</p>
                 <div className="flex gap-3 mt-5">
                   <button
                     onClick={() => handleViewClick(c)}
-                    className="flex-1 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                    className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition"
                   >
                     Open
                   </button>
@@ -362,15 +402,14 @@ const StaffDashboard = () => {
         </h2>
 
         <div className="space-y-3 pr-2">
+          <p><strong>Title:</strong> {selectedComplaint.title}</p>
           <p><strong>Description:</strong> {selectedComplaint.description}</p>
           <p><strong>Location:</strong> {selectedComplaint.location}</p>
           <p><strong>Status:</strong> {selectedComplaint.status}</p>
           <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
-          <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
-          <p><strong>Date:</strong> {selectedComplaint.date}</p>
-          {selectedComplaint.solution && (
-            <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
-          )}
+          <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo}</p>
+          <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>
+          <p><strong>Last Update</strong> {selectedComplaint.update}</p>
         </div>
       </div>
     </div>

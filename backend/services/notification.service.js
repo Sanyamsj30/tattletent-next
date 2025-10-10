@@ -12,7 +12,7 @@ export const notifyStatusChange = async (complaintId) => {
         c.complaint_id, c.title, c.category, c.priority,c.status,
         u1.name AS citizen_name, u1.email AS citizen_email
       FROM complaints c
-      JOIN users u1 ON c.submitted_by = u1.user_id
+      JOIN users u1 ON c.user_id = u1.user_id
       WHERE c.complaint_id = $1
     `, [complaintId]);
 
