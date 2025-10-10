@@ -16,12 +16,8 @@ import {
 const StaffDashboard = () => {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user")) || { name: "Guest" };
+  const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
-  const [counts, setCounts] = useState({
-    resolved: 5,
-    pending: 2,
-    in_progress: 3,
-  });
   const [showPerformance, setShowPerformance] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -136,7 +132,7 @@ const StaffDashboard = () => {
   }, []);
 
   useEffect(() => {
-    setNewComplaints(complaints.filter((c) =>  c.status === "In Progress" ));
+    setNewComplaints(complaints.filter((c) =>  c.status === "IN_PROGRESS" ));
     setResolvedComplaints(complaints.filter((c) => c.status === "Resolved"));
   }, [complaints]);
 
@@ -242,12 +238,32 @@ const StaffDashboard = () => {
         </p>
       </div>
 
+        <hr className="border-gray-200" /> 
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8"> {/* Increased gap for better spacing */}
+          {[
+            { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
+            { title: "In Progress", count: counts.in_progress },
+            { title: "Pending", count: counts.pending },
+          ].map((s) => (
+            <div
+              key={s.title}
+              className="rounded-2xl px-3 py-8 shadow-xl flex flex-col items-center 
+                bg-gradient-to-r from-orange-100 via-amber-50 to-orange-100
+                transform transition duration-500 hover:scale-[1.02] text-orange-700"
+            >
+              <div className="text-4xl font-extrabold">{s.count}</div>
+              <div className="mt-2 font-semibold text-lg text-center">{s.title}</div>
+            </div>
+          ))}
+        </div>
+
       {/* Complaints Section */}
       <main className="px-12 space-y-16">
         {/* Active Complaints */}
         <section>
           <div className="flex justify-between items-center mb-6 border-l-4 border-red-400 pl-3">
-            <h3 className="text-2xl font-bold text-gray-900">🚨 Complaints</h3>
+            <h3 className="text-2xl font-bold text-gray-900">🚨 Assigned Complaints</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Logo from "./Logo";
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const user = JSON.parse(localStorage.getItem("user"));
+  const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
   // Complaints state
   const [complaints, setComplaints] = useState([]);
@@ -17,24 +19,37 @@ const AdminDashboard = () => {
   const complaintsPerPage = 5;
 
   // Demo data for New Complaints
-  const demoNewComplaints = [
-    { id: 101, category: "Water Leak", location: "Tent #12", status: "New", assignedTo: null },
-    { id: 102, category: "Electrical", location: "Sector 5", status: "New", assignedTo: null },
-    { id: 103, category: "Garbage Overflow", location: "Park Zone", status: "New", assignedTo: null },
-    { id: 104, category: "Pathway Damage", location: "Street 3", status: "New", assignedTo: null },
-    { id: 105, category: "Noise Complaint", location: "Sector 7", status: "New", assignedTo: null },
-    { id: 106, category: "Drainage Issue", location: "Sector 2", status: "New", assignedTo: null },
-  ];
+  // const demoNewComplaints = [
+  //   { id: 101, category: "Water Leak", location: "Tent #12", status: "New", assignedTo: null },
+  //   { id: 102, category: "Electrical", location: "Sector 5", status: "New", assignedTo: null },
+  //   { id: 103, category: "Garbage Overflow", location: "Park Zone", status: "New", assignedTo: null },
+  //   { id: 104, category: "Pathway Damage", location: "Street 3", status: "New", assignedTo: null },
+  //   { id: 105, category: "Noise Complaint", location: "Sector 7", status: "New", assignedTo: null },
+  //   { id: 106, category: "Drainage Issue", location: "Sector 2", status: "New", assignedTo: null },
+  // ];
 
-  // Demo data for Assigned Complaints
-  const demoAssignedComplaints = [
-    { id: 201, category: "Water Leak", location: "Tent #9", status: "In Progress", assignedTo: "Staff A" },
-    { id: 202, category: "Electrical", location: "Street 5", status: "In Progress", assignedTo: "Staff B" },
-    { id: 203, category: "Garbage Overflow", location: "Park Zone 2", status: "In Progress", assignedTo: "Staff C" },
-    { id: 204, category: "Pathway Damage", location: "Sector 4", status: "In Progress", assignedTo: "Staff D" },
-    { id: 205, category: "Noise Complaint", location: "Sector 6", status: "In Progress", assignedTo: "Staff E" },
-    { id: 206, category: "Drainage Issue", location: "Sector 8", status: "In Progress", assignedTo: "Staff F" },
-  ];
+  // // Demo data for Assigned Complaints
+  // const demoAssignedComplaints = [
+  //   { id: 201, category: "Water Leak", location: "Tent #9", status: "In Progress", assignedTo: "Staff A" },
+  //   { id: 202, category: "Electrical", location: "Street 5", status: "In Progress", assignedTo: "Staff B" },
+  //   { id: 203, category: "Garbage Overflow", location: "Park Zone 2", status: "In Progress", assignedTo: "Staff C" },
+  //   { id: 204, category: "Pathway Damage", location: "Sector 4", status: "In Progress", assignedTo: "Staff D" },
+  //   { id: 205, category: "Noise Complaint", location: "Sector 6", status: "In Progress", assignedTo: "Staff E" },
+  //   { id: 206, category: "Drainage Issue", location: "Sector 8", status: "In Progress", assignedTo: "Staff F" },
+  // ];
+
+  const fetchCounts = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      setCounts(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCounts();
+  }, []);
 
   // Fetch complaints by user (with demo fallback)
   const fetchComplaintsByUser = async () => {
@@ -71,7 +86,7 @@ const AdminDashboard = () => {
     try {
       if (!user?.user_id) return;
 
-      const queryParams = new URLSearchParams({ status: "In Progress" }).toString();
+      const queryParams = new URLSearchParams({ status: "IN_PROGRESS" }).toString();
       const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
 
       if (!response.ok) throw new Error("Failed to fetch complaints");
@@ -173,6 +188,26 @@ const AdminDashboard = () => {
           <p className="text-gray-700 text-lg italic">
             Manage staff, assign complaints, and review citizen feedback.
           </p>
+        </div>
+
+        <hr className="border-gray-200" /> 
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8"> {/* Increased gap for better spacing */}
+          {[
+            { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
+            { title: "In Progress", count: counts.in_progress },
+            { title: "Pending", count: counts.pending },
+          ].map((s) => (
+            <div
+              key={s.title}
+              className="rounded-2xl px-3 py-8 shadow-xl flex flex-col items-center 
+                bg-gradient-to-r from-orange-100 via-amber-50 to-orange-100
+                transform transition duration-500 hover:scale-[1.02] text-orange-700"
+            >
+              <div className="text-4xl font-extrabold">{s.count}</div>
+              <div className="mt-2 font-semibold text-lg text-center">{s.title}</div>
+            </div>
+          ))}
         </div>
 
         {/* New Complaints Table */}

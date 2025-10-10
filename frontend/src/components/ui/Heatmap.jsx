@@ -5,27 +5,39 @@ import L from "leaflet";
 import "leaflet.heat";
 import { motion } from "framer-motion";
 import { FiRefreshCcw } from "react-icons/fi";
-// import { MdMyLocation } from "react-icons/md";
 import Logo from "./Logo"; // ✅ Uncomment if you have it
 import { useNavigate } from "react-router-dom";
 
+// HeatmapLayer Component
 const HeatmapLayer = ({ points }) => {
   const map = useMap();
 
   useEffect(() => {
     if (!points || points.length === 0) return;
 
-    const heat = L.heatLayer(
-      points.map((p) => [p.latitude, p.longitude, 0.5]),
-      { radius: 25, blur: 15, maxZoom: 24 }
-    ).addTo(map);
+    // Scale intensity by duplicate points
+    const pointCounts = {};
+    points.forEach((p) => {
+      const key = `${p.latitude},${p.longitude}`;
+      pointCounts[key] = (pointCounts[key] || 0) + 1;
+    });
 
-    // Adjust bounds to show all of India if points are widespread
+    const heatPoints = points.map((p) => {
+      const key = `${p.latitude},${p.longitude}`;
+      return [p.latitude, p.longitude, Math.min(pointCounts[key], 5)]; // cap intensity at 5
+    });
+
+    const heat = L.heatLayer(heatPoints, {
+      radius: 25, // more visible spread
+      blur: 25,   // smooth edges
+      maxZoom: 12 // max zoom for intensity effect
+    }).addTo(map);
+
     if (points.length > 1) {
       const bounds = L.latLngBounds(points.map((p) => [p.latitude, p.longitude]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 6 });
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17 });
     } else {
-      map.setView([22.9734, 78.6569], 5); // Center of India
+      map.setView([22.9734, 78.6569], 17);
     }
 
     return () => map.removeLayer(heat);
@@ -34,6 +46,7 @@ const HeatmapLayer = ({ points }) => {
   return null;
 };
 
+// Main Heatmap Component
 const LeafletHeatmap = () => {
   const [points, setPoints] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +54,6 @@ const LeafletHeatmap = () => {
   const [viewMode, setViewMode] = useState("satellite");
   const [userLocation, setUserLocation] = useState(null);
   const navigate = useNavigate();
-  // const [showPerformance, setShowPerformance] = useState(false);
 
   const fetchPoints = async () => {
     try {
@@ -73,13 +85,13 @@ const LeafletHeatmap = () => {
     <>
       {/* Header */}
       <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-[1000]">
-         <Logo /> 
+        <Logo />
         <div className="flex items-center gap-4">
           <div className="text-right">
             <p className="text-sm text-gray-600">Logged in as</p>
             <p className="font-semibold text-gray-800">Admin</p>
           </div>
-           <button
+          <button
             onClick={() => navigate("/admin-dashboard")}
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-3 py-2 transition duration-200"
           >
@@ -90,7 +102,7 @@ const LeafletHeatmap = () => {
             className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
           >
             Logout
-          </button> 
+          </button>
         </div>
       </div>
 
@@ -98,8 +110,7 @@ const LeafletHeatmap = () => {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        // 🚨 FIX APPLIED HERE: Increased pt-24 to pt-32 to add extra space below the fixed h-24 navbar.
-        className="min-h-screen bg-[#FCF5EE] flex flex-col items-center pt-32 px-6 relative" 
+        className="min-h-screen bg-[#FCF5EE] flex flex-col items-center pt-32 px-6 relative"
       >
         {/* Page Header */}
         <div className="max-w-5xl w-full text-center mb-10">
@@ -117,13 +128,12 @@ const LeafletHeatmap = () => {
             zoom={5}
             minZoom={4}
             maxZoom={18}
-            style={{ height: "calc(100vh - 8rem)", width: "100%" }} // Adjusted to 8rem (pt-32) for consistency
+            style={{ height: "calc(100vh - 8rem)", width: "100%" }}
             className="rounded-3xl"
             zoomControl={false}
           >
             <TileLayer url={tileLayerUrl} />
             <HeatmapLayer points={points} />
-            
           </MapContainer>
 
           {/* Floating Controls */}
@@ -157,10 +167,10 @@ const LeafletHeatmap = () => {
             </p>
           ) : (
             <p className="text-xs text-gray-500 italic">
-  Last updated: {lastUpdated || "just now"}
-  <br /> {/* Optional: Use a line break for separation */}
-  © {new Date().getFullYear()} TattleTent. All rights reserved.
-</p>
+              Last updated: {lastUpdated || "just now"}
+              <br />
+              © {new Date().getFullYear()} TattleTent. All rights reserved.
+            </p>
           )}
         </div>
       </motion.div>
