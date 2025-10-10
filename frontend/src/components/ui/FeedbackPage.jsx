@@ -1,32 +1,73 @@
 import React, { useState } from "react";
 import { FaStar } from "react-icons/fa";
+import { useLocation } from "react-router-dom";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const demoComplaint = {
-  id: 123,
-  title: "Pothole on Main Street",
-  description:
-    "There is a large pothole near the intersection causing traffic issues.",
-  category: "Road Maintenance",
-  date: "2025-10-10T10:30:00Z",
-  photo: "https://via.placeholder.com/400x200.png?text=Complaint+Photo",
-};
+// const demoComplaint = {
+//   id: 123,
+//   title: "Pothole on Main Street",
+//   description:
+//     "There is a large pothole near the intersection causing traffic issues.",
+//   category: "Road Maintenance",
+//   date: "2025-10-10T10:30:00Z",
+//   photo: "https://via.placeholder.com/400x200.png?text=Complaint+Photo",
+// };
 
 const FeedbackPage = () => {
+  const token = localStorage.getItem("token");
+  const navigate = useNavigate();
+
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [review, setReview] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Demo: Log feedback to console
-    console.log({ complaintId: demoComplaint.id, rating, review });
-    setSubmitted(true);
+  const location = useLocation();
+  const { complaint } = location.state || {}; 
+  console.log("Complaint object:", complaint);
 
-    // Redirect after 2 seconds
-    setTimeout(() => {
-      window.history.back(); // Go back to wherever the user clicked from
-    }, 2000);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    // console.log({ complaintId: demoComplaint.id, rating, review });
+
+    try {
+
+      const payload = { 
+        complaint_id: complaint.id,
+        rating,
+        comment: review,
+      };
+
+      const response = await axios.post(
+        "http://localhost:5000/api/feedback",  // 👈 your backend route
+        payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 201) {
+        alert("Feedback submitted successfully!");
+        e.target.reset();
+      }
+
+      setSubmitted(true);
+
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        // window.history.back(); // Go back to wherever the user clicked from
+        navigate("/citizen-dashboard", { replace: true });
+      }, 2000);
+
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert(error.response?.data?.message || "Failed to submit feedback.");
+    }
+
   };
 
   return (
@@ -49,18 +90,18 @@ const FeedbackPage = () => {
 
       {/* Complaint Card */}
       <div className="w-full max-w-4xl bg-white shadow-md rounded-2xl p-6 mb-8">
-        <h2 className="text-xl font-semibold text-[#A0522D] mb-2">{demoComplaint.title}</h2>
+        <h2 className="text-xl font-semibold text-[#A0522D] mb-2">{complaint.title}</h2>
         <p className="text-gray-500 text-sm mb-1">
-          <span className="font-medium">Category:</span> {demoComplaint.category}
+          <span className="font-medium">Category:</span> {complaint.category}
         </p>
         <p className="text-gray-500 text-sm mb-1">
           <span className="font-medium">Date:</span>{" "}
-          {new Date(demoComplaint.date).toLocaleDateString()}
+          {new Date(complaint.update).toLocaleDateString()}
         </p>
-        <p className="text-gray-700 mb-3">{demoComplaint.description}</p>
-        {demoComplaint.photo && (
+        <p className="text-gray-700 mb-3">{complaint.description}</p>
+        {complaint.photo && (
           <img
-            src={demoComplaint.photo}
+            src={complaint.photo}
             alt="Complaint"
             className="w-full max-h-64 object-cover rounded-lg mb-3"
           />
@@ -108,6 +149,7 @@ const FeedbackPage = () => {
               id="review"
               required
               rows={5}
+              name="comment"
               value={review}
               onChange={(e) => setReview(e.target.value)}
               placeholder="Write your feedback here..."

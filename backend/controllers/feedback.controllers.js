@@ -11,7 +11,8 @@ import {
 const createFeedback = asynchandler(async (req, res) => {
   const { complaint_id, rating, comment } = req.body;
 
-  if (!complaint_id || !rating) {
+  console.log(req.body);
+  if (!complaint_id) {
     return res
       .status(400)
       .json(new ApiResponse(400, "Complaint ID and rating are required"));

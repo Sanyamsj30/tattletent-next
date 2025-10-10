@@ -288,7 +288,7 @@ useEffect(() => {
       </thead>
       <tbody className="divide-y divide-blue-200 bg-white">
         {complaints.length > 0 ? (
-          complaints.map((c) => (
+          complaints.filter(c => c.status === "New" || c.status === "IN_PROGRESS").map(c => (
             <tr key={c.id} className="hover:bg-blue-50 transition">
               <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
               <td className="p-4">
@@ -367,7 +367,7 @@ useEffect(() => {
                    <td>
                   <button
                     className="p-4 px-3 py-1 rounded-full bg-green-600 text-white text-sm hover:bg-green-700 transition"
-                    onClick={() => navigate("/feedback-page")}
+                    onClick={() => navigate("/feedback-page", { state: { complaint: c } })}
                   >
                     Give Feedback
                   </button>
