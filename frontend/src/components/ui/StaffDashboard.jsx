@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Logo from "./Logo.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -224,11 +224,21 @@ const StaffDashboard = () => {
     }
   };
 
-  const performanceData = [
-    { name: "Resolved", count: counts.resolved || 0 },
-    { name: "In Progress", count: counts.in_progress || 0 },
-    { name: "Pending", count: counts.pending || 0 },
-  ];
+  const performanceData = React.useMemo(() => {
+    const resolvedCount = complaints.filter(
+      (c) => c.status === "Resolved" && c.staff_id === user.user_id
+    ).length;
+
+    const inProgressCount = complaints.filter(
+      (c) => c.status === "IN_PROGRESS" && c.staff_id === user.user_id
+    ).length;
+
+    return [
+      { name: "Resolved", count: resolvedCount },
+      { name: "In Progress", count: inProgressCount },
+    ];
+  }, [complaints, user.user_id]);
+
 
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans flex flex-col justify-between">

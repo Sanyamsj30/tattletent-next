@@ -146,7 +146,8 @@ const getComplaints = async (req, res) => {
       page: req.query.page,
       limit: req.query.limit,
       sortBy: req.query.sortBy,
-      order: req.query.order
+      order: req.query.order,
+      staff_id: req.query.staff_id
     };
 
     const complaints = await searchComplaints(filters);

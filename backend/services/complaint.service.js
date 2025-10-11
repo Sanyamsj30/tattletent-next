@@ -220,7 +220,8 @@ export const searchComplaints = async (filters) => {
     page,
     limit,
     sortBy,
-    order
+    order,
+    staff_id
   } = filters;
 
   // Ensure page & limit are valid integers
@@ -243,6 +244,12 @@ export const searchComplaints = async (filters) => {
   if (user_id) {
     query += ` AND user_id = $${idx}`;
     params.push(user_id);
+    idx++;
+  }
+
+  if (staff_id) {
+    query += ` AND staff_id = $${idx}`;
+    params.push(staff_id);
     idx++;
   }
 

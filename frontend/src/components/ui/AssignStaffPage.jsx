@@ -12,6 +12,11 @@ const AssignStaffPage = () => {
   const { complaint } = location.state || {};
   const [staffList, setstaffList] = useState([]);
 
+  const [priorityModalOpen, setPriorityModalOpen] = useState(false);
+  const [selectedPriority, setSelectedPriority] = useState("Medium");
+  const [staffToAssign, setStaffToAssign] = useState(null);
+
+
 
   const handleAssign = (staffId) => {
     axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
@@ -58,6 +63,41 @@ const AssignStaffPage = () => {
     navigate("/admin-dashboard"); // fallback
   }
 
+  const fetchStaffPerformance = async (staff) => {
+  try {
+    // ✅ Axios automatically parses JSON, so just send staff_id as query param
+    const response = await axios.get(`http://localhost:5000/api/complaints/search?staff_id=${staff.id}`);
+
+    const data = response.data;
+
+    if (!Array.isArray(data)) {
+      console.error("Unexpected data format:", data);
+      return;
+    }
+
+    // ✅ Count complaints by status
+    const resolvedCount = data.filter((c) => c.status === "Resolved").length;
+    const inProgressCount = data.filter((c) => c.status === "IN_PROGRESS").length;
+    const pendingCount = data.filter((c) => c.status === "Pending").length;
+
+    // ✅ Update selected staff to show modal
+    setSelectedStaff({
+      ...staff,
+      performance: {
+        Resolved: resolvedCount,
+        "In Progress": inProgressCount,
+        Pending: pendingCount,
+      },
+    });
+    console.log(resolvedCount);
+    console.log(inProgressCount);
+  } catch (err) {
+    console.error("Error fetching performance:", err);
+  }
+};
+
+
+
  {/*} const handleAssign = (staffName) => {
     navigate("/admin-dashboard", { state: { assigned: { complaintId: complaint.id, staffName } } });
   };*/}
@@ -87,14 +127,18 @@ const AssignStaffPage = () => {
               </div>
               <div className="flex gap-2 mt-4">
                 <button
-                  className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition flex-1"
-                  onClick={() => handleAssign(s.id)}
-                >
-                  Assign
-                </button>
+  className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition flex-1"
+  onClick={() => {
+    setStaffToAssign(s);
+    setPriorityModalOpen(true);
+  }}
+>
+  Assign
+</button>
+
                 <button
                   className="px-3 py-1.5 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600 transition flex-1"
-                  onClick={() => setSelectedStaff(s)}
+                  onClick={() => fetchStaffPerformance(s)}
                 >
                   Performance
                 </button>
@@ -112,29 +156,82 @@ const AssignStaffPage = () => {
 
       {/* Performance Modal */}
       {selectedStaff && (
-        <Modal title={`${selectedStaff.name} - Performance`} onClose={() => setSelectedStaff(null)}>
+        <Modal
+          title={`${selectedStaff.name} - Performance`}
+          onClose={() => setSelectedStaff(null)}
+        >
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={[{ name: selectedStaff.name, ...selectedStaff.performance }]}
+                data={[
+                  { status: "Resolved", count: selectedStaff.performance.Resolved },
+                  { status: "In Progress", count: selectedStaff.performance["In Progress"] },
+                  { status: "Pending", count: selectedStaff.performance.Pending },
+                ]}
                 layout="vertical"
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                margin={{ top: 20, right: 30, left: 40, bottom: 20 }}
               >
                 <XAxis type="number" />
-                <YAxis type="category" dataKey="name" />
+                <YAxis dataKey="status" type="category" />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="Resolved" stackId="a" fill="#22c55e" />
-                <Bar dataKey="In Progress" stackId="a" fill="#facc15" />
-                <Bar dataKey="Pending" stackId="a" fill="#f87171" />
+                <Bar dataKey="count" fill="#f97316" barSize={25} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Modal>
       )}
+
+
+      {priorityModalOpen && staffToAssign && (
+  <Modal
+    title={`Assign Complaint #${complaint?.id} to ${staffToAssign.name}`}
+    onClose={() => setPriorityModalOpen(false)}
+  >
+    <div className="space-y-4">
+      <label className="block font-semibold">Select Priority:</label>
+      <select
+        className="w-full p-3 border rounded-xl"
+        value={selectedPriority}
+        onChange={(e) => setSelectedPriority(e.target.value)}
+      >
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+
+      <div className="flex justify-end gap-3 mt-4">
+        <button
+          className="px-6 py-3 bg-gray-200 rounded-xl"
+          onClick={() => setPriorityModalOpen(false)}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-6 py-3 bg-orange-600 text-white rounded-xl"
+          onClick={() => {
+            axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
+              status: "In Progress",
+              staffId: staffToAssign.id,
+              priority: selectedPriority
+            }).then(() => {
+              setPriorityModalOpen(false);
+              navigate("/admin-dashboard");
+            }).catch(err => console.error(err));
+          }}
+        >
+          Assign
+        </button>
+      </div>
+    </div>
+  </Modal>
+)}
+
     </div>
   );
 };
+
+
 
 // Modal component
 const Modal = ({ title, children, onClose }) => (
@@ -147,6 +244,8 @@ const Modal = ({ title, children, onClose }) => (
       </div>
     </div>
   </div>
+
+  
 );
 
 export default AssignStaffPage;
