@@ -4,6 +4,7 @@ import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminInviteStaff() {
+  const token = localStorage.getItem("token");
   const [staffName, setStaffName] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,9 +20,12 @@ export default function AdminInviteStaff() {
     setSuccess(false);
 
     try {
-      const res = await fetch("http://localhost:5000/api/admin/invite-staff", {
+      const res = await fetch("http://localhost:5000/api/auth/admin/create-staff", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+         },
         body: JSON.stringify({ name: staffName, email }),
       });
 

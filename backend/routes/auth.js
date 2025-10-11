@@ -108,10 +108,45 @@ router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
 
     // 1️⃣  Check if user already exists
     const existing = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ message: 'User with this email already exists.' });
-    }
 
+    if (existing.rows.length > 0) {
+      const existingUser = existing.rows[0];
+
+      if (existingUser.role === "Citizen") {
+        // Upgrade citizen to staff
+        const updated = await pool.query(
+          `UPDATE users
+           SET role = 'Staff', is_verified = TRUE, must_change_password = TRUE
+           WHERE user_id = $1
+           RETURNING user_id, name, email, role, must_change_password`,
+          [existingUser.user_id]
+        );
+
+        const staff = updated.rows[0];
+
+        await sendEmail({
+          email: staff.email,
+          subject: 'Your Staff Account for TattleTent',
+          html: `
+            <h2>Welcome to TattleTent</h2>
+            <p>Dear ${staff.name},</p>
+            <p>Your role has been upgraded to Staff. Please log in using your existing account credentials.</p>
+            <p><b>Login here:</b> https://your-frontend-url.com/login</p>
+          `,
+        });
+
+        return res.status(200).json({
+          message: 'Existing citizen account upgraded to Staff and notified by email.',
+          staff,
+        });
+      } else {
+        // Already Admin/Ringmaster/Groundmaster
+        return res.status(409).json({
+          message: `User is already ${existingUser.role}. Cannot upgrade.`,
+        });
+      }
+    }
+    
     // 2️⃣  Create temporary password
     const tempPassword = 'Temp@1234';
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
