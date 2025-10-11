@@ -182,7 +182,6 @@ const AssignStaffPage = () => {
         </Modal>
       )}
 
-
       {priorityModalOpen && staffToAssign && (
   <Modal
     title={`Assign Complaint #${complaint?.id} to ${staffToAssign.name}`}

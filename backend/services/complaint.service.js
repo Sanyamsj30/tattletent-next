@@ -31,7 +31,7 @@ export const saveComplaintToDB = async (newComplaint) => {
     const complaintResult = await pool.query(
       `INSERT INTO complaints 
         (title, description, status, photo, category, location, dept_id, priority, user_id, longitude, latitude, geolocation,escalation_count,max_escalations)
-       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low', $7, $8, $9, ST_SetSRID(ST_MakePoint($10::double precision, $11::double precision), 4326),0,$13)
+       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low', $7, $8, $9, ST_SetSRID(ST_MakePoint($10::double precision, $11::double precision), 4326),0,$12)
        RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at, escalation_count, max_escalations`,
       [
         newComplaint.title,
@@ -300,21 +300,35 @@ export const searchComplaints = async (filters) => {
  * Calculate SLA deadline based on dept_id and priority.
  * Looks up SLA days from the sla_rules table.
  */
+/**
+ * Fetches the SLA interval for a given department and priority.
+ * It's designed to work with a PostgreSQL INTERVAL data type.
+ * @param {string} dept_id - The ID of the department.
+ * @param {string} priority - The priority level.
+ * @returns {Promise<string|null>} The interval string (e.g., '72 hours') or a fallback if not found.
+ */
 export const calculateSlaDeadline = async (dept_id, priority) => {
-  const slaResult = await pool.query(
-    `SELECT time_limit FROM sla_rules WHERE dept_id = $1 AND priority = $2 LIMIT 1;`,
-    [dept_id, priority]
-  );
+  try {
+    const slaResult = await pool.query(
+      `SELECT time_limit FROM sla_rules WHERE dept_id = $1 AND priority = $2 LIMIT 1;`,
+      [dept_id, priority]
+    );
 
-  if (slaResult.rowCount === 0) {
-    console.warn(`⚠️ No SLA rule found for dept_id ${dept_id} and priority ${priority}`);
-    return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default 7 days fallback
+    // If no rule is found, return a default fallback interval.
+    if (slaResult.rowCount === 0) {
+      console.warn(`⚠️ No SLA rule found for dept_id ${dept_id}, priority ${priority}. Using default 24 hours.`);
+      return '24 hours';
+    }
+    
+    // Directly return the interval from the database (e.g., { hours: 72 }).
+    // The 'pg' driver often returns intervals as objects. We'll let PostgreSQL handle it.
+    return slaResult.rows[0].time_limit;
+
+  } catch (error) {
+    console.error("❌ Error fetching SLA interval:", error);
+    // On any error, return a safe fallback to prevent crashes.
+    return '24 hours';
   }
-
-  const slaDays = slaResult.rows[0].time_limit;
-  const deadline = new Date();
-  deadline.setDate(deadline.getDate() + slaDays);
-  return deadline;
 };
 
 /**
@@ -326,7 +340,7 @@ export const escalateComplaintsByCategory = async () => {
   try {
     // 1️⃣ Find overdue complaints (SLA passed, still unresolved)
     const overdue = await pool.query(`
-      SELECT complaint_id, title, priority, status, escalation_count, max_escalations, temp_points, staff_id
+      SELECT complaint_id, title, priority, status, escalation_count, max_escalations,staff_id,temp_points,dept_id
       FROM complaints
       WHERE status IN ('NEW', 'IN_PROGRESS')
       AND sla_deadline < NOW();
@@ -349,33 +363,35 @@ export const escalateComplaintsByCategory = async () => {
             UPDATE complaints
             SET priority='Medium',
               updated_at=NOW(),
-              sla_deadline=$1,
+              sla_deadline = NOW() + $1::interval,
               temp_points=$2
             WHERE complaint_id=$3;
-          `,[newSlaDeadline,(c.temp_points-1),c.complaint_id]);
+          `,[newSlaDeadline,c.temp_points-1,c.complaint_id]);
         }
         else{
           await pool.query(`
             UPDATE complaints
             SET priority='High',
               updated_at=NOW(),
-              sla_deadline=$1,
+              sla_deadline=NOW() + $1::interval,
               temp_points=$2
             WHERE complaint_id=$3;
-          `,[newSlaDeadline,(c.temp_points-1),c.complaint_id]);
+          `,[newSlaDeadline,c.temp_points-1,c.complaint_id]);
         }
+
+      escalatedComplaints.push({ complaint_id: c.complaint_id });
       }
       else{
         const points = await pool.query(`
           SELECT points
           FROM users
-          WHERE user_id=$1;
-        `, [c.staff_id]);
+          WHERE user_id=$1; 
+          `,[c.staff_id]);
 
         await pool.query(`
-          UPDATE users
-          SET points=$1,
-          WHERE user_id=$2;
+            UPDATE users
+            SET points=$1
+            WHERE user_id=$2;    
         `,[points,c.staff_id]);
 
         await pool.query(`
@@ -384,10 +400,12 @@ export const escalateComplaintsByCategory = async () => {
               updated_at=NOW(),
               staff_id=NULL,
               assigned_to=NULL,
-              sla_deadline=$1,
+              sla_deadline=NOW() + $1::interval,
               temp_points=$2
-            WHERE complaint_id=$3;
+              WHERE complaint_id=$3;
           `,[newSlaDeadline,3,c.complaint_id]);
+
+        escalatedComplaints.push({ complaint_id: c.complaint_id});
 
         notifyAdminForManualReassignment(c.complaint_id);
       }
