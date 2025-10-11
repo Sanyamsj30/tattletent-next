@@ -6,7 +6,7 @@ import Logo from "./components/ui/Logo";
 import { useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import jwtDecode from "jwt-decode"; // ✅ correct import
-import {FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
+import {FaBars,FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import axios from "axios";
 
 const portals = [
@@ -56,6 +56,8 @@ const [loginMessage, setLoginMessage] = useState(""); // for login modal message
 
 const navigate = useNavigate();
 const [user, setUser] = useState(null);
+
+  const [menuOpen, setMenuOpen] = useState(false);
 
 useEffect(() => {
   // Restore session
@@ -287,6 +289,8 @@ const handleLoginSubmit = async (e) => {
     fetchCounts();
   }, []);
 
+
+
   return (
     <div className="bg-[#FCF5EE] text-gray-900">
       {/* Floating background shapes */}
@@ -304,57 +308,78 @@ const handleLoginSubmit = async (e) => {
       </div>
 
       {/* Navbar */}
-      <motion.nav
-  initial={{ y: -60, opacity: 0 }}
-  animate={{ y: 0, opacity: 1 }}
-  transition={{ duration: 0.7 }}
-  className="flex flex-col sm:flex-row justify-between items-center py-4 sm:py-6 px-4 sm:px-8 bg-[#fffaf6]/80 backdrop-blur-md sticky top-0 z-50 shadow-sm"
->
-  <Logo />
+     <motion.nav
+      initial={{ y: -60, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.7 }}
+      className="flex flex-col sm:flex-row justify-between items-center py-4 sm:py-6 px-4 sm:px-8 bg-[#fffaf6]/80 backdrop-blur-md sticky top-0 z-50 shadow-sm"
+    >
+      
+      <div className="w-full flex items-center justify-between">
+        <Logo />
 
-  <div className="flex flex-col sm:flex-row gap-2 sm:gap-5 mt-4 sm:mt-0 w-full sm:w-auto items-center">
-    {user ? (
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-        <AppButton
-          onClick={() => {
-            if (user.role === "Citizen") navigate("/citizen-dashboard");
-            else if(user.role === "Staff") navigate("/staff-dashboard");
-            else navigate("/admin-dashboard");
-          }}
-          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+        
+        <button
+          className="sm:hidden p-2 rounded-md bg-gray-100 hover:bg-gray-200"
+          onClick={() => setMenuOpen(!menuOpen)}
         >
-          Dashboard
-        </AppButton>
-        <AppButton
-          onClick={() => {
-            sessionStorage.removeItem("user");
-            sessionStorage.removeItem("token");
-            setUser(null);
-            navigate("/");
-          }}
-          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
-        >
-          Logout
-        </AppButton>
+          <FaBars size={22} className="text-gray-800" />
+        </button>
       </div>
-    ) : (
-      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-        <AppButton
-          onClick={() => setLoginOpen(true)}
-          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
-        >
-          Login
-        </AppButton>
-        <AppButton
-          onClick={() => setSignupOpen(true)}
-          className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
-        >
-          Sign Up
-        </AppButton>
+
+      
+      <div
+        className={`
+          ${menuOpen ? "flex" : "hidden"}
+          sm:flex flex-col sm:flex-row gap-2 sm:gap-5 mt-4 sm:mt-0 items-center
+        `}
+      >
+        {user ? (
+          <>
+            <AppButton
+              onClick={() => {
+                if (user.role === "Citizen") navigate("/citizen-dashboard");
+                else if (user.role === "Staff") navigate("/staff-dashboard");
+                else navigate("/admin-dashboard");
+              }}
+              className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+            >
+              Dashboard
+            </AppButton>
+
+            <AppButton
+              onClick={() => {
+                sessionStorage.removeItem("user");
+                sessionStorage.removeItem("token");
+                setUser(null);
+                navigate("/");
+              }}
+              className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+            >
+              Logout
+            </AppButton>
+          </>
+        ) : (
+          <>
+            <AppButton
+              onClick={() => setLoginOpen(true)}
+              className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+            >
+              Login
+            </AppButton>
+
+            <AppButton
+              onClick={() => setSignupOpen(true)}
+              className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+            >
+              Sign Up
+            </AppButton>
+          </>
+        )}
       </div>
-    )}
-  </div>
-</motion.nav>
+    </motion.nav>
+    
+    
 
 
       {/* Hero Section */}
@@ -391,14 +416,14 @@ const handleLoginSubmit = async (e) => {
             Learn More
           </AppButton>
 
-          <AppButton
+           {/*<AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
             onClick={() => navigate("/admin-dashboard")}
           >
             Admin
           </AppButton>
 
-          {/*<AppButton
+         <AppButton
             className="border border-[#8B4513] !bg-[#8B4513] hover:!bg-[#A0522D] hover:text-white font-medium py-3 rounded-full transition-all duration-300"
             onClick={() => navigate("/invite-staff")}
           >
@@ -413,11 +438,11 @@ const handleLoginSubmit = async (e) => {
 
       <hr className="border-gray-200" /> 
 
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      {/*<div className="max-w-6xl mx-auto px-6 py-12">
         <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
          Complaints Insights
         </h2>
-        {/* Row 1: Total Complaints & Average Resolution Count */}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {[
             {
@@ -444,7 +469,7 @@ const handleLoginSubmit = async (e) => {
           ))}
         </div>
 
-        {/* Row 2: Resolved, In Progress, Pending */}
+        
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {[
             { title: "Resolved ✅", count: counts.resolved },
@@ -462,7 +487,7 @@ const handleLoginSubmit = async (e) => {
             </div>
           ))}
         </div>
-      </div>
+      </div>*/}
 
 
 

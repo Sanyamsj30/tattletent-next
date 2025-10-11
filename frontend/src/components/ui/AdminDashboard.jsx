@@ -9,6 +9,8 @@ const AdminDashboard = () => {
   const user = JSON.parse(sessionStorage.getItem("user"));
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   // Complaints state
   const [complaints, setComplaints] = useState([]);
   const [assignedComplaints, setAssignedComplaints] = useState([]);
@@ -176,7 +178,7 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans flex flex-col justify-between">
       {/* Navbar */}
-      <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
+      {/* <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
         <Logo />
         <div className="flex items-center gap-4">
           <div className="text-right">
@@ -209,7 +211,74 @@ const AdminDashboard = () => {
             Logout
           </button>
         </div>
-      </div>
+      </div> */}
+
+      <div className="fixed top-0 left-0 w-full h-24 flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 bg-white shadow-md z-50">
+  <div className="w-full sm:w-auto flex items-center justify-between">
+    <Logo />
+
+    {/* Hamburger menu for small screens */}
+    <div className="sm:hidden">
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="p-2 rounded-md focus:outline-none bg-gray-100 hover:bg-gray-200"
+      >
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M4 6h16M4 12h16M4 18h16"
+          />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  {/* Menu buttons */}
+  <div
+    className={`w-full sm:w-auto flex flex-col sm:flex-row items-center gap-4 mt-4 sm:mt-0 ${
+      menuOpen ? "block" : "hidden sm:flex"
+    }`}
+  >
+    <div className="text-center sm:text-right">
+      <p className="text-sm text-gray-600">Logged in as</p>
+      <p className="font-semibold text-gray-800">Admin</p>
+    </div>
+
+    <button
+      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
+      onClick={() => navigate("/heatmap")}
+    >
+      Heatmap
+    </button>
+    <button
+      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
+      onClick={() => navigate("/all-complaints")}
+    >
+      All Complaints
+    </button>
+    <button
+      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
+      onClick={() => navigate("/invite-staff")}
+    >
+      Invite Staff
+    </button>
+    <button
+      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2"
+      onClick={handleLogout}
+    >
+      Logout
+    </button>
+  </div>
+</div>
+
 
       <main className="container mx-auto px-6 py-12 max-w-7xl pt-32 space-y-12 flex-grow">
         {/* Welcome Section */}

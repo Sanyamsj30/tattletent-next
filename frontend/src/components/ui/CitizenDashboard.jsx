@@ -13,6 +13,8 @@ const CitizenDashboard = () => {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 const [isViewOpen, setIsViewOpen] = useState(false);
 
+const [menuOpen, setMenuOpen] = useState(false);
+
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
   const demoComplaints = [
@@ -181,30 +183,72 @@ useEffect(() => {
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans">
       {/* Navbar */}
-<div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
-  <div className="flex items-center">
-    <Logo />
-  </div>
-  <div className="flex items-center gap-2">
-    <div className="text-right">
+<nav className="fixed top-0 left-0 w-full bg-white shadow-md z-50">
+      {/* --- Top Row --- */}
+      <div className="flex items-center justify-between h-24 px-6 sm:px-8">
+        <Logo />
+
+        {/* Hamburger (visible only on small screens) */}
+        <button
+          className="sm:hidden p-2 rounded-md bg-gray-100 hover:bg-gray-200"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          <FaBars size={22} className="text-gray-800" />
+        </button>
+
+        {/* Desktop Menu (visible only on large screens) */}
+        <div className="hidden sm:flex items-center gap-4">
+          <div className="text-right">
             <p className="text-sm text-gray-600">Logged in as</p>
             <p className="font-semibold text-gray-800">Citizen</p>
           </div>
-    <button
-      onClick={() => navigate("/all-complaints")} // 👈 this now works properly
-      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
-    >
-      <span className="text-lg">All Complaints</span>
-    </button>
-    <button
-      onClick={ handleLogout} // 👈 this now works properly
-      className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
-    >
-      <span className="text-xl">Logout</span>
-    </button>
-  </div>
-</div>
 
+          <button
+            onClick={() => navigate("/all-complaints")}
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
+          >
+            <span className="text-lg">All Complaints</span>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
+          >
+            <span className="text-xl">Logout</span>
+          </button>
+        </div>
+      </div>
+
+      {/* --- Mobile Dropdown Menu --- */}
+      {menuOpen && (
+        <div className="flex flex-col items-center gap-3 pb-4 sm:hidden bg-white shadow-md border-t">
+          <div className="text-center">
+            <p className="text-sm text-gray-600">Logged in as</p>
+            <p className="font-semibold text-gray-800">Citizen</p>
+          </div>
+
+          <button
+            onClick={() => {
+              navigate("/all-complaints");
+              setMenuOpen(false);
+            }}
+            className="w-11/12 rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
+          >
+            All Complaints
+          </button>
+
+          <button
+            onClick={() => {
+              handleLogout();
+              setMenuOpen(false);
+            }}
+            className="w-11/12 rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
+          >
+            Logout
+          </button>
+        </div>
+      )}
+    </nav>
 
       {/* Main */}
     <main className="container mx-auto px-4 py-12 space-y-12 max-w-6xl pt-32">

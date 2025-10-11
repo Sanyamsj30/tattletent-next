@@ -22,6 +22,8 @@ const StaffDashboard = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
   const fetchCounts = async () => {
     try {
       const res = await axios.get("http://localhost:5000/api/complaints/counts");
@@ -243,28 +245,68 @@ const StaffDashboard = () => {
   return (
     <div className="min-h-screen bg-[#FCF5EE] font-sans flex flex-col justify-between">
       {/* Navbar */}
-      <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
+      <nav className="fixed top-0 left-0 w-full bg-white shadow-md z-50">
+      {/* Top row: logo + hamburger */}
+      <div className="flex items-center justify-between h-24 px-6 sm:px-8">
         <Logo />
-        <div className="flex items-center gap-4">
+
+        {/* Hamburger (mobile only) */}
+        <button
+          className="sm:hidden p-2 rounded-md bg-gray-100 hover:bg-gray-200"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          <FaBars size={22} className="text-gray-800" />
+        </button>
+
+        {/* Right side (desktop only) */}
+        <div className="hidden sm:flex items-center gap-4">
           <div className="text-right">
             <p className="text-sm text-gray-600">Logged in as</p>
             <p className="font-semibold text-gray-800">Staff Member</p>
           </div>
           <button
             onClick={() => setShowPerformance(true)}
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-3 py-2 transition duration-200"
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
           >
             Performance
           </button>
           <button
             onClick={handleLogout}
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
+            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
           >
             Logout
           </button>
         </div>
       </div>
 
+      {/* Dropdown menu (mobile only) */}
+      {menuOpen && (
+        <div className="flex flex-col items-center gap-3 pb-4 sm:hidden bg-white shadow-md border-t">
+          <div className="text-center">
+            <p className="text-sm text-gray-600">Logged in as</p>
+            <p className="font-semibold text-gray-800">Staff Member</p>
+          </div>
+          <button
+            onClick={() => {
+              setShowPerformance(true);
+              setMenuOpen(false);
+            }}
+            className="w-11/12 rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
+          >
+            Performance
+          </button>
+          <button
+            onClick={() => {
+              handleLogout();
+              setMenuOpen(false);
+            }}
+            className="w-11/12 rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
+          >
+            Logout
+          </button>
+        </div>
+      )}
+    </nav>
       {/* Welcome */}
       <div className="flex flex-col items-center justify-center text-center pt-36 px-6 mb-12 space-y-6">
         <h1 className="text-5xl sm:text-6xl font-extrabold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent">
