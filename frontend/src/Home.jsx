@@ -3,11 +3,16 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import AppButton from "./components/ui/app-button";
 import Logo from "./components/ui/Logo";
-import { useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import { useNavigate, useLocation } from "react-router-dom";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import jwtDecode from "jwt-decode"; // ✅ correct import
 import {FaBars,FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import axios from "axios";
+
+{/* <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+  <App />
+</GoogleOAuthProvider> */}
+
 
 const portals = [
   ["Citizen Portal", "Easily lodge complaints and track updates.", "M12 4v16m8-8H4"],
@@ -232,16 +237,12 @@ const handleLoginSubmit = async (e) => {
 
 
 
-  const handleGoogleLoginSuccess = (credentialResponse) => {
-    try {
-      const decoded = jwtDecode(credentialResponse.credential);
-      const googleEmail = decoded.email;
-      setEmail(googleEmail);
-      navigate("/citizen-dashboard");
-    } catch (error) {
-      console.error("Google login decoding failed:", error);
-    }
-  };
+const handleGoogleLogin = () => {
+  // Redirect user to backend Google OAuth endpoint
+  window.location.href = "http://localhost:5000/api/auth/google";
+};
+
+
 
   const [avgResolutionTime, setAvgResolutionTime] = useState(0);
 
@@ -795,17 +796,13 @@ const handleLoginSubmit = async (e) => {
           </div>
 
           {/* Google Login */}
-          <GoogleLogin
-            onSuccess={(credentialResponse) => {
-              const decoded = jwt_decode(credentialResponse.credential);
-              console.log("Google User:", decoded);
-              setEmail(decoded.email); // set the email from Google
-              navigate("/citizen-dashboard"); // redirect after login
-            }}
-            onError={() => {
-              console.log("Google Login Failed");
-            }}
-          />
+          <AppButton
+            onClick={handleGoogleLogin}
+            className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg mb-4"
+          >
+            Login with Google
+          </AppButton>
+
 
           <p className="text-sm text-center mt-4">
             <button
@@ -1100,9 +1097,12 @@ const handleLoginSubmit = async (e) => {
             <div className="h-px bg-gray-300 flex-grow"></div>
           </div>
 
-            <div className="flex justify-center mt-4">
-              <GoogleLogin onSuccess={handleGoogleLoginSuccess} onError={() => console.log("Google signup failed")} />
-            </div>
+            <AppButton
+              onClick={handleGoogleLogin}
+              className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg mb-4"
+            >
+              Sign Up with Google
+            </AppButton>
 
             <p className="text-sm text-center mt-4 text-gray-600">
               Already have an account?{" "}
