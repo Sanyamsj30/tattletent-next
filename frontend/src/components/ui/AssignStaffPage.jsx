@@ -13,7 +13,7 @@ const AssignStaffPage = () => {
   const [staffList, setstaffList] = useState([]);
 
   const [priorityModalOpen, setPriorityModalOpen] = useState(false);
-  const [selectedPriority, setSelectedPriority] = useState("Medium");
+  const [selectedPriority, setSelectedPriority] = useState("Low");
   const [staffToAssign, setStaffToAssign] = useState(null);
 
 
@@ -22,6 +22,7 @@ const AssignStaffPage = () => {
     axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
       status: "In Progress",
       staffId: staffId,
+      priority: selectedPriority,
     }).then(() => {
       navigate("/admin-dashboard"); // go back after saving
     }).catch(err => console.error(err));

@@ -37,6 +37,7 @@ const AllComplaintsPage = () => {
         priority: c.priority,
         description: c.description,
         assignedTo: c.assigned_to,
+        photo: c.photo,
         date: new Date(c.submitted_at).toLocaleDateString()
       })));
   
@@ -323,52 +324,48 @@ const AllComplaintsPage = () => {
     onClick={() => setIsViewOpen(false)}
   >
     <div
-      className={`bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative flex overflow-hidden`}
+      className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative overflow-y-auto p-6"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Left Side - Photo (conditionally) */}
+      {/* Close button */}
+      <button
+        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
+        onClick={() => setIsViewOpen(false)}
+      >
+        ✕
+      </button>
+
+      {/* Complaint Details */}
+      <h2 className="text-3xl font-bold text-orange-600 mb-4">
+        Complaint #{selectedComplaint.id}: {selectedComplaint.category}
+      </h2>
+
+      <div className="space-y-3">
+        <p><strong>Description:</strong> {selectedComplaint.description}</p>
+        <p><strong>Location:</strong> {selectedComplaint.location}</p>
+        <p><strong>Status:</strong> {selectedComplaint.status}</p>
+        <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
+        <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
+        <p><strong>Date:</strong> {selectedComplaint.date}</p>
+        {selectedComplaint.solution && (
+          <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
+        )}
+      </div>
+
+      {/* Image below text */}
       {selectedComplaint.photo && (
-        <div className="w-1/2 h-full bg-gray-50 flex items-center justify-center p-4 border-r">
+        <div className="mt-6 flex justify-center">
           <img
-            src={selectedComplaint.photo}
+            src={`http://localhost:5000${selectedComplaint.photo}`}
             alt={selectedComplaint.category}
-            className="rounded-xl object-cover h-full w-full"
+            className="max-w-full max-h-[400px] rounded-lg shadow-md object-contain"
           />
         </div>
       )}
-
-      {/* Right Side - Scrollable Details */}
-      <div
-        className={`h-full overflow-y-auto p-6 relative ${
-          selectedComplaint.photo ? "w-1/2" : "w-full"
-        }`}
-      >
-        <button
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
-          onClick={() => setIsViewOpen(false)}
-        >
-          ✕
-        </button>
-
-        <h2 className="text-3xl font-bold text-orange-600 mb-4">
-          Complaint #{selectedComplaint.id}: {selectedComplaint.category}
-        </h2>
-
-        <div className="space-y-3 pr-2">
-          <p><strong>Description:</strong> {selectedComplaint.description}</p>
-          <p><strong>Location:</strong> {selectedComplaint.location}</p>
-          <p><strong>Status:</strong> {selectedComplaint.status}</p>
-          <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
-          <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
-          <p><strong>Date:</strong> {selectedComplaint.date}</p>
-          {selectedComplaint.solution && (
-            <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
-          )}
-        </div>
-      </div>
     </div>
   </div>
 )}
+
 
 
     </div>
