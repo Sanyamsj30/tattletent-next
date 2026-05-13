@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Logo from "./Logo";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { FaBars } from "react-icons/fa";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();

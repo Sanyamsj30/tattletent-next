@@ -39,7 +39,12 @@ export const saveFeedbackToDB = async ({ complaint_id, rating, comment }) => {
 };
 
 export const getFeedbacksFromDB = async () => {
-  return feedbacks;
+  const result = await pool.query(
+    `SELECT f.feedback_id, f.rating, f.comment, f.user_id, u.name AS name
+     FROM feedbacks f
+     JOIN users u ON f.user_id = u.user_id`
+  );
+  return result.rows;
 };
 
 export const getFeedbacksForComplaintFromDB = async (complaint_id) => {

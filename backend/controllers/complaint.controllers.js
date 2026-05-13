@@ -36,13 +36,6 @@ const createComplaint = asynchandler(async (req, res) => {
     status: "New",
     latitude,
     longitude,
-    // statusHistory: [
-    //   {
-    //     status: "OPEN",
-    //     date: new Date().toISOString(),
-    //     note: "Complaint submitted",
-    //   },
-    // ],
   };
 
   // Save complaint 
@@ -62,14 +55,14 @@ const createComplaint = asynchandler(async (req, res) => {
 const updateComplaintStatus = asynchandler(async (req, res) => {
   const { id } = req.params;
   // Expects { "status": "new status value" } in req.body
-  const { status, staffId } = req.body; 
+  const { status, staffId, priority } = req.body; 
   const complaintId = parseInt(id, 10);
 
   if (!status) {
       return res.status(400).json(new ApiResponse(400, "Status is required for this update."));
   }
 
-  const updatedComplaint = await updateComplaintStatusInDB(complaintId, status, staffId);
+  const updatedComplaint = await updateComplaintStatusInDB(complaintId, status, staffId, priority);
 
   if (!updatedComplaint)
     return res
@@ -147,7 +140,7 @@ const getComplaints = async (req, res) => {
       limit: req.query.limit,
       sortBy: req.query.sortBy,
       order: req.query.order,
-      staff_id: req.query.staff_id
+      staff_id: req.query.staff_id,
     };
 
     const complaints = await searchComplaints(filters);

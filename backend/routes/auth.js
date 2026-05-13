@@ -300,14 +300,31 @@ router.put('/change-password', protect, async (req, res) => {
 
 
 // OAUTH
-router.get('/google', passport.authenticate('google', {
-    scope: ['profile', 'email']
-}));
+const FRONTEND_URL = "http://localhost:5173";
 
-router.get('/google/callback', passport.authenticate('google', { session: false }), (req, res) => {
-    const token = generateToken(req.user.user_id);
-    res.status(200).json({ token });
-});
+// Step 1: Redirect user to Google login
+router.get(
+  '/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// Step 2: Handle Google callback and redirect to frontend
+router.get(
+  '/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: `${FRONTEND_URL}/login` }),
+  (req, res) => {
+    try {
+      const token = generateToken(req.user.user_id);
+
+      // Use req.user.role, not user.role
+      res.redirect(`${FRONTEND_URL}/auth-success?token=${token}&role=${req.user.role}`);
+    } catch (err) {
+      console.error(err);
+      res.redirect(`${FRONTEND_URL}/login?error=oauth_failed`);
+    }
+  }
+);
+
 
 // Check if email exists
 router.get('/check-email', async (req, res) => {

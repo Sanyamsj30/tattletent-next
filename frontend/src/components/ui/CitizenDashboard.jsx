@@ -3,6 +3,7 @@ import React from "react";
 import Logo from "./Logo";
 import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
+import { FaBars } from "react-icons/fa";
 import axios from "axios";
 
 const CitizenDashboard = () => {
@@ -53,6 +54,7 @@ const [menuOpen, setMenuOpen] = useState(false);
       location: c.location,
       priority: c.priority,
       title: c.title,
+      photo: c.photo,
       assignedTo: c.assigned_to,
       subdate: new Date(c.submitted_at).toLocaleDateString(),
       update: new Date(c.updated_at).toLocaleDateString()
@@ -317,9 +319,9 @@ useEffect(() => {
     {/* Category Buttons Grid */}
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {[
-        { icon: "🚧", label: "infrastructure & roads" },
-        { icon: "💧", label: "Water Services" },
-        { icon: "🗑️", label: "Waste management" },
+        { icon: "🚧", label: "Pathway Damage" },
+        { icon: "💧", label: "Water Leak" },
+        { icon: "🗑️", label: "Garbage" },
         { icon: "⚡", label: "Electrical" },
       ].map((cat) => (
         <button
@@ -480,11 +482,10 @@ useEffect(() => {
       className="w-full p-3 border border-gray-300 rounded-xl focus:ring-4 focus:ring-orange-200 focus:border-orange-500 transition shadow-inner appearance-none bg-white"
     >
       <option value="">Select Category</option>
-      <option>infrastructure & roads</option>
-      <option>Water Services</option>
-      <option>Water Services</option>
       <option>Electrical</option>
-      <option>Other/Miscellaneous</option>
+      <option>Water Leak</option>
+      <option>Pathway Damage</option>
+      <option>Garbage</option>
     </select>
   </div>
 
@@ -572,51 +573,45 @@ useEffect(() => {
     onClick={() => setIsViewOpen(false)}
   >
     <div
-      className={`bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative flex overflow-hidden`}
+      className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative overflow-y-auto p-6"
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Left Side - Photo (conditionally) */}
+      <button
+        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
+        onClick={() => setIsViewOpen(false)}
+      >
+        ✕
+      </button>
+
+      <h2 className="text-3xl font-bold text-orange-600 mb-4">
+        Complaint #{selectedComplaint.id}: {selectedComplaint.category}
+      </h2>
+
+      <div className="space-y-3">
+        <p><strong>Title:</strong> {selectedComplaint.title}</p>
+        <p><strong>Description:</strong> {selectedComplaint.description}</p>
+        <p><strong>Location:</strong> {selectedComplaint.location}</p>
+        <p><strong>Status:</strong> {selectedComplaint.status}</p>
+        <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
+        <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo}</p>
+        <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>
+        <p><strong>Last Update:</strong> {selectedComplaint.update}</p>
+      </div>
+
+      {/* Image below text */}
       {selectedComplaint.photo && (
-        <div className="w-1/2 h-full bg-gray-50 flex items-center justify-center p-4 border-r">
+        <div className="mt-6 flex justify-center">
           <img
-            src={selectedComplaint.photo}
-            alt={selectedComplaint.category}
-            className="rounded-xl object-cover h-full w-full"
+            src={`http://localhost:5000${selectedComplaint.photo}`}
+            alt="Complaint"
+            className="max-w-full max-h-[400px] rounded-lg shadow-md"
           />
         </div>
       )}
-
-      {/* Right Side - Scrollable Details */}
-      <div
-        className={`h-full overflow-y-auto p-6 relative ${
-          selectedComplaint.photo ? "w-1/2" : "w-full"
-        }`}
-      >
-        <button
-          className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
-          onClick={() => setIsViewOpen(false)}
-        >
-          ✕
-        </button>
-
-        <h2 className="text-3xl font-bold text-orange-600 mb-4">
-          Complaint #{selectedComplaint.id}: {selectedComplaint.category}
-        </h2>
-
-        <div className="space-y-3 pr-2">
-          <p><strong>Title:</strong> {selectedComplaint.title}</p>
-          <p><strong>Description:</strong> {selectedComplaint.description}</p>
-          <p><strong>Location:</strong> {selectedComplaint.location}</p>
-          <p><strong>Status:</strong> {selectedComplaint.status}</p>
-          <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
-          <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo}</p>
-          <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>
-          <p><strong>Last Update</strong> {selectedComplaint.update}</p>
-        </div>
-      </div>
     </div>
   </div>
 )}
+
 <footer className="text-center py-4 bg-white shadow-inner text-gray-600 text-sm">
         © {new Date().getFullYear()} TattleTent. All rights reserved.
       </footer>

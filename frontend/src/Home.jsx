@@ -3,11 +3,16 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import AppButton from "./components/ui/app-button";
 import Logo from "./components/ui/Logo";
-import { useNavigate } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
+import { useNavigate, useLocation } from "react-router-dom";
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import jwtDecode from "jwt-decode"; // ✅ correct import
 import {FaBars,FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import axios from "axios";
+
+{/* <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+  <App />
+</GoogleOAuthProvider> */}
+
 
 const portals = [
   ["Citizen Portal", "Easily lodge complaints and track updates.", "M12 4v16m8-8H4"],
@@ -232,16 +237,12 @@ const handleLoginSubmit = async (e) => {
 
 
 
-  const handleGoogleLoginSuccess = (credentialResponse) => {
-    try {
-      const decoded = jwtDecode(credentialResponse.credential);
-      const googleEmail = decoded.email;
-      setEmail(googleEmail);
-      navigate("/citizen-dashboard");
-    } catch (error) {
-      console.error("Google login decoding failed:", error);
-    }
-  };
+const handleGoogleLogin = () => {
+  // Redirect user to backend Google OAuth endpoint
+  window.location.href = "http://localhost:5000/api/auth/google";
+};
+
+
 
   const [avgResolutionTime, setAvgResolutionTime] = useState(0);
 
@@ -289,6 +290,26 @@ const handleLoginSubmit = async (e) => {
     fetchCounts();
   }, []);
 
+  const [reviews, setReviews] = useState([]);
+
+  const fetchFeedback = async () => {
+    try {
+      const res = await axios.get('http://localhost:5000/api/feedback/');
+      // setReviews(res.data.message);
+      setReviews(res.data.message.map(c => ({
+        name: c.name,
+        rating: c.rating,
+        comment: c.comment
+      })));
+      console.log(reviews)
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchFeedback();
+  }, []);
 
 
   return (
@@ -370,10 +391,11 @@ const handleLoginSubmit = async (e) => {
 
             <AppButton
               onClick={() => setSignupOpen(true)}
-              className="bg-[#d55d1f] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#b54a16] transition w-full sm:w-auto"
+              className="bg-[#d55d1f] text-white px-6 py-4 rounded-lg font-semibold text-lg hover:bg-[#b54a16] transition min-w-[110px] w-full sm:w-auto"
             >
               Sign Up
             </AppButton>
+
           </>
         )}
       </div>
@@ -438,9 +460,9 @@ const handleLoginSubmit = async (e) => {
 
       <hr className="border-gray-200" /> 
 
-      {/*<div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">
-         Complaints Insights
+          📝 Complaints Insights
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -454,7 +476,7 @@ const handleLoginSubmit = async (e) => {
             },
             {
               title: "Avg Resolution ⏱️",
-              count: avgResolutionTime,
+              count: `${avgResolutionTime} Hrs`,
             }
           ].map((item) => (
             <div
@@ -487,7 +509,7 @@ const handleLoginSubmit = async (e) => {
             </div>
           ))}
         </div>
-      </div>*/}
+      </div>
 
 
 
@@ -579,17 +601,13 @@ const handleLoginSubmit = async (e) => {
   </div>
 
   <motion.div
-    className="flex gap-6 overflow-x-auto px-6 scrollbar-hide"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    transition={{ duration: 1 }}
-  >
-    {[
-      { name: "Alice", rating: 5, comment: "Very helpful platform! Fast response from authorities." },
-      { name: "Bob", rating: 4, comment: "Makes reporting issues super easy and transparent." },
-      { name: "Charlie", rating: 5, comment: "Love how I can track my complaints in real-time." },
-      { name: "Diana", rating: 4, comment: "Simple UI and responsive staff. Great experience!" },
-    ].map((review, idx) => (
+  className="flex gap-6 overflow-x-auto px-6 scrollbar-hide"
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 1 }}
+>
+  {Array.isArray(reviews) && reviews.length > 0 ? (
+    reviews.map((review, idx) => (
       <motion.div
         key={idx}
         className="min-w-[250px] bg-white rounded-2xl p-6 shadow-md flex-shrink-0"
@@ -597,18 +615,22 @@ const handleLoginSubmit = async (e) => {
         transition={{ type: "spring", stiffness: 120 }}
       >
         <div className="flex items-center mb-3">
-          {[...Array(review.rating)].map((_, i) => (
+          {[...Array(review.rating || 0)].map((_, i) => (
             <span key={i} className="text-yellow-400 text-xl">★</span>
           ))}
-          {[...Array(5 - review.rating)].map((_, i) => (
+          {[...Array(5 - (review.rating || 0))].map((_, i) => (
             <span key={i} className="text-gray-300 text-xl">★</span>
           ))}
         </div>
-        <p className="text-gray-700 mb-3">"{review.comment}"</p>
-        <p className="text-sm font-semibold text-gray-900">- {review.name}</p>
+        <p className="text-gray-700 mb-3">"{review.comment || ''}"</p>
+        <p className="text-sm font-semibold text-gray-900">- {review.name || 'Anonymous'}</p>
       </motion.div>
-    ))}
-  </motion.div>
+    ))
+  ) : (
+    <p className="text-gray-500">No feedbacks available yet.</p>
+  )}
+</motion.div>
+
 </section>
 
 
@@ -774,17 +796,13 @@ const handleLoginSubmit = async (e) => {
           </div>
 
           {/* Google Login */}
-          <GoogleLogin
-            onSuccess={(credentialResponse) => {
-              const decoded = jwt_decode(credentialResponse.credential);
-              console.log("Google User:", decoded);
-              setEmail(decoded.email); // set the email from Google
-              navigate("/citizen-dashboard"); // redirect after login
-            }}
-            onError={() => {
-              console.log("Google Login Failed");
-            }}
-          />
+          <AppButton
+            onClick={handleGoogleLogin}
+            className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg mb-4"
+          >
+            Login with Google
+          </AppButton>
+
 
           <p className="text-sm text-center mt-4">
             <button
@@ -1079,9 +1097,12 @@ const handleLoginSubmit = async (e) => {
             <div className="h-px bg-gray-300 flex-grow"></div>
           </div>
 
-            <div className="flex justify-center mt-4">
-              <GoogleLogin onSuccess={handleGoogleLoginSuccess} onError={() => console.log("Google signup failed")} />
-            </div>
+            <AppButton
+              onClick={handleGoogleLogin}
+              className="w-full bg-[#d55d1f] hover:bg-[#b54a16] text-white py-3 rounded-lg mb-4"
+            >
+              Sign Up with Google
+            </AppButton>
 
             <p className="text-sm text-center mt-4 text-gray-600">
               Already have an account?{" "}

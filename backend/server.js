@@ -8,6 +8,7 @@ import complaintRoutes from "./routes/complaint.routes.js";
 import "./jobs/escalation.job.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
 import cors from 'cors';
+import path from "path";
 
 
 // Load environment variables
@@ -32,6 +33,9 @@ app.use("/api/feedback", feedbackRoutes);
 
 // Define a base route for authentication
 app.use('/api/auth', authRoutes);
+
+// Serve images under /temp
+app.use("/temp", express.static(path.join(process.cwd(), "public/temp")));
 
 
 const PORT = process.env.PORT || 5000;

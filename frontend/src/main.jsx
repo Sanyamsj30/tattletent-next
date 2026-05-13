@@ -5,18 +5,16 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import "./index.css";
 
 import Home from "./Home";
+import AuthSuccess from "./components/ui/AuthSuccess"; // ✅ New
 import CitizenDashboard from "./components/ui/CitizenDashboard";
 import StaffDashboard from "./components/ui/StaffDashboard";
 import AdminDashboard from "./components/ui/AdminDashboard";
-import LearnMorePage from "./components/ui/LearnMorePage"
-import AllComplaintsPage from "./components/ui/AllComplaintsPage"
-import AssignStaffPage from "./components/ui/AssignStaffPage"
-import Heatmap from "./components/ui/Heatmap"
-import FeedbackPage from "./components/ui/FeedbackPage"
-import AdminInviteStaff from "./components/ui/AdminInviteStaff"
-
-
-
+import LearnMorePage from "./components/ui/LearnMorePage";
+import AllComplaintsPage from "./components/ui/AllComplaintsPage";
+import AssignStaffPage from "./components/ui/AssignStaffPage";
+import Heatmap from "./components/ui/Heatmap";
+import FeedbackPage from "./components/ui/FeedbackPage";
+import AdminInviteStaff from "./components/ui/AdminInviteStaff";
 
 // Replace with your actual Google client ID
 const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com";
@@ -27,6 +25,7 @@ createRoot(document.getElementById("root")).render(
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/auth-success" element={<AuthSuccess />} /> {/* ✅ New */}
           <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
           <Route path="/staff-dashboard" element={<StaffDashboard />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
@@ -34,11 +33,8 @@ createRoot(document.getElementById("root")).render(
           <Route path="/all-complaints" element={<AllComplaintsPage />} />
           <Route path="/assign-staff" element={<AssignStaffPage />} />
           <Route path="/heatmap" element={<Heatmap />} />
-          <Route path="/feedback-page" element={<FeedbackPage/>} />
-          <Route path="/invite-staff" element={<AdminInviteStaff/>} />
-
-
-
+          <Route path="/feedback-page" element={<FeedbackPage />} />
+          <Route path="/invite-staff" element={<AdminInviteStaff />} />
         </Routes>
       </BrowserRouter>
     </GoogleOAuthProvider>

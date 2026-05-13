@@ -30,9 +30,9 @@ export const saveComplaintToDB = async (newComplaint) => {
     // 2️⃣ Insert complaint into the database with default values
     const complaintResult = await pool.query(
       `INSERT INTO complaints 
-        (title, description, status, photo, category, location, dept_id, priority, user_id, longitude, latitude, geolocation,escalation_count,max_escalations)
-       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low', $7, $8, $9, ST_SetSRID(ST_MakePoint($10::double precision, $11::double precision), 4326),0,$12)
-       RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at, escalation_count, max_escalations`,
+        (title, description, status, photo, category, location, dept_id, priority, user_id, longitude, latitude, geolocation)
+       VALUES ($1, $2, 'New', $3, $4, $5, $6, 'Low', $7, $8, $9, ST_SetSRID(ST_MakePoint($10::double precision, $11::double precision), 4326))
+       RETURNING complaint_id, title, description, category, dept_id, priority, status, location, photo, submitted_at`,
       [
         newComplaint.title,
         newComplaint.description,
@@ -45,7 +45,6 @@ export const saveComplaintToDB = async (newComplaint) => {
         newComplaint.latitude,
         newComplaint.longitude,
         newComplaint.latitude,
-        maxEscalations
       ]
     );
 
@@ -63,7 +62,7 @@ export const saveComplaintToDB = async (newComplaint) => {
  * - If only one field is provided, keeps the other unchanged.
  * - If priority changes, automatically updates the SLA deadline based on the current time.
  */
-export const updateComplaintStatusInDB = async (id, newStatus, staffId) => {
+export const updateComplaintStatusInDB = async (id, newStatus, staffId, priority) => {
   try {
 
     // 1️⃣ Update status in the database
@@ -81,6 +80,7 @@ export const updateComplaintStatusInDB = async (id, newStatus, staffId) => {
     if(newStatus==='In Progress'){
       newStatus="IN_PROGRESS";
     }
+    let updatedComplaint;
     if(newStatus==='Resolved') {
       const points = await pool.query(`
           SELECT points
@@ -91,23 +91,26 @@ export const updateComplaintStatusInDB = async (id, newStatus, staffId) => {
       const temp_points = await pool.query(`
           SELECT temp_points
           FROM complaints
-          WHERE complaints_id=$1;
+          WHERE complaint_id=$1;
         `, [id]);
 
-        await pool.query(`
+        updatedComplaint = await pool.query(`
           UPDATE users
           SET points=$1,
-          WHERE user_id=$2;
+          WHERE user_id=$2
+          RETURNING complaint_id, title, description, photo, location, category, status, priority, sla_deadline, updated_at
         `,[points+temp_points,c.staff_id]);
+    } else {
+      updatedComplaint = await pool.query(
+        `UPDATE complaints
+        SET status = $1,
+            priority = $2,
+            updated_at = NOW()
+        WHERE complaint_id = $3
+        RETURNING complaint_id, title, description, photo, location, category, status, priority, sla_deadline, updated_at`,
+        [newStatus, priority, id]
+      );
     }
-    const updatedComplaint = await pool.query(
-      `UPDATE complaints
-       SET status = $1,
-           updated_at = NOW()
-       WHERE complaint_id = $2
-       RETURNING complaint_id, title, description, photo, location, category, status, priority, sla_deadline, updated_at`,
-      [newStatus, id]
-    );
 
     return updatedComplaint.rows[0];
   } catch (err) {
@@ -340,7 +343,7 @@ export const escalateComplaintsByCategory = async () => {
   try {
     // 1️⃣ Find overdue complaints (SLA passed, still unresolved)
     const overdue = await pool.query(`
-      SELECT complaint_id, title, priority, status, escalation_count, max_escalations,staff_id,temp_points,dept_id
+      SELECT complaint_id, title, priority, status, staff_id,temp_points,dept_id
       FROM complaints
       WHERE status IN ('NEW', 'IN_PROGRESS')
       AND sla_deadline < NOW();
