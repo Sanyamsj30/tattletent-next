@@ -1,6 +1,9 @@
 import passport from 'passport';
+import dotenv from 'dotenv';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import pool from '../db/db.js';
+import User from '../models/User.js';
+
+dotenv.config();
 
 // Google OAuth Strategy
 passport.use(
@@ -13,23 +16,33 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        // Check if user exists by google_id or email
-        const existingUser = await pool.query(
-          'SELECT * FROM users WHERE google_id = $1 OR email = $2',
-          [profile.id, profile.emails[0].value]
-        );
+        const email = (profile?.emails?.[0]?.value || '').toLowerCase();
+        const googleId = profile.id;
 
-        if (existingUser.rows.length > 0) {
-          return done(null, existingUser.rows[0]);
+        // Check if user exists by google_id or email
+        const existingUser = await User.findOne({
+          $or: [{ google_id: googleId }, { email }],
+        });
+
+        if (existingUser) {
+          // Attach google id if the account existed by email
+          if (!existingUser.google_id) {
+            existingUser.google_id = googleId;
+            await existingUser.save();
+          }
+          return done(null, existingUser);
         }
 
         // Create new user
-        const newUser = await pool.query(
-          "INSERT INTO users (google_id, name, email, role) VALUES ($1, $2, $3, 'Citizen') RETURNING *",
-          [profile.id, profile.displayName, profile.emails[0].value]
-        );
+        const newUser = await User.create({
+          google_id: googleId,
+          name: profile.displayName || 'User',
+          email,
+          role: 'Citizen',
+          is_verified: true,
+        });
 
-        done(null, newUser.rows[0]);
+        done(null, newUser);
       } catch (err) {
         done(err, null);
       }

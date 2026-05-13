@@ -8,7 +8,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "format:src": "prettier --write src/**/*",
-    "start": "nodemon server.js"
+    "start": "nodemon server.js",
+    "seed:defaults": "node scripts/seed-defaults.js"
   },
   "keywords": [],
   "author": "",
@@ -24,11 +25,11 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.19.0",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.9",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0",
-    "pg": "^8.16.3"
+    "passport-google-oauth20": "^2.0.0"
   }
 }

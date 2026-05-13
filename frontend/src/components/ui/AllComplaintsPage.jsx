@@ -161,8 +161,8 @@ const AllComplaintsPage = () => {
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="all">All Status</option>
-            <option value="pending">New</option>
-            <option value="in progress">In Progress</option>
+            <option value="new">New</option>
+            <option value="in_progress">In Progress</option>
             <option value="resolved">Resolved</option>
           </select>
 
@@ -216,7 +216,7 @@ const AllComplaintsPage = () => {
                 <td className="p-4">{c.category}</td>
                 <td className="p-4">{c.location}</td>
                 <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${c.status==="Resolved"?"bg-green-100 text-green-800":c.status==="In Progress"?"bg-yellow-100 text-yellow-800":"bg-red-100 text-red-800"}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${c.status==="RESOLVED"?"bg-green-100 text-green-800":c.status==="IN_PROGRESS"?"bg-yellow-100 text-yellow-800":"bg-red-100 text-red-800"}`}>
                     {c.status}
                   </span>
                 </td>

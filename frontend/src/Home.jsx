@@ -296,7 +296,7 @@ const handleGoogleLogin = () => {
     try {
       const res = await axios.get('http://localhost:5000/api/feedback/');
       // setReviews(res.data.message);
-      setReviews(res.data.message.map(c => ({
+      setReviews((res.data.data || []).map(c => ({
         name: c.name,
         rating: c.rating,
         comment: c.comment

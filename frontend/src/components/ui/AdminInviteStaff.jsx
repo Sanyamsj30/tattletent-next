@@ -4,7 +4,7 @@ import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
 
 export default function AdminInviteStaff() {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   const [staffName, setStaffName] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
