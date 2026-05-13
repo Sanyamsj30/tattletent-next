@@ -164,7 +164,7 @@ const StaffDashboard = () => {
 
   useEffect(() => {
     setNewComplaints(complaints.filter((c) =>  c.status === "IN_PROGRESS" ));
-    setResolvedComplaints(complaints.filter((c) => c.status === "Resolved"));
+    setResolvedComplaints(complaints.filter((c) => c.status === "RESOLVED"));
   }, [complaints]);
 
   const handleResolvedComplaints = (complaint) => {
@@ -174,7 +174,7 @@ const StaffDashboard = () => {
 
     setComplaints(prevComplaints =>
       prevComplaints.map(c =>
-        c.id === complaint.id ? { ...c, status: "Resolved" } : c
+        c.id === complaint.id ? { ...c, status: "RESOLVED" } : c
       )
     );
   }
@@ -206,9 +206,9 @@ const StaffDashboard = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "Resolved":
+      case "RESOLVED":
         return "bg-green-100 text-green-800";
-      case "In Progress":
+      case "IN_PROGRESS":
         return "bg-yellow-100 text-yellow-800";
       default:
         return "bg-red-100 text-red-800";
@@ -230,7 +230,7 @@ const StaffDashboard = () => {
 
   const performanceData = React.useMemo(() => {
     const resolvedCount = complaints.filter(
-      (c) => c.status === "Resolved" && c.staff_id === user.user_id
+      (c) => c.status === "RESOLVED" && c.staff_id === user.user_id
     ).length;
 
     const inProgressCount = complaints.filter(

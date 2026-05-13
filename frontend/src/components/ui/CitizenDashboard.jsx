@@ -76,11 +76,11 @@ useEffect(() => {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case "Resolved":
+      case "RESOLVED":
         return "bg-green-100 text-green-800";
-      case "In Progress":
+      case "IN_PROGRESS":
         return "bg-yellow-100 text-yellow-800";
-      case "Submitted":
+      case "NEW":
       default:
         return "bg-red-100 text-red-800";
     }
@@ -103,8 +103,8 @@ useEffect(() => {
   const handleNewComplaint = async (e) => {
     e.preventDefault();
 
-    try {
-      const token = localStorage.getItem("token");
+      try {
+      const token = sessionStorage.getItem("token");
       if (!token || !user) {
         alert("You must be logged in to submit a complaint.");
         return;
@@ -406,7 +406,7 @@ useEffect(() => {
 </div>
 
 {/* 4a. Resolved Complaints Section with Feedback */}
-{complaints.some(c => c.status === "Resolved") && (
+{complaints.some(c => c.status === "RESOLVED") && (
   <div className="bg-[#e6f6ed] rounded-2xl shadow-inner-soft p-8 border border-gray-300 border-l-4 border-l-green-400">
     <h2 className="text-2xl font-bold mb-6 text-green-800 font-mono">✅ Resolved Complaints</h2>
     <div className="overflow-hidden rounded-lg border border-gray-300">
@@ -423,7 +423,7 @@ useEffect(() => {
             </tr>
           </thead>
           <tbody className="divide-y divide-blue-200 bg-white">
-            {complaints.filter(c => c.status === "Resolved").map(c => (
+            {complaints.filter(c => c.status === "RESOLVED").map(c => (
               <tr key={c.id} className="hover:bg-blue-50 transition">
                 <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
                 <td className="p-4 text-gray-900 font-medium font-mono">{c.title}</td>

@@ -1,102 +1,77 @@
-import pool from "../db/db.js";
-import sendEmail from "../utils/sendEmail.js";
+import Complaint from '../models/Complaint.js';
+import User from '../models/User.js';
+import sendEmail from '../utils/sendEmail.js';
 
-
-/**
- * 🔔 Notify staff and citizen when a complaint's status is changed.
- */
 export const notifyStatusChange = async (complaintId) => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        c.complaint_id, c.title, c.category, c.priority,c.status,
-        u1.name AS citizen_name, u1.email AS citizen_email
-      FROM complaints c
-      JOIN users u1 ON c.user_id = u1.user_id
-      WHERE c.complaint_id = $1
-    `, [complaintId]);
+    const complaint = await Complaint.findById(complaintId).populate('user_id', 'name email').lean();
+    if (!complaint) return;
 
-    if (result.rowCount === 0) return;
-    const c = result.rows[0];
+    const citizenEmail = complaint.user_id?.email;
+    if (!citizenEmail) return;
 
-    const FEEDBACK_URL = `https://yourdomain.com/feedback?complaintId=${complaint.complaint_id}`;
+    const feedbackUrl = `http://localhost:5173/feedback-page?complaintId=${complaint._id.toString()}`;
 
-      // Check if the status is resolved to include the special link
-    if (c.status === 'Resolved') {
-      feedbackContent = `
-        <p>The TattleTent team is pleased to inform you that your complaint is now fully resolved!</p>
-        <p>To help us improve our service, please take a moment to provide feedback on your experience:</p>
-        <p style="text-align: center; margin: 20px 0;">
-            <a href="${FEEDBACK_URL}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;">
-                Leave Feedback Now
-            </a>
-        </p>
-      `;
-    }
+    const feedbackContent =
+      complaint.status === 'RESOLVED'
+        ? `
+          <p>The TattleTent team is pleased to inform you that your complaint is now fully resolved!</p>
+          <p>To help us improve our service, please take a moment to provide feedback on your experience:</p>
+          <p style="text-align: center; margin: 20px 0;">
+              <a href="${feedbackUrl}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-align: center; text-decoration: none; display: inline-block; border-radius: 5px;">
+                  Leave Feedback Now
+              </a>
+          </p>
+        `
+        : '';
 
-    // 🧠 Email to citizen
     await sendEmail({
-        email: c.citizen_email,
-        subject: `Update on Complaint #${c.complaint_id}: Status is now "${c.status}"`,
-        html: `
-            <h2>Complaint Status Updated</h2>
-            <p>Hello,</p>
-            <p>This is a notification that the status of your complaint has been changed.</p>
-            
-            <p><b>Complaint Title:</b> ${c.title}</p>
-            <p><b>Reference ID:</b> #${c.complaint_id}</p>
-            <p><b>New Status:</b> <span style="font-weight: bold; color: #007bff;">${c.status}</span></p>
+      email: citizenEmail,
+      subject: `Update on Complaint #${complaint._id.toString()}: Status is now "${complaint.status}"`,
+      html: `
+        <h2>Complaint Status Updated</h2>
+        <p>Hello ${complaint.user_id?.name || ''},</p>
+        <p>This is a notification that the status of your complaint has been changed.</p>
 
-            <!-- Conditional content inserted here -->
-            ${feedbackContent}
-            <!-- End conditional content -->
+        <p><b>Complaint Title:</b> ${complaint.title}</p>
+        <p><b>Reference ID:</b> #${complaint._id.toString()}</p>
+        <p><b>New Status:</b> <span style="font-weight: bold; color: #007bff;">${complaint.status}</span></p>
 
-            <p>You can view full details and track the progress from your TattleTent dashboard.</p>
-            <br/>
-            <p>Regards,</p>
-            <p>The TattleTent Team</p>
-        `,
+        ${feedbackContent}
+
+        <p>You can view full details and track the progress from your TattleTent dashboard.</p>
+        <br/>
+        <p>Regards,</p>
+        <p>The TattleTent Team</p>
+      `,
     });
-
-    
-
-    console.log(`📩 Status notification sent for complaint ${c.complaint_id}`);
   } catch (err) {
-    console.error("❌ Error sending Status change notification:", err.message);
+    console.error('❌ Error sending status change notification:', err);
   }
 };
 
-
-/**
- * ⏰ Send reminder to staff if complaint is close to SLA deadline (e.g., within 1 day).
- */
 export const notifyOverdueReminder = async () => {
   try {
-    const result = await pool.query(`
-      SELECT 
-        c.complaint_id, c.title, c.category, c.priority, c.sla_deadline,
-        u.email AS staff_email, u.name AS staff_name
-      FROM complaints c
-      JOIN users u ON c.assigned_to = u.user_id
-      WHERE c.status IN ('NEW', 'IN_PROGRESS')
-      AND c.sla_deadline IS NOT NULL
-      AND c.sla_deadline > NOW()
-      AND c.sla_deadline < NOW() + INTERVAL '2 day';
-    `);
+    const now = new Date();
+    const twoDays = new Date(Date.now() + 2 * 24 * 60 * 60 * 1000);
 
-    if (result.rowCount === 0) {
-      console.log("✅ No upcoming SLA deadlines in next 2 days.");
-      return;
-    }
+    const complaints = await Complaint.find({
+      status: { $in: ['NEW', 'IN_PROGRESS'] },
+      sla_deadline: { $ne: null, $gt: now, $lt: twoDays },
+      staff_id: { $ne: null },
+    })
+      .populate('staff_id', 'email name')
+      .lean();
 
-    for (const c of result.rows) {
-      const hoursLeft = Math.round(
-        (new Date(c.sla_deadline) - new Date()) / (1000 * 60 * 60)
-      );
+    for (const c of complaints) {
+      const staffEmail = c.staff_id?.email;
+      if (!staffEmail) continue;
+
+      const hoursLeft = Math.round((new Date(c.sla_deadline) - new Date()) / (1000 * 60 * 60));
 
       await sendEmail({
-        email: c.staff_email,
-        subject: `⏰ SLA Reminder: Complaint #${c.complaint_id} due soon`,
+        email: staffEmail,
+        subject: `⏰ SLA Reminder: Complaint #${c._id.toString()} due soon`,
         html: `
           <h2>SLA Deadline Approaching</h2>
           <p>Complaint "<b>${c.title}</b>" assigned to you is due in <b>${hoursLeft} hours</b>.</p>
@@ -107,23 +82,19 @@ export const notifyOverdueReminder = async () => {
           <p>Please resolve it before the SLA deadline to avoid escalation.</p>
         `,
       });
-
-      console.log(`📧 Reminder sent to ${c.staff_email} for complaint ${c.complaint_id}`);
     }
   } catch (err) {
-    console.error("❌ Error sending SLA reminders:", err.message);
+    console.error('❌ Error sending SLA reminders:', err);
   }
 };
 
 export const notifyAdminForManualReassignment = async (complaintId) => {
-  const admins = await pool.query(`SELECT email FROM users WHERE role = 'Ringmaster'`);
-  const emails = admins.rows.map(a => a.email);
+  const admins = await User.find({ role: 'Ringmaster' }).select('email').lean();
+  const emails = admins.map((a) => a.email).filter(Boolean);
+  if (!emails.length) return;
 
-  const complaint = await pool.query(`
-    SELECT complaint_id, title, priority
-    FROM complaints
-    WHERE complaint_id = $1;
-  `, [complaintId]);
+  const complaint = await Complaint.findById(complaintId).select('title priority').lean();
+  if (!complaint) return;
 
   for (const email of emails) {
     await sendEmail({
@@ -131,9 +102,10 @@ export const notifyAdminForManualReassignment = async (complaintId) => {
       subject: `⚠️ Complaint #${complaintId} Escalation Limit Reached`,
       html: `
         <h2>Manual Reassignment Required</h2>
-        <p>Complaint "<b>${complaint.rows[0].title}</b>" (Priority: ${complaint.rows[0].priority}) has reached its maximum escalation limit.</p>
+        <p>Complaint "<b>${complaint.title}</b>" (Priority: ${complaint.priority}) has reached its maximum escalation limit.</p>
         <p>Please review and assign a new staff member manually.</p>
       `,
     });
   }
 };
+

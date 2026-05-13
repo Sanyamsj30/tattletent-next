@@ -7,7 +7,7 @@ import axios from "axios";
 const AssignStaffPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(sessionStorage.getItem("user"));
 
   const { complaint } = location.state || {};
   const [staffList, setstaffList] = useState([]);
@@ -77,9 +77,9 @@ const AssignStaffPage = () => {
     }
 
     // ✅ Count complaints by status
-    const resolvedCount = data.filter((c) => c.status === "Resolved").length;
+    const resolvedCount = data.filter((c) => c.status === "RESOLVED").length;
     const inProgressCount = data.filter((c) => c.status === "IN_PROGRESS").length;
-    const pendingCount = data.filter((c) => c.status === "Pending").length;
+    const pendingCount = data.filter((c) => c.status === "NEW").length;
 
     // ✅ Update selected staff to show modal
     setSelectedStaff({

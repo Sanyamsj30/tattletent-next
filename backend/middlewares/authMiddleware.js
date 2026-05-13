@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import pool from '../db/db.js';
+import User from '../models/User.js';
 
 const protect = async (req, res, next) => {
   let token;
@@ -13,16 +13,16 @@ const protect = async (req, res, next) => {
       // 2. Verify
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      const userResult = await pool.query(
-        'SELECT user_id, name, email, role, created_at FROM users WHERE user_id = $1',
-        [decoded.id]
-      );
-      
-      if (userResult.rows.length === 0) {
-          return res.status(401).json({ message: 'Not authorized, user not found' });
-      }
+      const user = await User.findById(decoded.id).select('_id name email role created_at');
+      if (!user) return res.status(401).json({ message: 'Not authorized, user not found' });
 
-      req.user = userResult.rows[0];
+      req.user = {
+        user_id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        created_at: user.created_at,
+      };
 
       next();
     } catch (error) {

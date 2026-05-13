@@ -6,30 +6,39 @@ const AuthSuccess = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    const role = params.get('role'); // get role from query
+    const run = async () => {
+      const params = new URLSearchParams(location.search);
+      const token = params.get('token');
+      if (!token) return navigate('/');
 
-    if (token && role) {
-      localStorage.setItem('user_token', token); // save token
+      sessionStorage.setItem('token', token);
 
-      // Redirect based on role
-      switch (role) {
+      // Fetch user info so dashboards have user_id/role
+      const meRes = await fetch('http://localhost:5000/api/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!meRes.ok) return navigate('/');
+
+      const me = await meRes.json();
+      sessionStorage.setItem('user', JSON.stringify(me.user));
+
+      switch (me.user.role) {
         case 'Citizen':
           navigate('/citizen-dashboard');
           break;
         case 'Staff':
           navigate('/staff-dashboard');
           break;
+        case 'Ringmaster':
         case 'Admin':
           navigate('/admin-dashboard');
           break;
         default:
-          navigate('/'); // fallback
+          navigate('/');
       }
-    } else {
-      navigate('/login'); // redirect to login if missing token/role
-    }
+    };
+
+    run().catch(() => navigate('/'));
   }, [location, navigate]);
 
   return <p>Logging you in...</p>;

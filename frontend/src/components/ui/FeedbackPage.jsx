@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 // };
 
 const FeedbackPage = () => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   const navigate = useNavigate();
 
   const [rating, setRating] = useState(0);

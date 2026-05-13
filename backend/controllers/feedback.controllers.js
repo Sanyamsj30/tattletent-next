@@ -1,60 +1,29 @@
-import  asynchandler  from "../utils/asynchandler.js";
-import { ApiResponse } from "../utils/api-response.js";
-import {
-  saveFeedbackToDB,
-  getFeedbacksFromDB,
-  getFeedbacksForComplaintFromDB,
-} from "../services/feedback.service.js";
+import asynchandler from '../utils/asynchandler.js';
+import { ApiResponse } from '../utils/api-response.js';
+import { saveFeedbackToDB, getFeedbacksFromDB, getFeedbacksForComplaintFromDB } from '../services/feedback.service.js';
 
-
-// ✅ Create Feedback
 const createFeedback = asynchandler(async (req, res) => {
   const { complaint_id, rating, comment } = req.body;
-
-  console.log(req.body);
   if (!complaint_id) {
-    return res
-      .status(400)
-      .json(new ApiResponse(400, "Complaint ID and rating are required"));
+    return res.status(400).json(new ApiResponse(400, null, 'Complaint ID is required'));
   }
 
   const feedback = await saveFeedbackToDB({ complaint_id, rating, comment });
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, "Feedback submitted successfully", feedback));
+  return res.status(201).json(new ApiResponse(201, feedback, 'Feedback submitted successfully'));
 });
 
-
-// ✅ Get all Feedbacks
 const getAllFeedbacks = asynchandler(async (req, res) => {
   const feedbacks = await getFeedbacksFromDB();
-
-  if (feedbacks.length === 0) {
-    return res.status(404).json(new ApiResponse(404, "No feedback found"));
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Feedbacks fetched successfully", feedbacks));
+  if (feedbacks.length === 0) return res.status(404).json(new ApiResponse(404, [], 'No feedback found'));
+  return res.status(200).json(new ApiResponse(200, feedbacks, 'Feedbacks fetched successfully'));
 });
 
-
-// ✅ Get Feedback by Complaint ID
 const getFeedbackForComplaint = asynchandler(async (req, res) => {
-  const { id } = req.params; // complaint ID
-
+  const { id } = req.params;
   const feedback = await getFeedbacksForComplaintFromDB(id);
-
-  if (feedback.length === 0) {
-    return res
-      .status(404)
-      .json(new ApiResponse(404, "No feedback for this complaint"));
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Feedback fetched successfully", feedback));
+  if (feedback.length === 0) return res.status(404).json(new ApiResponse(404, [], 'No feedback for this complaint'));
+  return res.status(200).json(new ApiResponse(200, feedback, 'Feedback fetched successfully'));
 });
 
 export { createFeedback, getAllFeedbacks, getFeedbackForComplaint };
+
