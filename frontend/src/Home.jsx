@@ -223,7 +223,8 @@ const handleLoginSubmit = async (e) => {
     setEmail("");
     setPassword("");
 
-    if (loginData.user.role === "Ringmaster") navigate("/admin-dashboard");
+    const role = String(loginData.user.role || "").toLowerCase();
+    if (role === "ringmaster" || role === "admin") navigate("/admin-dashboard");
     else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
     else navigate("/citizen-dashboard");
 

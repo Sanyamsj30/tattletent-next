@@ -34,6 +34,10 @@ const AuthSuccess = () => {
           navigate('/admin-dashboard');
           break;
         default:
+          if (String(me.user.role || '').toLowerCase() === 'admin' || String(me.user.role || '').toLowerCase() === 'ringmaster') {
+            navigate('/admin-dashboard');
+            break;
+          }
           navigate('/');
       }
     };
