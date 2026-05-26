@@ -5,6 +5,7 @@ import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
 import { protect, adminOnly } from '../middlewares/authMiddleware.js';
 import User from '../models/User.js';
+import normalizeRole from '../utils/normalizeRole.js';
 
 const router = Router();
 
@@ -75,7 +76,12 @@ router.post('/register', async (req, res) => {
     const token = generateToken(created._id.toString());
     res.status(201).json({
       token,
-      user: { user_id: created._id.toString(), name: created.name, email: created.email, role: created.role },
+      user: {
+        user_id: created._id.toString(),
+        name: created.name,
+        email: created.email,
+        role: normalizeRole(created.role),
+      },
     });
   } catch (err) {
     if (err?.code === 11000) return res.status(409).json({ message: 'An account with this email already exists.' });
@@ -196,7 +202,7 @@ router.post('/login', async (req, res) => {
     const token = generateToken(user._id.toString());
     res.status(200).json({
       token,
-      user: { user_id: user._id.toString(), name: user.name, email: user.email, role: user.role },
+      user: { user_id: user._id.toString(), name: user.name, email: user.email, role: normalizeRole(user.role) },
     });
   } catch (err) {
     console.error(err);
@@ -246,7 +252,7 @@ router.get('/me', protect, async (req, res) => {
         user_id: user._id.toString(),
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: normalizeRole(user.role),
         created_at: user.created_at,
       },
     });

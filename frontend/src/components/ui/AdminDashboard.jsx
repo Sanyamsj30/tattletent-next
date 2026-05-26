@@ -61,7 +61,7 @@ const AdminDashboard = () => {
         } 
         
         // 💡 Add Role Check (Crucial for security and correct routing!)
-        if (user && JSON.parse(user).role !== "Ringmaster") {
+        if (user && !["ringmaster", "admin"].includes(String(JSON.parse(user).role || "").toLowerCase())) {
             navigate("/"); // Or a specific Unauthorized page
         }
         
