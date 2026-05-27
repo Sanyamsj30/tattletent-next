@@ -3,6 +3,7 @@ import { FaStar } from "react-icons/fa";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../lib/api";
 
 // const demoComplaint = {
 //   id: 123,
@@ -25,7 +26,12 @@ const FeedbackPage = () => {
 
   const location = useLocation();
   const { complaint } = location.state || {}; 
-  console.log("Complaint object:", complaint);
+
+  // Guard: direct navigation or refresh loses router state
+  if (!complaint) {
+    navigate("/citizen-dashboard", { replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,7 +46,7 @@ const FeedbackPage = () => {
       };
 
       const response = await axios.post(
-        "http://localhost:5000/api/feedback",  // 👈 your backend route
+        `${API_BASE_URL}/api/feedback`,  // 👈 your backend route
         payload,
         {
           headers: {

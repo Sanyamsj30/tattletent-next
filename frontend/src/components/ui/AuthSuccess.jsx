@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { API_BASE_URL } from "../../lib/api";
 
 const AuthSuccess = () => {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ const AuthSuccess = () => {
       sessionStorage.setItem('token', token);
 
       // Fetch user info so dashboards have user_id/role
-      const meRes = await fetch('http://localhost:5000/api/auth/me', {
+      const meRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!meRes.ok) return navigate('/');

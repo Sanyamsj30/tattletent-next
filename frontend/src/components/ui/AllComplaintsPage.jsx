@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Logo from './Logo'
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
+import { API_BASE_URL } from "../../lib/api";
 
 
 const AllComplaintsPage = () => {
@@ -24,7 +25,7 @@ const AllComplaintsPage = () => {
     const fetchComplaintsByUser = async () => {
     try {
   
-      const response = await fetch(`http://localhost:5000/api/complaints/search`);
+      const response = await fetch(`${API_BASE_URL}/api/public/complaints/search`);
   
       if (!response.ok) throw new Error("Failed to fetch complaints");
   

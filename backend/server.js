@@ -7,6 +7,7 @@ import userRoute from './routes/userRoute.js';
 import complaintRoutes from './routes/complaint.routes.js';
 import './jobs/escalation.job.js';
 import feedbackRoutes from './routes/feedback.routes.js';
+import publicRoutes from './routes/public.js';
 import cors from 'cors';
 import path from 'path';
 import connectMongo from './db/mongo.js';
@@ -25,6 +26,7 @@ app.use('/api/users', userRoute);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/public', publicRoutes);
 
 // Serve images under /temp
 app.use('/temp', express.static(path.join(process.cwd(), 'public/temp')));
@@ -44,4 +46,3 @@ const start = async () => {
 };
 
 start();
-

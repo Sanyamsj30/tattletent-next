@@ -4,12 +4,13 @@ import {
   getAllFeedbacks,
   getFeedbackForComplaint,
 } from "../controllers/feedback.controllers.js";
+import { protect, staffOrAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 // ✅ Routes
-router.post("/", createFeedback); // POST /api/feedback
-router.get("/", getAllFeedbacks); // GET /api/feedback
-router.get("/:id", getFeedbackForComplaint); // GET /api/feedback/:id (complaint ID)
+router.post("/", protect, createFeedback); // POST /api/feedback
+router.get("/", protect, staffOrAdmin, getAllFeedbacks); // GET /api/feedback (staff/admin)
+router.get("/:id", protect, staffOrAdmin, getFeedbackForComplaint); // GET /api/feedback/:id (complaint ID)
 
 export default router;
