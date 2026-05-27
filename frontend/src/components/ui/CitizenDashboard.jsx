@@ -5,6 +5,7 @@ import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
 import { FaBars } from "react-icons/fa";
 import axios from "axios";
+import { API_BASE_URL } from "../../lib/api";
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
@@ -41,7 +42,9 @@ const [menuOpen, setMenuOpen] = useState(false);
     if (!user?.user_id) return;
 
     const queryParams = new URLSearchParams({ user_id: user.user_id }).toString();
-    const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+    const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`, {
+      headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+    });
 
     if (!response.ok) throw new Error("Failed to fetch complaints");
 
@@ -88,7 +91,7 @@ useEffect(() => {
   
   const fetchCounts = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      const res = await axios.get(`${API_BASE_URL}/api/complaints/counts`);
       setCounts(res.data);
     } catch (err) {
       console.error(err);
@@ -131,7 +134,7 @@ useEffect(() => {
       }
 
       const response = await axios.post(
-        "http://localhost:5000/api/complaints",  // 👈 your backend route
+        `${API_BASE_URL}/api/complaints`,  // 👈 your backend route
         formData,
         {
           headers: {
@@ -205,12 +208,7 @@ useEffect(() => {
             <p className="font-semibold text-gray-800">Citizen</p>
           </div>
 
-          <button
-            onClick={() => navigate("/all-complaints")}
-            className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
-          >
-            <span className="text-lg">All Complaints</span>
-          </button>
+          
 
           <button
             onClick={handleLogout}
@@ -229,15 +227,6 @@ useEffect(() => {
             <p className="font-semibold text-gray-800">Citizen</p>
           </div>
 
-          <button
-            onClick={() => {
-              navigate("/all-complaints");
-              setMenuOpen(false);
-            }}
-            className="w-11/12 rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
-          >
-            All Complaints
-          </button>
 
           <button
             onClick={() => {
@@ -360,7 +349,7 @@ useEffect(() => {
       </thead>
       <tbody className="divide-y divide-blue-200 bg-white">
         {complaints.length > 0 ? (
-          complaints.filter(c => c.status === "New" || c.status === "IN_PROGRESS").map(c => (
+          complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS").map(c => (
             <tr key={c.id} className="hover:bg-blue-50 transition">
               <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
               <td className="p-4">
@@ -602,7 +591,7 @@ useEffect(() => {
       {selectedComplaint.photo && (
         <div className="mt-6 flex justify-center">
           <img
-            src={`http://localhost:5000${selectedComplaint.photo}`}
+            src={`${API_BASE_URL}${selectedComplaint.photo}`}
             alt="Complaint"
             className="max-w-full max-h-[400px] rounded-lg shadow-md"
           />

@@ -11,6 +11,7 @@ const router = Router();
 
 // In-memory OTP store (email -> { otpHash, expiresAt })
 const otpStore = new Map();
+const resetOtpStore = new Map();
 
 router.post('/send-otp', async (req, res) => {
   try {
@@ -39,6 +40,71 @@ router.post('/send-otp', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.post('/send-reset-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    if (!normalizedEmail) return res.status(400).json({ message: 'Email is required.' });
+
+    const user = await User.findOne({ email: normalizedEmail, is_verified: true }).select('_id');
+    if (!user) return res.status(404).json({ message: 'No verified account found with this email.' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    resetOtpStore.set(normalizedEmail, { otpHash, expiresAt });
+
+    await sendEmail({
+      email: normalizedEmail,
+      subject: 'Reset your password (OTP)',
+      html: `<h1>Your password reset code is: ${otp}</h1><p>This code will expire in 5 minutes.</p>`,
+    });
+
+    return res.status(200).json({ message: 'Reset OTP has been sent to your email.' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    if (!normalizedEmail || !otp || !newPassword) {
+      return res.status(400).json({ message: 'Email, OTP, and new password are required.' });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail, is_verified: true });
+    if (!user) return res.status(404).json({ message: 'No verified account found with this email.' });
+    if (!user.password_hash) {
+      return res.status(400).json({ message: 'This account uses Google login. Please sign in with Google.' });
+    }
+
+    const stored = resetOtpStore.get(normalizedEmail);
+    if (!stored) return res.status(400).json({ message: 'OTP not found or expired. Please request a new one.' });
+    if (new Date() > new Date(stored.expiresAt)) {
+      resetOtpStore.delete(normalizedEmail);
+      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+    }
+
+    const validOtp = await bcrypt.compare(String(otp), stored.otpHash);
+    if (!validOtp) return res.status(400).json({ message: 'OTP incorrect. Please try again.' });
+
+    user.password_hash = await bcrypt.hash(newPassword, 10);
+    user.must_change_password = false;
+    await user.save();
+
+    resetOtpStore.delete(normalizedEmail);
+
+    return res.status(200).json({ message: 'Password reset successful. Please log in.' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server Error' });
   }
 });
 
@@ -196,7 +262,13 @@ router.post('/login', async (req, res) => {
     if (!ok) return res.status(401).json({ message: 'Invalid credentials.' });
 
     if (user.must_change_password) {
-      return res.status(403).json({ message: 'Password change required before login.', must_change_password: true });
+      const token = generateToken(user._id.toString());
+      return res.status(200).json({
+        token,
+        must_change_password: true,
+        message: 'Password change required before continuing.',
+        user: { user_id: user._id.toString(), name: user.name, email: user.email, role: normalizeRole(user.role) },
+      });
     }
 
     const token = generateToken(user._id.toString());

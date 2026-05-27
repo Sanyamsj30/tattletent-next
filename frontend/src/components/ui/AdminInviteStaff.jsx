@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../lib/api";
 
 export default function AdminInviteStaff() {
   const token = sessionStorage.getItem("token");
@@ -20,7 +21,7 @@ export default function AdminInviteStaff() {
     setSuccess(false);
 
     try {
-      const res = await fetch("http://localhost:5000/api/auth/admin/create-staff", {
+      const res = await fetch(`${API_BASE_URL}/api/auth/admin/create-staff`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { FiRefreshCcw } from "react-icons/fi";
 import Logo from "./Logo"; // ✅ Uncomment if you have it
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../lib/api";
 
 // HeatmapLayer Component
 const HeatmapLayer = ({ points }) => {
@@ -58,7 +59,7 @@ const LeafletHeatmap = () => {
   const fetchPoints = async () => {
     try {
       setLoading(true);
-      const res = await fetch("http://localhost:5000/api/complaints/heatmap");
+      const res = await fetch(`${API_BASE_URL}/api/public/complaints/heatmap`);
       const data = await res.json();
       setPoints(data);
       setLastUpdated(new Date().toLocaleTimeString());
