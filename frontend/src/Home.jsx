@@ -8,6 +8,7 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import jwtDecode from "jwt-decode"; // ✅ correct import
 import {FaBars,FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import axios from "axios";
+import { API_BASE_URL } from "./lib/api";
 
 {/* <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
   <App />
@@ -85,7 +86,7 @@ const handleSignupSubmit = async (e) => {
   try {
     setIsLoading(true);
     setSignupMessage(""); // clear previous message
-    const res = await fetch("http://localhost:5000/api/auth/send-otp", {
+    const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -121,7 +122,7 @@ const handleVerifyOtpSubmit = async (e) => {
   try {
     setIsLoading(true);
     setSignupMessage("");
-    const registerRes = await fetch("http://localhost:5000/api/auth/register", {
+    const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -176,7 +177,7 @@ const handleLoginSubmit = async (e) => {
     setIsLoading(true);
     setLoginMessage(""); // clear previous message
 
-    const loginRes = await fetch("http://localhost:5000/api/auth/login", {
+    const loginRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -190,7 +191,7 @@ const handleLoginSubmit = async (e) => {
       if (loginRes.status === 401 && loginData.message.includes("Invalid credentials")) {
         try {
           // Check if the email exists in DB
-          const emailCheck = await fetch(`http://localhost:5000/api/auth/check-email?email=${encodeURIComponent(email)}`);
+          const emailCheck = await fetch(`${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(email)}`);
           const emailExists = await emailCheck.json();
 
           if (!emailCheck.ok || !emailExists.exists) {
@@ -223,6 +224,11 @@ const handleLoginSubmit = async (e) => {
     setEmail("");
     setPassword("");
 
+    if (loginData.must_change_password) {
+      navigate("/change-password");
+      return;
+    }
+
     const role = String(loginData.user.role || "").toLowerCase();
     if (role === "ringmaster" || role === "admin") navigate("/admin-dashboard");
     else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
@@ -240,7 +246,7 @@ const handleLoginSubmit = async (e) => {
 
 const handleGoogleLogin = () => {
   // Redirect user to backend Google OAuth endpoint
-  window.location.href = "http://localhost:5000/api/auth/google";
+  window.location.href = `${API_BASE_URL}/api/auth/google`;
 };
 
 
@@ -250,7 +256,7 @@ const handleGoogleLogin = () => {
   const fetchComplaints = async () => {
     try {  
       const queryParams = new URLSearchParams({ status: "Resolved" }).toString();
-      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+      const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`);
   
       if (!response.ok) throw new Error("Failed to fetch complaints");
   
@@ -280,7 +286,7 @@ const handleGoogleLogin = () => {
 
   const fetchCounts = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      const res = await axios.get(`${API_BASE_URL}/api/complaints/counts`);
       setCounts(res.data);
     } catch (err) {
       console.error(err);
@@ -295,8 +301,7 @@ const handleGoogleLogin = () => {
 
   const fetchFeedback = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/feedback/');
-      // setReviews(res.data.message);
+      const res = await axios.get(`${API_BASE_URL}/api/public/feedback`);
       setReviews((res.data.data || []).map(c => ({
         name: c.name,
         rating: c.rating,
@@ -805,16 +810,33 @@ const handleGoogleLogin = () => {
           </AppButton>
 
 
-          <p className="text-sm text-center mt-4">
-            <button
-              type="button"
-              onClick={() => setForgotPassword(true)}
-              className="text-[#d55d1f] hover:underline"
-            >
-              Forgot Password?
-            </button>
-          </p>
-        </form>
+           <p className="text-sm text-center mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                 setLoginOpen(false);
+                 setForgotPassword(false);
+                 navigate("/forgot-password");
+                }}
+                className="text-[#d55d1f] hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </p>
+
+           <p className="text-sm text-center mt-2">
+             <button
+               type="button"
+               onClick={() => {
+                 setLoginOpen(false);
+                 navigate("/change-password");
+               }}
+               className="text-[#d55d1f] hover:underline"
+             >
+               Change Password
+             </button>
+           </p>
+         </form>
       
         
       )}
@@ -823,7 +845,7 @@ const handleGoogleLogin = () => {
 )}
 
 {/* Forgot Password Modal */}
-{forgotPassword && (
+{false && (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
@@ -851,7 +873,7 @@ const handleGoogleLogin = () => {
             setIsLoading(true);
             setLoginMessage("");
             try {
-              const res = await fetch("http://localhost:5000/api/auth/send-reset-otp", {
+              const res = await fetch(`${API_BASE_URL}/api/auth/send-reset-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email }),
@@ -900,7 +922,7 @@ const handleGoogleLogin = () => {
             setIsLoading(true);
             setLoginMessage("");
             try {
-              const res = await fetch("http://localhost:5000/api/auth/reset-password", {
+              const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, otp, password }),
@@ -1115,6 +1137,19 @@ const handleGoogleLogin = () => {
                 className="text-[#A0522D] hover:underline font-medium"
               >
                 Log In
+              </button>
+            </p>
+
+            <p className="text-sm text-center mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSignupOpen(false);
+                  navigate("/change-password");
+                }}
+                className="text-[#A0522D] hover:underline font-medium"
+              >
+                Change Password
               </button>
             </p>
           </motion.div>

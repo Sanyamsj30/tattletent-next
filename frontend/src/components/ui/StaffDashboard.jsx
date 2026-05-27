@@ -3,6 +3,7 @@ import Logo from "./Logo.jsx";
 import { FaBars } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../../lib/api";
 import {
   BarChart,
   Bar,
@@ -27,7 +28,7 @@ const StaffDashboard = () => {
 
   const fetchCounts = async () => {
     try {
-      const res = await axios.get("http://localhost:5000/api/complaints/counts");
+      const res = await axios.get(`${API_BASE_URL}/api/complaints/counts`);
       setCounts(res.data);
     } catch {
       console.warn("Backend not connected, using demo data");
@@ -132,7 +133,9 @@ const StaffDashboard = () => {
       if (!user?.user_id) return;
   
       const queryParams = new URLSearchParams({ staff_id: user.user_id }).toString();
-      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+      const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
   
       if (!response.ok) throw new Error("Failed to fetch complaints");
   
@@ -168,7 +171,7 @@ const StaffDashboard = () => {
   }, [complaints]);
 
   const handleResolvedComplaints = (complaint) => {
-    axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
+    axios.put(`${API_BASE_URL}/api/complaints/status/${complaint.id}`, {
       status: "Resolved",
     }).catch(err => console.error(err));
 
@@ -498,11 +501,11 @@ const StaffDashboard = () => {
       {/* Image below text */}
       {selectedComplaint.photo && (
         <div className="mt-6 flex justify-center">
-          <img
-            src={`http://localhost:5000${selectedComplaint.photo}`}
-            alt={selectedComplaint.category}
-            className="max-w-full max-h-[400px] rounded-lg shadow-md object-contain"
-          />
+            <img
+              src={`${API_BASE_URL}${selectedComplaint.photo}`}
+              alt={selectedComplaint.category}
+              className="max-w-full max-h-[400px] rounded-lg shadow-md object-contain"
+            />
         </div>
       )}
     </div>

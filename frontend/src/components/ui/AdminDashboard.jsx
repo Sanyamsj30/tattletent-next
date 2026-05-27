@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Logo from "./Logo";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../../lib/api";
 import { FaBars } from "react-icons/fa";
 
 const AdminDashboard = () => {
@@ -23,22 +24,13 @@ const AdminDashboard = () => {
 
   // Demo data for New Complaints
   // const demoNewComplaints = [
-  //   { id: 101, category: "Water Leak", location: "Tent #12", status: "New", assignedTo: null },
-  //   { id: 102, category: "Electrical", location: "Sector 5", status: "New", assignedTo: null },
-  //   { id: 103, category: "Garbage Overflow", location: "Park Zone", status: "New", assignedTo: null },
-  //   { id: 104, category: "Pathway Damage", location: "Street 3", status: "New", assignedTo: null },
-  //   { id: 105, category: "Noise Complaint", location: "Sector 7", status: "New", assignedTo: null },
-  //   { id: 106, category: "Drainage Issue", location: "Sector 2", status: "New", assignedTo: null },
+  // Demo fallbacks were previously commented out but still referenced in catch blocks.
+  // Keep fallbacks safe (empty arrays) to avoid crashes when backend is unavailable.
   // ];
 
   // // Demo data for Assigned Complaints
   // const demoAssignedComplaints = [
-  //   { id: 201, category: "Water Leak", location: "Tent #9", status: "In Progress", assignedTo: "Staff A" },
-  //   { id: 202, category: "Electrical", location: "Street 5", status: "In Progress", assignedTo: "Staff B" },
-  //   { id: 203, category: "Garbage Overflow", location: "Park Zone 2", status: "In Progress", assignedTo: "Staff C" },
-  //   { id: 204, category: "Pathway Damage", location: "Sector 4", status: "In Progress", assignedTo: "Staff D" },
-  //   { id: 205, category: "Noise Complaint", location: "Sector 6", status: "In Progress", assignedTo: "Staff E" },
-  //   { id: 206, category: "Drainage Issue", location: "Sector 8", status: "In Progress", assignedTo: "Staff F" },
+
   // ];
 
   const handleLogout = () => {
@@ -69,7 +61,7 @@ const AdminDashboard = () => {
 
   const fetchCounts = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/complaints/counts');
+      const res = await axios.get(`${API_BASE_URL}/api/complaints/counts`);
       setCounts(res.data);
     } catch (err) {
       console.error(err);
@@ -86,7 +78,9 @@ const AdminDashboard = () => {
       if (!user?.user_id) return;
 
       const queryParams = new URLSearchParams({ status: "New" }).toString();
-      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
 
       if (!response.ok) throw new Error("Failed to fetch complaints");
 
@@ -102,7 +96,7 @@ const AdminDashboard = () => {
 
     } catch (err) {
       console.error("Error fetching complaints:", err);
-      setComplaints(demoNewComplaints); // fallback to demo
+      setComplaints([]); // safe fallback
     }
   };
 
@@ -116,7 +110,9 @@ const AdminDashboard = () => {
       if (!user?.user_id) return;
 
       const queryParams = new URLSearchParams({ status: "IN_PROGRESS" }).toString();
-      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`);
+      const response = await fetch(`http://localhost:5000/api/complaints/search?${queryParams}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
 
       if (!response.ok) throw new Error("Failed to fetch complaints");
 
@@ -132,7 +128,7 @@ const AdminDashboard = () => {
 
     } catch (err) {
       console.error("Error fetching assigned complaints:", err);
-      setAssignedComplaints(demoAssignedComplaints); // fallback to demo
+      setAssignedComplaints([]); // safe fallback
     }
   };
 

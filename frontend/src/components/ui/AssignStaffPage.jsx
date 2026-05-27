@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import Logo from "./Logo"
 import axios from "axios";
+import { API_BASE_URL } from "../../lib/api";
 
 const AssignStaffPage = () => {
   const location = useLocation();
@@ -16,16 +17,17 @@ const AssignStaffPage = () => {
   const [selectedPriority, setSelectedPriority] = useState("Low");
   const [staffToAssign, setStaffToAssign] = useState(null);
 
-
-
   const handleAssign = (staffId) => {
-    axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
-      status: "In Progress",
-      staffId: staffId,
-      priority: selectedPriority,
-    }).then(() => {
-      navigate("/admin-dashboard"); // go back after saving
-    }).catch(err => console.error(err));
+    return axios
+      .put(`${API_BASE_URL}/api/complaints/status/${complaint.id}`, {
+        status: "In Progress",
+        staffId,
+        priority: selectedPriority,
+      })
+      .then(() => {
+        navigate("/admin-dashboard"); // go back after saving
+      })
+      .catch((err) => console.error(err));
   };
 
 
@@ -34,7 +36,9 @@ const AssignStaffPage = () => {
       if (!user?.user_id) return;
 
       const queryParams = new URLSearchParams({ role: "Staff" }).toString();
-      const response = await fetch(`http://localhost:5000/api/users/search?${queryParams}`);
+      const response = await fetch(`${API_BASE_URL}/api/users/search?${queryParams}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
 
       if (!response.ok) throw new Error("Failed to fetch staff");
 
@@ -67,7 +71,9 @@ const AssignStaffPage = () => {
   const fetchStaffPerformance = async (staff) => {
   try {
     // ✅ Axios automatically parses JSON, so just send staff_id as query param
-    const response = await axios.get(`http://localhost:5000/api/complaints/search?staff_id=${staff.id}`);
+    const response = await axios.get(`${API_BASE_URL}/api/complaints/search?staff_id=${staff.id}`, {
+      headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+    });
 
     const data = response.data;
 
@@ -210,14 +216,9 @@ const AssignStaffPage = () => {
         <button
           className="px-6 py-3 bg-orange-600 text-white rounded-xl"
           onClick={() => {
-            axios.put(`http://localhost:5000/api/complaints/status/${complaint.id}`, {
-              status: "In Progress",
-              staffId: staffToAssign.id,
-              priority: selectedPriority
-            }).then(() => {
+            handleAssign(staffToAssign.id).finally(() => {
               setPriorityModalOpen(false);
-              navigate("/admin-dashboard");
-            }).catch(err => console.error(err));
+            });
           }}
         >
           Assign

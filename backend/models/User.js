@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import normalizeRole from '../utils/normalizeRole.js';
 
 const userSchema = new mongoose.Schema(
   {
@@ -8,7 +9,7 @@ const userSchema = new mongoose.Schema(
     password_hash: { type: String },
     role: {
       type: String,
-      enum: ['Citizen', 'Staff', 'Ringmaster', 'Groundmaster', 'Admin'],
+      enum: ['Citizen', 'Staff', 'Ringmaster', 'Groundmaster', 'Admin', 'citizen', 'staff', 'ringmaster', 'groundmaster', 'admin'],
       default: 'Citizen',
       index: true,
     },
@@ -19,7 +20,10 @@ const userSchema = new mongoose.Schema(
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
 );
 
+userSchema.pre('validate', function () {
+  this.role = normalizeRole(this.role);
+});
+
 const User = mongoose.model('User', userSchema);
 
 export default User;
-
