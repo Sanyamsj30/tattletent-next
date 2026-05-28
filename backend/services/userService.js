@@ -30,4 +30,3 @@ export const searchUsers = async (filters) => {
     created_at: u.created_at,
   }));
 };
-

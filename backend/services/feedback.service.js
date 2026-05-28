@@ -50,4 +50,3 @@ export const getFeedbacksForComplaintFromDB = async (complaint_id) => {
     name: f.user_id?.name,
   }));
 };
-

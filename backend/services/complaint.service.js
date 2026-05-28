@@ -84,7 +84,10 @@ export const saveComplaintToDB = async (newComplaint) => {
       latitude: newComplaint.latitude ?? undefined,
       geolocation:
         newComplaint.longitude != null && newComplaint.latitude != null
-          ? { type: 'Point', coordinates: [Number(newComplaint.longitude), Number(newComplaint.latitude)] }
+          ? {
+              type: 'Point',
+              coordinates: [Number(newComplaint.longitude), Number(newComplaint.latitude)],
+            }
           : undefined,
       sla_deadline,
     });
@@ -113,7 +116,9 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
 
   if (priority) {
     complaint.priority = priority;
-    const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, priority) : 24;
+    const slaHours = complaint.dept_id
+      ? await calculateSlaDeadline(complaint.dept_id, priority)
+      : 24;
     complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
   }
 
@@ -122,7 +127,10 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
     complaint.status = 'RESOLVED';
     // Reward staff points (simple model): add temp_points to staff points
     if (complaint.staff_id) {
-      await User.updateOne({ _id: complaint.staff_id }, { $inc: { points: complaint.temp_points || 0 } });
+      await User.updateOne(
+        { _id: complaint.staff_id },
+        { $inc: { points: complaint.temp_points || 0 } }
+      );
     }
     complaint.temp_points = 0;
   } else if (normalized === 'IN_PROGRESS') {
@@ -240,7 +248,9 @@ export const escalateComplaintsByCategory = async () => {
 
     if (complaint.priority === 'Low') {
       complaint.priority = 'Medium';
-      const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
+      const slaHours = complaint.dept_id
+        ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
+        : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
       complaint.temp_points = Math.max((complaint.temp_points || 0) - 1, 0);
       await complaint.save();
@@ -250,7 +260,9 @@ export const escalateComplaintsByCategory = async () => {
 
     if (complaint.priority === 'Medium') {
       complaint.priority = 'High';
-      const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
+      const slaHours = complaint.dept_id
+        ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
+        : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
       complaint.temp_points = Math.max((complaint.temp_points || 0) - 1, 0);
       await complaint.save();
@@ -262,7 +274,9 @@ export const escalateComplaintsByCategory = async () => {
     complaint.status = 'NEW';
     complaint.staff_id = undefined;
     complaint.assigned_to = undefined;
-    const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
+    const slaHours = complaint.dept_id
+      ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
+      : 24;
     complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
     complaint.temp_points = 3;
     await complaint.save();

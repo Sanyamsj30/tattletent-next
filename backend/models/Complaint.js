@@ -40,4 +40,3 @@ complaintSchema.index({ geolocation: '2dsphere' });
 const Complaint = mongoose.model('Complaint', complaintSchema);
 
 export default Complaint;
-

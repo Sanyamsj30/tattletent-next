@@ -50,7 +50,8 @@ router.post('/send-reset-otp', async (req, res) => {
     if (!normalizedEmail) return res.status(400).json({ message: 'Email is required.' });
 
     const user = await User.findOne({ email: normalizedEmail, is_verified: true }).select('_id');
-    if (!user) return res.status(404).json({ message: 'No verified account found with this email.' });
+    if (!user)
+      return res.status(404).json({ message: 'No verified account found with this email.' });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
@@ -80,13 +81,19 @@ router.post('/reset-password', async (req, res) => {
     }
 
     const user = await User.findOne({ email: normalizedEmail, is_verified: true });
-    if (!user) return res.status(404).json({ message: 'No verified account found with this email.' });
+    if (!user)
+      return res.status(404).json({ message: 'No verified account found with this email.' });
     if (!user.password_hash) {
-      return res.status(400).json({ message: 'This account uses Google login. Please sign in with Google.' });
+      return res
+        .status(400)
+        .json({ message: 'This account uses Google login. Please sign in with Google.' });
     }
 
     const stored = resetOtpStore.get(normalizedEmail);
-    if (!stored) return res.status(400).json({ message: 'OTP not found or expired. Please request a new one.' });
+    if (!stored)
+      return res
+        .status(400)
+        .json({ message: 'OTP not found or expired. Please request a new one.' });
     if (new Date() > new Date(stored.expiresAt)) {
       resetOtpStore.delete(normalizedEmail);
       return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
@@ -118,7 +125,10 @@ router.post('/register', async (req, res) => {
     }
 
     const stored = otpStore.get(normalizedEmail);
-    if (!stored) return res.status(400).json({ message: 'OTP not found or expired. Please request a new one.' });
+    if (!stored)
+      return res
+        .status(400)
+        .json({ message: 'OTP not found or expired. Please request a new one.' });
     if (new Date() > new Date(stored.expiresAt)) {
       otpStore.delete(normalizedEmail);
       return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
@@ -150,7 +160,8 @@ router.post('/register', async (req, res) => {
       },
     });
   } catch (err) {
-    if (err?.code === 11000) return res.status(409).json({ message: 'An account with this email already exists.' });
+    if (err?.code === 11000)
+      return res.status(409).json({ message: 'An account with this email already exists.' });
     console.error(err);
     res.status(500).json({ message: 'Server Error' });
   }
@@ -160,7 +171,8 @@ router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
   try {
     const { name, email } = req.body;
     const normalizedEmail = (email || '').toLowerCase().trim();
-    if (!name || !normalizedEmail) return res.status(400).json({ message: 'Name and email are required.' });
+    if (!name || !normalizedEmail)
+      return res.status(400).json({ message: 'Name and email are required.' });
 
     const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
@@ -193,7 +205,9 @@ router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
         });
       }
 
-      return res.status(409).json({ message: `User is already ${existingUser.role}. Cannot upgrade.` });
+      return res
+        .status(409)
+        .json({ message: `User is already ${existingUser.role}. Cannot upgrade.` });
     }
 
     const tempPassword = 'Temp@1234';
@@ -235,7 +249,8 @@ router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
       },
     });
   } catch (err) {
-    if (err?.code === 11000) return res.status(409).json({ message: 'An account with this email already exists.' });
+    if (err?.code === 11000)
+      return res.status(409).json({ message: 'An account with this email already exists.' });
     console.error(err);
     res.status(500).json({ message: 'Server Error' });
   }
@@ -245,17 +260,22 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     const normalizedEmail = (email || '').toLowerCase().trim();
-    if (!normalizedEmail || !password) return res.status(400).json({ message: 'Please enter all fields.' });
+    if (!normalizedEmail || !password)
+      return res.status(400).json({ message: 'Please enter all fields.' });
 
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) return res.status(401).json({ message: 'Invalid credentials.' });
 
     if (!user.is_verified) {
-      return res.status(403).json({ message: 'Please verify your email address before logging in.' });
+      return res
+        .status(403)
+        .json({ message: 'Please verify your email address before logging in.' });
     }
 
     if (!user.password_hash) {
-      return res.status(401).json({ message: 'Account was created with a social provider. Please use Google to log in.' });
+      return res.status(401).json({
+        message: 'Account was created with a social provider. Please use Google to log in.',
+      });
     }
 
     const ok = await bcrypt.compare(password, user.password_hash);
@@ -267,14 +287,24 @@ router.post('/login', async (req, res) => {
         token,
         must_change_password: true,
         message: 'Password change required before continuing.',
-        user: { user_id: user._id.toString(), name: user.name, email: user.email, role: normalizeRole(user.role) },
+        user: {
+          user_id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: normalizeRole(user.role),
+        },
       });
     }
 
     const token = generateToken(user._id.toString());
     res.status(200).json({
       token,
-      user: { user_id: user._id.toString(), name: user.name, email: user.email, role: normalizeRole(user.role) },
+      user: {
+        user_id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: normalizeRole(user.role),
+      },
     });
   } catch (err) {
     console.error(err);
@@ -317,7 +347,9 @@ router.put('/change-password', protect, async (req, res) => {
 
 router.get('/me', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.user_id).select('_id name email role created_at').lean();
+    const user = await User.findById(req.user.user_id)
+      .select('_id name email role created_at')
+      .lean();
     if (!user) return res.status(404).json({ message: 'User not found.' });
     return res.status(200).json({
       user: {

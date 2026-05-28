@@ -1,11 +1,11 @@
-import multer from "multer";
-import fs from "fs";
-import path from "path";
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 
 // Multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadPath = "public/temp/";
+    const uploadPath = 'public/temp/';
     // Checking if folder exist
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
@@ -14,19 +14,18 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     // Prevent spaces & special characters in filename
-    const uniqueName =
-      Date.now() + "-" + file.originalname.replace(/\s+/g, "_");
+    const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '_');
     cb(null, uniqueName);
   },
 });
 
 // File filter for image types
 const fileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only image files are allowed!"), false);
+    cb(new Error('Only image files are allowed!'), false);
   }
 };
 
