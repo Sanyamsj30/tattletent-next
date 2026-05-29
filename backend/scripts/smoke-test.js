@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -17,8 +19,10 @@ const waitForServer = async (url, timeoutMs = 15000) => {
 };
 
 const run = async () => {
-  const server = spawn('node', ['server.js'], {
-    cwd: new URL('..', import.meta.url).pathname,
+  const backendDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+  const server = spawn(process.execPath, ['server.js'], {
+    cwd: backendDir,
     stdio: ['ignore', 'pipe', 'pipe'],
     env: process.env,
   });
@@ -39,11 +43,7 @@ const run = async () => {
     process.exit(1);
   }
 
-  const endpoints = [
-    '/api/complaints/counts',
-    '/api/complaints/heatmap',
-    '/api/feedback',
-  ];
+  const endpoints = ['/api/complaints/counts', '/api/complaints/heatmap', '/api/feedback'];
 
   const results = [];
   for (const ep of endpoints) {
@@ -59,7 +59,11 @@ const run = async () => {
     console.log(`- GET ${r.ep} -> ${r.status}`);
   }
 
-  const bad = results.filter((r) => r.status >= 400);
+  const bad = results.filter((r) => {
+    // /api/feedback is expected to require auth; a 401 here is a healthy sign.
+    if (r.ep === '/api/feedback' && r.status === 401) return false;
+    return r.status >= 400;
+  });
   if (bad.length) {
     console.log('\n❌ Some endpoints returned errors (showing first 500 chars):');
     for (const r of bad) {

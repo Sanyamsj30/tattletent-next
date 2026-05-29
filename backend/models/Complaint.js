@@ -98,4 +98,3 @@ complaintSchema.index({ submitted_at: -1 });
 const Complaint = mongoose.model('Complaint', complaintSchema);
 
 export default Complaint;
-

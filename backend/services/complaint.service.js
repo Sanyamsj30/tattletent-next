@@ -116,7 +116,10 @@ export const saveComplaintToDB = async (newComplaint) => {
       latitude: newComplaint.latitude ?? undefined,
       geolocation:
         newComplaint.longitude != null && newComplaint.latitude != null
-          ? { type: 'Point', coordinates: [Number(newComplaint.longitude), Number(newComplaint.latitude)] }
+          ? {
+              type: 'Point',
+              coordinates: [Number(newComplaint.longitude), Number(newComplaint.latitude)],
+            }
           : undefined,
       sla_deadline,
       severity,
@@ -253,7 +256,9 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
 
   if (priority) {
     complaint.priority = priority;
-    const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, priority) : 24;
+    const slaHours = complaint.dept_id
+      ? await calculateSlaDeadline(complaint.dept_id, priority)
+      : 24;
     complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
   }
 
@@ -393,7 +398,9 @@ export const escalateComplaintsByCategory = async () => {
 
     if (complaint.priority === 'Low') {
       complaint.priority = 'Medium';
-      const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
+      const slaHours = complaint.dept_id
+        ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
+        : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
       await complaint.save();
@@ -414,7 +421,9 @@ export const escalateComplaintsByCategory = async () => {
 
     if (complaint.priority === 'Medium') {
       complaint.priority = 'High';
-      const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
+      const slaHours = complaint.dept_id
+        ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
+        : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
       await complaint.save();
@@ -438,7 +447,9 @@ export const escalateComplaintsByCategory = async () => {
     const oldStaffId = complaint.staff_id;
     complaint.staff_id = undefined;
     complaint.assigned_to = undefined;
-    const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
+    const slaHours = complaint.dept_id
+      ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
+      : 24;
     complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
     await complaint.save();

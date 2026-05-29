@@ -1,5 +1,9 @@
 import express from 'express';
-import { getComplaintCounts, fetchHeatmapData, searchComplaints } from '../services/complaint.service.js';
+import {
+  getComplaintCounts,
+  fetchHeatmapData,
+  searchComplaints,
+} from '../services/complaint.service.js';
 import { getFeedbacksFromDB } from '../services/feedback.service.js';
 
 const router = express.Router();
@@ -62,7 +66,11 @@ router.get('/feedback', async (req, res) => {
   try {
     const feedback = await getFeedbacksFromDB();
     // public: do not expose user_id
-    const redacted = feedback.map((f) => ({ rating: f.rating, comment: f.comment, name: f.name || 'Citizen' }));
+    const redacted = feedback.map((f) => ({
+      rating: f.rating,
+      comment: f.comment,
+      name: f.name || 'Citizen',
+    }));
     res.status(200).json({ data: redacted });
   } catch (err) {
     res.status(500).json({ error: 'Server Error' });
@@ -70,4 +78,3 @@ router.get('/feedback', async (req, res) => {
 });
 
 export default router;
-

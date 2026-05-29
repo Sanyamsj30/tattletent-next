@@ -51,7 +51,10 @@ const adminOnly = (req, res, next) => {
 
 const staffOrAdmin = (req, res, next) => {
   const role = normalizeRole(req.user?.role);
-  if (req.user && (role === 'Staff' || role === 'Admin' || role === 'Ringmaster' || role === 'Groundmaster')) {
+  if (
+    req.user &&
+    (role === 'Staff' || role === 'Admin' || role === 'Ringmaster' || role === 'Groundmaster')
+  ) {
     next();
   } else {
     return res.status(403).json({ message: 'Access denied. Staff/Admins only.' });

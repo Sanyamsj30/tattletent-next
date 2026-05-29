@@ -49,4 +49,3 @@ const AppButton = React.forwardRef(
 AppButton.displayName = "AppButton";
 
 export default AppButton;
-export { appButtonVariants };

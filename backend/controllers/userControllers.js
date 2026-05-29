@@ -1,6 +1,4 @@
-import {
-    searchUsers
-} from "../services/userService.js";
+import { searchUsers } from '../services/userService.js';
 
 // search and filter
 const getUsers = async (req, res) => {
@@ -13,7 +11,7 @@ const getUsers = async (req, res) => {
       page: req.query.page,
       limit: req.query.limit,
       sortBy: req.query.sortBy,
-      order: req.query.order
+      order: req.query.order,
     };
 
     const users = await searchUsers(filters);
@@ -24,4 +22,4 @@ const getUsers = async (req, res) => {
   }
 };
 
-export {getUsers};
+export { getUsers };

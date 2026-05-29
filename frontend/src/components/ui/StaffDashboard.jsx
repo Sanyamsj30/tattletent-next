@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import Logo from "./Logo.jsx";
 import { FaBars } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
