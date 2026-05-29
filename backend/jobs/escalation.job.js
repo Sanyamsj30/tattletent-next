@@ -28,4 +28,4 @@ cron.schedule('0 */6 * * *', async () => {
 cron.schedule('0 8 * * *', async () => {
   console.log('⏰ Running daily SLA reminder emails...');
   await notifyOverdueReminder();
-});
+})

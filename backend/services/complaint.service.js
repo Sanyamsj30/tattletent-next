@@ -5,6 +5,8 @@ import User from '../models/User.js';
 import { notifyAdminForManualReassignment } from './notification.service.js';
 import { checkDuplicateComplaint } from '../agents/duplicateDetectionAgent.js';
 import { analyzeEscalationUrgency } from '../agents/smartEscalationAgent.js';
+import { calculateDeterministicSeverity, calculateDeterministicPriority } from './ruleEngine.js';
+import { runAutoAssignmentEngine } from './assignment.service.js';
 
 const normalizeStatus = (status) => {
   if (!status) return status;
@@ -12,8 +14,10 @@ const normalizeStatus = (status) => {
   if (s === 'new' || s === 'pending') return 'NEW';
   if (s === 'in progress' || s === 'in_progress' || s === 'inprogress') return 'IN_PROGRESS';
   if (s === 'resolved' || s === 'resolve' || s === 'res') return 'RESOLVED';
+  if (s === 'resolved_pending' || s === 'resolved-pending' || s === 'resolvedpending') return 'RESOLVED_PENDING';
+  if (s === 'duplicate' || s === 'merged') return 'DUPLICATE';
   // If caller already uses canonical values
-  if (status === 'NEW' || status === 'IN_PROGRESS' || status === 'RESOLVED') return status;
+  if (status === 'NEW' || status === 'IN_PROGRESS' || status === 'RESOLVED' || status === 'RESOLVED_PENDING' || status === 'DUPLICATE') return status;
   return status;
 };
 
@@ -39,6 +43,21 @@ const toComplaintDto = (c) => ({
   is_duplicate: c.is_duplicate || false,
   duplicate_of: c.duplicate_of?.toString?.() || c.duplicate_of,
   escalation_explanation: c.escalation_explanation,
+  priority_score: c.priority_score || 0,
+  priority_level: c.priority_level || 'Low',
+  is_auto_assigned: c.is_auto_assigned !== false,
+  recommendation_explanation: c.recommendation_explanation,
+  priority_breakdown: c.priority_breakdown || { severity: 0, duplicates: 0, escalations: 0, location: 0, age: 0 },
+  assignment_history: (c.assignment_history || []).map(h => ({
+    old_staff_id: h.old_staff_id?.toString?.() || h.old_staff_id,
+    new_staff_id: h.new_staff_id?.toString?.() || h.new_staff_id,
+    old_staff_name: h.old_staff_name,
+    new_staff_name: h.new_staff_name,
+    timestamp: h.timestamp,
+    admin_id: h.admin_id?.toString?.() || h.admin_id,
+    admin_name: h.admin_name,
+    reason: h.reason,
+  })),
 });
 
 const ensureDepartment = async (categoryName) => {
@@ -64,9 +83,6 @@ export const calculateSlaDeadline = async (dept_id, priority) => {
   }
 };
 
-/**
- * Save complaint — auto-assign dept_id based on category.
- */
 export const saveComplaintToDB = async (newComplaint) => {
   try {
     const dept = await ensureDepartment(newComplaint.category);
@@ -76,15 +92,16 @@ export const saveComplaintToDB = async (newComplaint) => {
     const slaHours = dept_id ? await calculateSlaDeadline(dept_id, priority) : 24;
     const sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
-    // AI extension: run severity checks (simple regex, fast, synchronous)
-    let severity = 'Low';
-    const combinedText = (newComplaint.title + ' ' + newComplaint.description).toLowerCase();
-    if (combinedText.includes('spark') || combinedText.includes('fire') || combinedText.includes('emergency') || combinedText.includes('hazard') || combinedText.includes('burst') || combinedText.includes('shock') || combinedText.includes('injury')) {
-      severity = 'High';
-    } else if (combinedText.includes('leak') || combinedText.includes('broken') || combinedText.includes('overflow') || combinedText.includes('damage') || combinedText.includes('dark')) {
-      severity = 'Medium';
-    }
+    // 1. Calculate deterministic severity level
+    const severity = calculateDeterministicSeverity({
+      title: newComplaint.title,
+      description: newComplaint.description,
+      category: newComplaint.category,
+      location: newComplaint.location,
+      escalation_count: 0
+    }, 0);
 
+    // 2. Pre-create the complaint document
     const doc = await Complaint.create({
       title: newComplaint.title,
       description: newComplaint.description,
@@ -110,6 +127,19 @@ export const saveComplaintToDB = async (newComplaint) => {
       duplicate_of: null
     });
 
+    // 3. Compute priority score, level, and point breakdown
+    const prioDetails = calculateDeterministicPriority(doc, 0);
+    doc.priority_score = prioDetails.priority_score;
+    doc.priority_level = prioDetails.priority_level;
+    doc.priority_breakdown = prioDetails.breakdown;
+    await doc.save();
+
+    // 4. Run the Auto-Assignment Engine synchronously to assign the best vendor instantly
+    await runAutoAssignmentEngine(doc._id);
+
+    // 5. Fetch fully assigned updated document
+    const finalDoc = await Complaint.findById(doc._id);
+
     // Launch duplicate check asynchronously in the background
     setImmediate(async () => {
       try {
@@ -118,21 +148,52 @@ export const saveComplaintToDB = async (newComplaint) => {
           description: newComplaint.description,
           category: newComplaint.category,
           location: newComplaint.location,
+          latitude: doc.latitude,
+          longitude: doc.longitude,
           currentId: doc._id
         });
         if (dupResult && dupResult.isDuplicate && dupResult.duplicateOf) {
+          // Count total duplicates of the original complaint
+          const duplicateCount = await Complaint.countDocuments({
+            $or: [
+              { _id: dupResult.duplicateOf },
+              { duplicate_of: dupResult.duplicateOf }
+            ]
+          });
+
+          const origComplaint = await Complaint.findById(dupResult.duplicateOf);
+          if (origComplaint) {
+            // Re-evaluate original complaint's priority, severity, and breakdown
+            const updatedSeverity = calculateDeterministicSeverity(origComplaint, duplicateCount);
+            origComplaint.severity = updatedSeverity;
+
+            const prioDetails = calculateDeterministicPriority(origComplaint, duplicateCount);
+            origComplaint.priority_score = prioDetails.priority_score;
+            origComplaint.priority_level = prioDetails.priority_level;
+            origComplaint.priority_breakdown = prioDetails.breakdown;
+
+            await origComplaint.save();
+          }
+
+          // Mark current complaint as duplicate
           await Complaint.updateOne(
             { _id: doc._id },
-            { $set: { is_duplicate: true, duplicate_of: dupResult.duplicateOf } }
+            { $set: { is_duplicate: true, duplicate_of: dupResult.duplicateOf, status: 'DUPLICATE' } }
           );
-          console.log(`[AI Background] Complaint ${doc._id} marked as duplicate of ${dupResult.duplicateOf}`);
+
+          // Update workload of assigned staff because duplicate gets auto-resolved/removed from active queue!
+          if (doc.staff_id) {
+            await updateStaffWorkloadAndAvailability(doc.staff_id);
+          }
+
+          console.log(`[AI Background] Complaint ${doc._id} marked as duplicate of ${dupResult.duplicateOf} and merged.`);
         }
       } catch (dupErr) {
         console.error("[AI Background] Duplicate check failed:", dupErr);
       }
     });
 
-    return toComplaintDto(doc);
+    return toComplaintDto(finalDoc || doc);
   } catch (err) {
     console.error('❌ Error saving complaint:', err.message);
     throw err;
@@ -152,23 +213,25 @@ export const updateStaffWorkloadAndAvailability = async (staffId) => {
       status: 'RESOLVED'
     });
 
+    // 0-5 active: Available, 6-10: Busy, 11+: Overloaded
     let availabilityStatus = 'Available';
-    if (activeComplaints >= 3 && activeComplaints <= 5) {
+    if (activeComplaints >= 6 && activeComplaints <= 10) {
       availabilityStatus = 'Busy';
-    } else if (activeComplaints > 5) {
+    } else if (activeComplaints > 10) {
       availabilityStatus = 'Overloaded';
     }
 
-    await User.updateOne(
-      { _id: staffId },
-      { 
-        $set: { 
-          activeComplaints, 
-          resolvedComplaints,
-          availabilityStatus 
-        } 
-      }
-    );
+    const vendor = await User.findById(staffId);
+    if (vendor) {
+      vendor.activeComplaints = activeComplaints;
+      vendor.resolvedComplaints = resolvedComplaints;
+      vendor.availabilityStatus = availabilityStatus;
+
+      // Recalculate vendor performance score automatically
+      const { calculateVendorPerformanceScore } = await import('./ruleEngine.js');
+      vendor.performanceScore = calculateVendorPerformanceScore(vendor);
+      await vendor.save();
+    }
   } catch (err) {
     console.error("Failed to update staff workload:", err);
   }
@@ -202,14 +265,8 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
   const normalized = normalizeStatus(status);
   if (normalized === 'RESOLVED') {
     complaint.status = 'RESOLVED';
-    // Reward staff points (simple model): add temp_points to staff points
-    if (complaint.staff_id) {
-      await User.updateOne(
-        { _id: complaint.staff_id },
-        { $inc: { points: complaint.temp_points || 0 } }
-      );
-    }
-    complaint.temp_points = 0;
+  } else if (normalized === 'RESOLVED_PENDING') {
+    complaint.status = 'RESOLVED_PENDING';
   } else if (normalized === 'IN_PROGRESS') {
     complaint.status = 'IN_PROGRESS';
   } else if (normalized === 'NEW') {
@@ -247,7 +304,7 @@ export const updateComplaintPriorityInDB = async (id, priority) => {
 };
 
 export const deleteComplaintFromDB = async (id) => {
-  const deleted = await Complaint.findByIdAndDelete(id);
+  const deleted = await Complaint.findByIdAndUpdate(id, { $set: { is_deleted: true } }, { new: true });
   return Boolean(deleted);
 };
 
@@ -276,7 +333,7 @@ export const searchComplaints = async (filters) => {
     staff_id,
   } = filters;
 
-  const query = {};
+  const query = { is_deleted: { $ne: true } };
 
   if (searchText) {
     const re = new RegExp(String(searchText), 'i');
@@ -288,7 +345,14 @@ export const searchComplaints = async (filters) => {
   if (category) query.category = category;
   if (location) query.location = location;
 
-  if (status) query.status = normalizeStatus(status);
+  if (status) {
+    const norm = normalizeStatus(status);
+    if (norm === 'IN_PROGRESS') {
+      query.status = { $in: ['IN_PROGRESS', 'RESOLVED_PENDING'] };
+    } else {
+      query.status = norm;
+    }
+  }
 
   if (fromDate || toDate) {
     query.submitted_at = {};
@@ -338,7 +402,6 @@ export const escalateComplaintsByCategory = async () => {
         ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
         : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
-      complaint.temp_points = Math.max((complaint.temp_points || 0) - 1, 0);
 
       await complaint.save();
       escalated.push({ complaint_id: complaint._id.toString(), priority: complaint.priority });
@@ -362,7 +425,6 @@ export const escalateComplaintsByCategory = async () => {
         ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
         : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
-      complaint.temp_points = Math.max((complaint.temp_points || 0) - 1, 0);
 
       await complaint.save();
       escalated.push({ complaint_id: complaint._id.toString(), priority: complaint.priority });
@@ -389,7 +451,6 @@ export const escalateComplaintsByCategory = async () => {
       ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
       : 24;
     complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
-    complaint.temp_points = 3;
 
     await complaint.save();
 
@@ -434,4 +495,75 @@ export const fetchHeatmapData = async () => {
       return { complaint_id: c._id.toString(), latitude, longitude };
     })
     .filter(Boolean);
+};
+
+/**
+ * Administrative override reassignment helper.
+ */
+export const adminReassignComplaintInDB = async (id, staffId, adminUser, reason) => {
+  const { adminOverrideAssignment } = await import('./assignment.service.js');
+  const updated = await adminOverrideAssignment(id, staffId, adminUser, reason);
+  return toComplaintDto(updated);
+};
+
+/**
+ * Forced escalation helper.
+ */
+export const forceEscalateComplaintInDB = async (id, adminUser, reason) => {
+  const complaint = await Complaint.findById(id);
+  if (!complaint) throw new Error('Complaint not found.');
+
+  // Increment escalation count
+  complaint.escalation_count = (complaint.escalation_count || 0) + 1;
+
+  // Recalculate deterministic priority & severity
+  const duplicateCount = await Complaint.countDocuments({ duplicate_of: complaint._id });
+  complaint.severity = calculateDeterministicSeverity(complaint, duplicateCount);
+
+  const prioDetails = calculateDeterministicPriority(complaint, duplicateCount);
+  complaint.priority_score = prioDetails.priority_score;
+  complaint.priority_level = prioDetails.priority_level;
+  complaint.priority_breakdown = prioDetails.breakdown;
+
+  // Log in assignment history subdocument
+  complaint.assignment_history.push({
+    old_staff_id: complaint.staff_id || null,
+    new_staff_id: complaint.staff_id || null,
+    old_staff_name: complaint.assigned_to || 'Unassigned',
+    new_staff_name: complaint.assigned_to || 'Unassigned',
+    timestamp: new Date(),
+    admin_id: adminUser.user_id,
+    admin_name: adminUser.name,
+    reason: reason ? `Forced Escalation: ${reason}` : 'Forced Escalation',
+  });
+
+  await complaint.save();
+
+  // If priority becomes High/Critical, trigger unassignment and re-assignment
+  if (complaint.priority_level === 'Critical' || complaint.priority_level === 'High') {
+    const oldStaffId = complaint.staff_id;
+    complaint.staff_id = undefined;
+    complaint.assigned_to = undefined;
+    await complaint.save();
+
+    if (oldStaffId) {
+      await updateStaffWorkloadAndAvailability(oldStaffId);
+    }
+
+    // Trigger auto-assignment
+    runAutoAssignmentEngine(complaint._id).catch(err => console.error("Auto reassignment failed in escalation:", err));
+  }
+
+  // Trigger background LLM urgency explanation
+  setImmediate(async () => {
+    try {
+      const explanation = await analyzeEscalationUrgency(complaint._id);
+      await Complaint.updateOne({ _id: complaint._id }, { $set: { escalation_explanation: explanation } });
+    } catch (aiErr) {
+      console.error("[AI Background] Escalation explanation failed:", aiErr);
+    }
+  });
+
+  const finalDoc = await Complaint.findById(id);
+  return toComplaintDto(finalDoc || complaint);
 };

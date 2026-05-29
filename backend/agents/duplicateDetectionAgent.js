@@ -6,13 +6,27 @@ import { callGemini } from './ai.service.js';
  */
 export const checkDuplicateComplaint = async (newComplaintData) => {
   try {
-    const { title, description, category, location, currentId } = newComplaintData;
+    const { title, description, category, location, latitude, longitude, currentId } = newComplaintData;
 
     // Filter active complaints (NEW or IN_PROGRESS) in same category
     const query = {
       category,
-      status: { $in: ['NEW', 'IN_PROGRESS'] }
+      status: { $in: ['NEW', 'IN_PROGRESS'] },
+      is_deleted: { $ne: true }
     };
+
+    // Geospatial pre-filter (100-meter radius)
+    if (latitude != null && longitude != null) {
+      query.geolocation = {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [Number(longitude), Number(latitude)]
+          },
+          $maxDistance: 100
+        }
+      };
+    }
 
     // If we have an existing ID (e.g. updating), exclude it
     if (currentId) {
@@ -22,7 +36,7 @@ export const checkDuplicateComplaint = async (newComplaintData) => {
     const candidates = await Complaint.find(query).limit(10).lean();
 
     if (!candidates || candidates.length === 0) {
-      return { isDuplicate: false, similarityScore: 0, duplicateOf: null, explanation: "No similar complaints found in this category." };
+      return { isDuplicate: false, similarityScore: 0, duplicateOf: null, explanation: "No similar complaints found within geographic proximity." };
     }
 
     // Prepare prompt comparing new complaint with existing candidates

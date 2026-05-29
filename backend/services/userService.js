@@ -39,6 +39,6 @@ export const searchUsers = async (filters) => {
     totalEscalations: u.totalEscalations || 0,
     contractStartDate: u.contractStartDate,
     contractEndDate: u.contractEndDate,
-    isVerified: u.isVerified || false,
+    is_verified: u.is_verified || false,
   }));
 };
