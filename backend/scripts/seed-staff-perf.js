@@ -18,7 +18,7 @@ const MOCK_STAFF = [
     slaComplianceRate: 96,
     citizenRating: 4.7,
     availabilityStatus: 'Available',
-    isVerified: true
+    is_verified: true
   },
   {
     name: 'Sector B Contractor (Water/Waste)',
@@ -32,7 +32,7 @@ const MOCK_STAFF = [
     slaComplianceRate: 85,
     citizenRating: 4.1,
     availabilityStatus: 'Busy',
-    isVerified: true
+    is_verified: true
   },
   {
     name: 'Municipal Electrical Vendor',
@@ -46,7 +46,7 @@ const MOCK_STAFF = [
     slaComplianceRate: 100,
     citizenRating: 4.9,
     availabilityStatus: 'Available',
-    isVerified: true
+    is_verified: true
   }
 ];
 
@@ -73,7 +73,7 @@ const seed = async () => {
               slaComplianceRate: data.slaComplianceRate,
               citizenRating: data.citizenRating,
               availabilityStatus: data.availabilityStatus,
-              isVerified: true,
+              is_verified: true,
               role: 'Staff'
             }
           }

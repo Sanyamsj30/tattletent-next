@@ -166,7 +166,7 @@ const StaffDashboard = () => {
   }, []);
 
   useEffect(() => {
-    setNewComplaints(complaints.filter((c) =>  c.status === "IN_PROGRESS" ));
+    setNewComplaints(complaints.filter((c) =>  c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING" ));
     setResolvedComplaints(complaints.filter((c) => c.status === "RESOLVED"));
   }, [complaints]);
 
@@ -180,7 +180,7 @@ const StaffDashboard = () => {
 
     setComplaints(prevComplaints =>
       prevComplaints.map(c =>
-        c.id === complaint.id ? { ...c, status: "RESOLVED" } : c
+        c.id === complaint.id ? { ...c, status: "RESOLVED_PENDING" } : c
       )
     );
   }
@@ -214,6 +214,8 @@ const StaffDashboard = () => {
     switch (status) {
       case "RESOLVED":
         return "bg-green-100 text-green-800";
+      case "RESOLVED_PENDING":
+        return "bg-amber-100 text-amber-800 border border-amber-300 animate-pulse";
       case "IN_PROGRESS":
         return "bg-yellow-100 text-yellow-800";
       default:
@@ -362,7 +364,7 @@ const StaffDashboard = () => {
               >
                 <div className="flex items-center gap-2">
                   <h4 className="text-xl font-semibold text-gray-800">{c.category}</h4>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status === "RESOLVED_PENDING" ? "Verification Pending" : c.status}</span>
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getPriorityBadge(c.priority)}`}>{c.priority}</span>
                 </div>
                 <p className="text-gray-600 mt-2">{c.location}</p>
@@ -417,7 +419,7 @@ const StaffDashboard = () => {
               <div key={c.id} className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
                 <div className="flex items-center gap-2">
                   <h4 className="text-xl font-semibold text-gray-800">{c.category}</h4>
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status}</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>{c.status === "RESOLVED_PENDING" ? "Verification Pending" : c.status}</span>
                 </div>
                 <p className="text-gray-600 mt-2">{c.location}</p>
                 <p className="text-gray-500 text-sm mt-1">{c.update}</p>
@@ -494,7 +496,7 @@ const StaffDashboard = () => {
         <p><strong>Title:</strong> {selectedComplaint.title}</p>
         <p><strong>Description:</strong> {selectedComplaint.description}</p>
         <p><strong>Location:</strong> {selectedComplaint.location}</p>
-        <p><strong>Status:</strong> {selectedComplaint.status}</p>
+        <p><strong>Status:</strong> {selectedComplaint.status === "RESOLVED_PENDING" ? "Verification Pending" : selectedComplaint.status}</p>
         <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
         <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo}</p>
         <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>

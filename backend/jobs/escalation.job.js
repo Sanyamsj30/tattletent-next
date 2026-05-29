@@ -31,4 +31,21 @@ cron.schedule("0 */6 * * *", async () => {
 cron.schedule("0 8 * * *", async () => {
   console.log("⏰ Running daily SLA reminder emails...");
   await notifyOverdueReminder();
-})
+});
+
+cron.schedule("0 0 * * *", async () => {
+  console.log("⏰ Running scheduled daily vendor performance scoring...");
+  try {
+    const User = (await import('../models/User.js')).default;
+    const { calculateVendorPerformanceScore } = await import('../services/ruleEngine.js');
+    
+    const vendors = await User.find({ role: 'Staff' });
+    for (const vendor of vendors) {
+      vendor.performanceScore = calculateVendorPerformanceScore(vendor);
+      await vendor.save();
+    }
+    console.log(`✅ Recalculated performance scores for ${vendors.length} vendors.`);
+  } catch (err) {
+    console.error("❌ Error recalculating vendor performance scores:", err);
+  }
+});

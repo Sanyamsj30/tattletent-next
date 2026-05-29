@@ -36,20 +36,32 @@ const AssignStaffPage = () => {
   const [selectedPriority, setSelectedPriority] = useState("Low");
   const [staffToAssign, setStaffToAssign] = useState(null);
 
-  const handleAssign = (staffId) => {
+  const handleAssign = async (staffId) => {
+    const reason = prompt("Enter a brief reason/note for this override assignment:") || "";
     const token = sessionStorage.getItem("token");
-    return axios
-      .put(`${API_BASE_URL}/api/complaints/status/${complaint.id}`, {
-        status: "In Progress",
+    try {
+      // 1. Reassign vendor (override)
+      await axios.put(`${API_BASE_URL}/api/complaints/reassign/${complaint.id}`, {
         staffId,
-        priority: selectedPriority,
+        reason,
       }, {
         headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(() => {
-        navigate("/admin-dashboard"); // go back after saving
-      })
-      .catch((err) => console.error(err));
+      });
+
+      // 2. Update priority if it's different or requested
+      if (selectedPriority) {
+        await axios.put(`${API_BASE_URL}/api/complaints/priority/${complaint.id}`, {
+          priority: selectedPriority,
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      }
+
+      navigate("/admin-dashboard"); // go back after saving
+    } catch (err) {
+      console.error("Manual assignment failed:", err);
+      alert("Failed to assign staff: " + (err.response?.data?.message || err.message));
+    }
   };
 
 
@@ -100,45 +112,39 @@ const AssignStaffPage = () => {
   }
 
   const fetchStaffPerformance = async (staff) => {
-  try {
-    // ✅ Axios automatically parses JSON, so just send staff_id as query param
-    const response = await axios.get(`${API_BASE_URL}/api/complaints/search?staff_id=${staff.id}`, {
-      headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-    });
+    try {
+      // ✅ Axios automatically parses JSON, so just send staff_id as query param
+      const response = await axios.get(`${API_BASE_URL}/api/complaints/search?staff_id=${staff.id}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
 
-    const data = response.data;
+      const data = response.data;
 
-    if (!Array.isArray(data)) {
-      console.error("Unexpected data format:", data);
-      return;
+      if (!Array.isArray(data)) {
+        console.error("Unexpected data format:", data);
+        return;
+      }
+
+      // ✅ Count complaints by status
+      const resolvedCount = data.filter((c) => c.status === "RESOLVED").length;
+      const inProgressCount = data.filter((c) => c.status === "IN_PROGRESS").length;
+      const pendingCount = data.filter((c) => c.status === "NEW").length;
+
+      // ✅ Update selected staff to show modal
+      setSelectedStaff({
+        ...staff,
+        performance: {
+          Resolved: resolvedCount,
+          "In Progress": inProgressCount,
+          Pending: pendingCount,
+        },
+      });
+      console.log(resolvedCount);
+      console.log(inProgressCount);
+    } catch (err) {
+      console.error("Error fetching performance:", err);
     }
-
-    // ✅ Count complaints by status
-    const resolvedCount = data.filter((c) => c.status === "RESOLVED").length;
-    const inProgressCount = data.filter((c) => c.status === "IN_PROGRESS").length;
-    const pendingCount = data.filter((c) => c.status === "NEW").length;
-
-    // ✅ Update selected staff to show modal
-    setSelectedStaff({
-      ...staff,
-      performance: {
-        Resolved: resolvedCount,
-        "In Progress": inProgressCount,
-        Pending: pendingCount,
-      },
-    });
-    console.log(resolvedCount);
-    console.log(inProgressCount);
-  } catch (err) {
-    console.error("Error fetching performance:", err);
-  }
-};
-
-
-
- {/*} const handleAssign = (staffName) => {
-    navigate("/admin-dashboard", { state: { assigned: { complaintId: complaint.id, staffName } } });
-  };*/}
+  };
 
   return (
     <div className="min-h-screen bg-[#FCF5EE] p-6">
@@ -202,7 +208,7 @@ const AssignStaffPage = () => {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 pt-2">
               <div className="bg-gray-50 p-3.5 rounded-2xl text-center">
                 <span className="text-xs text-gray-500 font-medium block">Availability</span>
                 <span className={`text-sm font-bold inline-block mt-1 ${
@@ -226,6 +232,10 @@ const AssignStaffPage = () => {
               <div className="bg-gray-50 p-3.5 rounded-2xl text-center">
                 <span className="text-xs text-gray-500 font-medium block">Citizen Rating</span>
                 <span className="text-sm font-bold text-yellow-600 font-mono">⭐ {recommendation.topChoice.citizenRating}/5</span>
+              </div>
+              <div className="bg-gray-50 p-3.5 rounded-2xl text-center">
+                <span className="text-xs text-gray-500 font-medium block">Performance</span>
+                <span className="text-sm font-bold text-orange-600 font-mono">{recommendation.topChoice.performanceScore || 100}/100</span>
               </div>
             </div>
           </div>
@@ -252,20 +262,21 @@ const AssignStaffPage = () => {
                 <div className="space-y-1 text-sm text-gray-500 mb-3 font-mono">
                   <p>⭐ Rating: <span className="text-yellow-600 font-bold">{s.citizenRating || 5}/5</span></p>
                   <p>📊 SLA Rate: <span className="text-gray-800 font-bold">{s.slaComplianceRate || 100}%</span></p>
+                  <p>🎯 Performance Score: <span className="text-orange-600 font-bold">{s.performanceScore || 100}/100</span></p>
                   <p>💼 Workload: <span className="text-gray-800 font-bold">{s.activeComplaints || 0} active</span></p>
                   <p className="text-xs truncate">📍 Wards: {s.assignedWards?.join(", ") || "None"}</p>
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
                 <button
-  className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition flex-1"
-  onClick={() => {
-    setStaffToAssign(s);
-    setPriorityModalOpen(true);
-  }}
->
-  Assign
-</button>
+                  className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 transition flex-1"
+                  onClick={() => {
+                    setStaffToAssign(s);
+                    setPriorityModalOpen(true);
+                  }}
+                >
+                  Assign
+                </button>
 
                 <button
                   className="px-3 py-1.5 bg-yellow-500 text-white rounded-lg text-sm hover:bg-yellow-600 transition flex-1"
@@ -314,43 +325,43 @@ const AssignStaffPage = () => {
       )}
 
       {priorityModalOpen && staffToAssign && (
-  <Modal
-    title={`Assign Complaint #${complaint?.id} to ${staffToAssign.name}`}
-    onClose={() => setPriorityModalOpen(false)}
-  >
-    <div className="space-y-4">
-      <label className="block font-semibold">Select Priority:</label>
-      <select
-        className="w-full p-3 border rounded-xl"
-        value={selectedPriority}
-        onChange={(e) => setSelectedPriority(e.target.value)}
-      >
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
+        <Modal
+          title={`Assign Complaint #${complaint?.id} to ${staffToAssign.name}`}
+          onClose={() => setPriorityModalOpen(false)}
+        >
+          <div className="space-y-4">
+            <label className="block font-semibold">Select Priority:</label>
+            <select
+              className="w-full p-3 border rounded-xl"
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+            >
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select>
 
-      <div className="flex justify-end gap-3 mt-4">
-        <button
-          className="px-6 py-3 bg-gray-200 rounded-xl"
-          onClick={() => setPriorityModalOpen(false)}
-        >
-          Cancel
-        </button>
-        <button
-          className="px-6 py-3 bg-orange-600 text-white rounded-xl"
-          onClick={() => {
-            handleAssign(staffToAssign.id).finally(() => {
-              setPriorityModalOpen(false);
-            });
-          }}
-        >
-          Assign
-        </button>
-      </div>
-    </div>
-  </Modal>
-)}
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                className="px-6 py-3 bg-gray-200 rounded-xl"
+                onClick={() => setPriorityModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-6 py-3 bg-orange-600 text-white rounded-xl"
+                onClick={() => {
+                  handleAssign(staffToAssign.id).finally(() => {
+                    setPriorityModalOpen(false);
+                  });
+                }}
+              >
+                Assign
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
     </div>
   );
@@ -370,7 +381,7 @@ const Modal = ({ title, children, onClose }) => (
     </div>
   </div>
 
-  
+
 );
 
 export default AssignStaffPage;

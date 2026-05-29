@@ -61,7 +61,8 @@ export const getAssignmentRecommendation = async (complaintId) => {
         activeComplaints: activeCount,
         slaComplianceRate: slaRate,
         citizenRating: rating,
-        availabilityStatus: staff.availabilityStatus || 'Available'
+        availabilityStatus: staff.availabilityStatus || 'Available',
+        performanceScore: staff.performanceScore || 100
       });
     }
 

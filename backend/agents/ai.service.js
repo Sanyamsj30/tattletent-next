@@ -162,12 +162,27 @@ function getFallbackResponse(prompt, jsonMode) {
 
   // 1. DUPLICATE DETECTION FALLBACK
   if (p.includes('duplicate') || p.includes('similarity')) {
-    const isDuplicate = p.includes('pathway damage') && p.includes('sector c');
+    const candidateIds = [];
+    const idRegex = /id:\s*([a-f0-9]{24})/gi;
+    let match;
+    while ((match = idRegex.exec(prompt)) !== null) {
+      candidateIds.push(match[1]);
+    }
+
+    const isDuplicate = (p.includes('pathway damage') && p.includes('sector c')) ||
+                        p.includes('water leak') ||
+                        p.includes('garbage') ||
+                        p.includes('electrical') ||
+                        p.includes('duplicate');
+
+    const matchedId = isDuplicate && candidateIds.length > 0 ? candidateIds[0] : null;
+
     const result = {
-      isDuplicate,
-      similarityScore: isDuplicate ? 92 : 12,
-      explanation: isDuplicate 
-        ? "Both complaints describe pathway tiles damaged near Sector C and require identical vendor attention."
+      isDuplicate: isDuplicate && matchedId !== null,
+      similarityScore: isDuplicate && matchedId !== null ? 92 : 12,
+      duplicateOf: matchedId,
+      explanation: isDuplicate && matchedId !== null
+        ? "Both complaints describe identical physical incidents and require the same vendor attention."
         : "Complaints refer to entirely different incidents and locations."
     };
     return jsonMode ? JSON.stringify(result) : result.explanation;

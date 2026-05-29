@@ -1,5 +1,6 @@
 import asynchandler from '../utils/asynchandler.js';
 import { ApiResponse } from '../utils/api-response.js';
+import jwt from 'jsonwebtoken';
 import {
   saveComplaintToDB,
   updateComplaintStatusInDB,
@@ -9,8 +10,11 @@ import {
   searchComplaints,
   escalateComplaintsByCategory,
   fetchHeatmapData,
+  adminReassignComplaintInDB,
+  forceEscalateComplaintInDB,
 } from '../services/complaint.service.js';
 import { notifyStatusChange } from '../services/notification.service.js';
+import Complaint from '../models/Complaint.js';
 
 const createComplaint = asynchandler(async (req, res) => {
   const { title, description, category, location, user_id, latitude, longitude, priority } = Object.assign({}, req.body);
@@ -36,10 +40,51 @@ const createComplaint = asynchandler(async (req, res) => {
 
 const updateComplaintStatus = asynchandler(async (req, res) => {
   const { id } = req.params;
-  const { status, staffId, priority } = req.body;
+  let { status, staffId, priority } = req.body;
 
   if (!status) {
     return res.status(400).json(new ApiResponse(400, null, 'Status is required for this update.'));
+  }
+
+  const role = req.user?.role;
+  const isCitizen = role === 'Citizen';
+  const isStaffOrAdmin = ['Staff', 'Admin', 'Ringmaster', 'Groundmaster'].includes(role);
+
+  if (!isCitizen && !isStaffOrAdmin) {
+    return res.status(403).json(new ApiResponse(403, null, 'Access denied. Unauthorized role.'));
+  }
+
+  if (isCitizen) {
+    // Citizens can only confirm or reject their own RESOLVED_PENDING complaints
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json(new ApiResponse(404, null, 'Complaint not found.'));
+    }
+
+    if (complaint.user_id.toString() !== req.user.user_id) {
+      return res.status(403).json(new ApiResponse(403, null, 'Access denied. You do not own this complaint.'));
+    }
+
+    if (complaint.status !== 'RESOLVED_PENDING') {
+      return res.status(400).json(new ApiResponse(400, null, 'Only resolved pending complaints can be updated by citizens.'));
+    }
+
+    const normalizedTarget = String(status).trim().toUpperCase();
+    if (normalizedTarget !== 'RESOLVED' && normalizedTarget !== 'IN_PROGRESS') {
+      return res.status(400).json(new ApiResponse(400, null, 'Invalid status. Citizens can only confirm (RESOLVED) or reject (IN_PROGRESS) the resolution.'));
+    }
+
+    // Citizens cannot modify assignment or priority
+    staffId = undefined;
+    priority = undefined;
+  } else {
+    // Issue 5: Redirect Staff/Vendor resolutions to RESOLVED_PENDING first
+    const isStaff = role === 'Staff';
+    const isMarkingResolved = String(status).trim().toLowerCase() === 'resolved';
+
+    if (isStaff && isMarkingResolved) {
+      status = 'RESOLVED_PENDING';
+    }
   }
 
   const updated = await updateComplaintStatusInDB(id, status, staffId, priority);
@@ -86,6 +131,24 @@ const fetchComplaintCounts = async (req, res) => {
 
 const getComplaints = async (req, res) => {
   try {
+    // Issue 7: Secure BOLA vulnerability for User-Specific Search
+    if (req.query.user_id) {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Authentication required for user-specific search.' });
+      }
+
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.role === 'Citizen' && decoded.user_id !== req.query.user_id) {
+          return res.status(403).json({ error: 'Forbidden: You cannot query complaints filed by other citizens.' });
+        }
+      } catch (tokenErr) {
+        return res.status(401).json({ error: 'Invalid or expired token.' });
+      }
+    }
+
     const filters = {
       user_id: req.query.user_id,
       searchText: req.query.q,
@@ -129,6 +192,22 @@ const getHeatmapData = async (req, res) => {
   }
 };
 
+const reassignComplaint = asynchandler(async (req, res) => {
+  const { id } = req.params;
+  const { staffId, reason } = req.body;
+
+  const updated = await adminReassignComplaintInDB(id, staffId, req.user, reason);
+  return res.status(200).json(new ApiResponse(200, updated, 'Complaint reassigned successfully'));
+});
+
+const forceEscalateComplaint = asynchandler(async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  const updated = await forceEscalateComplaintInDB(id, req.user, reason);
+  return res.status(200).json(new ApiResponse(200, updated, 'Complaint escalated successfully'));
+});
+
 export {
   createComplaint,
   updateComplaintStatus,
@@ -138,5 +217,7 @@ export {
   getComplaints,
   escalateComplaints,
   getHeatmapData,
+  reassignComplaint,
+  forceEscalateComplaint,
 };
 

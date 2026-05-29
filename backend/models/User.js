@@ -33,7 +33,6 @@ const userSchema = new mongoose.Schema(
     totalEscalations: { type: Number, default: 0 },
     contractStartDate: { type: Date },
     contractEndDate: { type: Date },
-    isVerified: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
 );
