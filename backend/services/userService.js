@@ -28,5 +28,17 @@ export const searchUsers = async (filters) => {
     email: u.email,
     role: u.role,
     created_at: u.created_at,
+    assignedWards: u.assignedWards || [],
+    activeComplaints: u.activeComplaints || 0,
+    resolvedComplaints: u.resolvedComplaints || 0,
+    avgResolutionTime: u.avgResolutionTime || 0,
+    performanceScore: u.performanceScore || 100,
+    slaComplianceRate: u.slaComplianceRate || 100,
+    citizenRating: u.citizenRating || 5,
+    availabilityStatus: u.availabilityStatus || 'Available',
+    totalEscalations: u.totalEscalations || 0,
+    contractStartDate: u.contractStartDate,
+    contractEndDate: u.contractEndDate,
+    isVerified: u.isVerified || false,
   }));
 };

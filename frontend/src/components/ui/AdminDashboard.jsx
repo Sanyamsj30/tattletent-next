@@ -101,7 +101,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (user?.user_id) fetchComplaintsByUser();
-  }, [user]);
+  }, [user?.user_id]);
 
   // Fetch assigned complaints (with demo fallback)
   const fetchAssignedComplaints = async () => {
@@ -133,7 +133,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (user?.user_id) fetchAssignedComplaints();
-  }, [user]);
+  }, [user?.user_id]);
 
   // Pagination slices
   const totalNewPages = Math.ceil(complaints.length / complaintsPerPage);

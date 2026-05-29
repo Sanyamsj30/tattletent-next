@@ -31,11 +31,21 @@ const complaintSchema = new mongoose.Schema(
 
     sla_deadline: { type: Date, index: true },
     temp_points: { type: Number, default: 3 },
+    
+    // AI governance extensions
+    severity: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Low', index: true },
+    is_duplicate: { type: Boolean, default: false, index: true },
+    duplicate_of: { type: mongoose.Schema.Types.ObjectId, ref: 'Complaint', index: true },
+    escalation_explanation: { type: String },
   },
   { timestamps: { createdAt: 'submitted_at', updatedAt: 'updated_at' } }
 );
 
 complaintSchema.index({ geolocation: '2dsphere' });
+complaintSchema.index({ user_id: 1, submitted_at: -1 });
+complaintSchema.index({ staff_id: 1, status: 1, submitted_at: -1 });
+complaintSchema.index({ status: 1, submitted_at: -1 });
+complaintSchema.index({ submitted_at: -1 });
 
 const Complaint = mongoose.model('Complaint', complaintSchema);
 
