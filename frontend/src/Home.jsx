@@ -824,18 +824,6 @@ const handleGoogleLogin = () => {
               </button>
             </p>
 
-           <p className="text-sm text-center mt-2">
-             <button
-               type="button"
-               onClick={() => {
-                 setLoginOpen(false);
-                 navigate("/change-password");
-               }}
-               className="text-[#d55d1f] hover:underline"
-             >
-               Change Password
-             </button>
-           </p>
          </form>
       
         

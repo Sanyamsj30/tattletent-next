@@ -16,6 +16,24 @@ const userSchema = new mongoose.Schema(
     is_verified: { type: Boolean, default: false, index: true },
     must_change_password: { type: Boolean, default: false },
     points: { type: Number, default: 0 },
+    // Extended staff/vendor fields
+    assignedWards: { type: [String], default: [] },
+    activeComplaints: { type: Number, default: 0 },
+    resolvedComplaints: { type: Number, default: 0 },
+    avgResolutionTime: { type: Number, default: 0 }, // in hours
+    performanceScore: { type: Number, default: 100 }, // 0 to 100
+    slaComplianceRate: { type: Number, default: 100 }, // percentage
+    citizenRating: { type: Number, default: 5 }, // 1 to 5
+    availabilityStatus: {
+      type: String,
+      enum: ['Available', 'Busy', 'Overloaded'],
+      default: 'Available',
+      index: true,
+    },
+    totalEscalations: { type: Number, default: 0 },
+    contractStartDate: { type: Date },
+    contractEndDate: { type: Date },
+    isVerified: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
 );

@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { FaBars } from "react-icons/fa";
 import axios from "axios";
 import { API_BASE_URL } from "../../lib/api";
+import ChatbotWidget from "./ChatbotWidget";
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
@@ -60,7 +61,7 @@ const [menuOpen, setMenuOpen] = useState(false);
       photo: c.photo,
       assignedTo: c.assigned_to,
       subdate: new Date(c.submitted_at).toLocaleDateString(),
-      update: new Date(c.updated_at).toLocaleDateString()
+      update: new Date(c.updated_at).toLocaleDateString(), severity: c.severity, is_duplicate: c.is_duplicate, duplicate_of: c.duplicate_of, escalation_explanation: c.escalation_explanation
     })));
 
   } catch (err) {
@@ -73,7 +74,7 @@ useEffect(() => {
   if (user?.user_id) {
     fetchComplaintsByUser();
   }
-}, [user]);
+}, [user?.user_id]); // optimized dependency to prevent infinite fetch loop
 // refetch if user changes
 
 
@@ -577,11 +578,33 @@ useEffect(() => {
       </h2>
 
       <div className="space-y-3">
+        {selectedComplaint.is_duplicate && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-sm font-medium flex items-center gap-2 mb-4 animate-pulse">
+            ⚠️ <strong>Duplicate Alert:</strong> This complaint matches an active issue. It is marked as duplicate and has been resolved/merged.
+          </div>
+        )}
+        {selectedComplaint.escalation_explanation && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium mb-4">
+            🔥 <strong>SLA Escalation Intelligence:</strong> {selectedComplaint.escalation_explanation}
+          </div>
+        )}
         <p><strong>Title:</strong> {selectedComplaint.title}</p>
         <p><strong>Description:</strong> {selectedComplaint.description}</p>
         <p><strong>Location:</strong> {selectedComplaint.location}</p>
         <p><strong>Status:</strong> {selectedComplaint.status}</p>
         <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
+        <p>
+          <strong>Severity:</strong>{" "}
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+            selectedComplaint.severity === "High"
+              ? "bg-red-100 text-red-800 border border-red-200"
+              : selectedComplaint.severity === "Medium"
+              ? "bg-yellow-100 text-yellow-800 border border-yellow-200"
+              : "bg-blue-100 text-blue-800 border border-blue-200"
+          }`}>
+            {selectedComplaint.severity || "Low"}
+          </span>
+        </p>
         <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo}</p>
         <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>
         <p><strong>Last Update:</strong> {selectedComplaint.update}</p>
@@ -601,6 +624,7 @@ useEffect(() => {
   </div>
 )}
 
+<ChatbotWidget />
 <footer className="text-center py-4 bg-white shadow-inner text-gray-600 text-sm">
         © {new Date().getFullYear()} TattleTent. All rights reserved.
       </footer>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Logo from './Logo'
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
@@ -65,30 +65,20 @@ const AllComplaintsPage = () => {
 
   //const staffList = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Lee"];
 
-  const filteredComplaints = complaints.filter(c => {
-    const matchesStatus = filterStatus === "all" || c.status.toLowerCase() === filterStatus.toLowerCase();
-    const matchesCategory = filterCategory === "all" || c.category.toLowerCase() === filterCategory.toLowerCase();
-    const matchesSearch = searchTerm === "" || c.category.toLowerCase().includes(searchTerm.toLowerCase()) || c.location.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesCategory && matchesSearch;
-  });
+  const filteredComplaints = useMemo(() => {
+    return complaints.filter(c => {
+      const matchesStatus = filterStatus === "all" || c.status.toLowerCase() === filterStatus.toLowerCase();
+      const matchesCategory = filterCategory === "all" || c.category.toLowerCase() === filterCategory.toLowerCase();
+      const matchesSearch = searchTerm === "" || c.category.toLowerCase().includes(searchTerm.toLowerCase()) || c.location.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesStatus && matchesCategory && matchesSearch;
+    });
+  }, [complaints, filterStatus, filterCategory, searchTerm]);
 
   // Pagination calculations
   const indexOfLast = currentPage * complaintsPerPage;
   const indexOfFirst = indexOfLast - complaintsPerPage;
   const currentComplaints = filteredComplaints.slice(indexOfFirst, indexOfLast);
   const totalPages = Math.ceil(filteredComplaints.length / complaintsPerPage);
-
- /* const handleAssign = (complaint) => setAssignStaff(complaint);
-  const confirmAssign = (staffName) => {
-    setComplaints(prev => prev.map(c => c.id === assignStaff.id ? { ...c, assignedTo: staffName, status: "In Progress" } : c));
-    setAssignStaff(null);
-  };
-
-  const handleUpdate = (complaint) => setSelectedComplaint({ ...complaint });
-  const saveUpdate = () => {
-    setComplaints(prev => prev.map(c => c.id === selectedComplaint.id ? selectedComplaint : c));
-    setSelectedComplaint(null);
-  };*/
 
   const handleView = (complaint) => {
     setSelectedComplaint(complaint);
@@ -273,52 +263,6 @@ const AllComplaintsPage = () => {
         </div>
       )}
 
-      {/* Assign Modal */}
-      {/*{assignStaff && (
-        <Modal title={`Assign Complaint #${assignStaff.id}`} onClose={()=>setAssignStaff(null)}>
-          <div className="space-y-3">
-            {staffList.map(staff=>(
-              <button key={staff} className="w-full px-4 py-2 bg-orange-100 rounded-lg hover:bg-orange-200 transition" onClick={()=>confirmAssign(staff)}>
-                {staff}
-              </button>
-            ))}
-          </div>
-        </Modal>
-      )}
-
-      {/* Update Modal */}
-      {/*{selectedComplaint && (
-        <Modal title={`Update Complaint #${selectedComplaint.id}`} onClose={()=>setSelectedComplaint(null)}>
-          <div className="space-y-4">
-            <label className="block text-sm font-semibold">Status</label>
-            <select className="w-full p-3 border rounded-xl" value={selectedComplaint.status} onChange={e=>setSelectedComplaint({...selectedComplaint,status:e.target.value})}>
-              <option value="Pending">Pending</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-
-            <label className="block text-sm font-semibold">Priority</label>
-            <select className="w-full p-3 border rounded-xl" value={selectedComplaint.priority || ""} onChange={e=>setSelectedComplaint({...selectedComplaint,priority:e.target.value})}>
-              <option value="">Not Set</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-
-            <label className="block text-sm font-semibold">Description</label>
-            <textarea className="w-full p-3 border rounded-xl" rows={4} value={selectedComplaint.description} readOnly />
-
-            <label className="block text-sm font-semibold">Solution / Notes</label>
-            <textarea className="w-full p-3 border rounded-xl" rows={3} value={selectedComplaint.solution || ""} onChange={e=>setSelectedComplaint({...selectedComplaint,solution:e.target.value})} />
-
-            <div className="flex justify-end gap-3">
-              <button className="px-6 py-3 bg-gray-200 rounded-xl" onClick={()=>setSelectedComplaint(null)}>Cancel</button>
-              <button className="px-6 py-3 bg-orange-600 text-white rounded-xl" onClick={saveUpdate}>Save</button>
-            </div>
-          </div>
-        </Modal>
-      )}*/}
-
       {isViewOpen && selectedComplaint && (
   <div
     className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
@@ -366,7 +310,6 @@ const AllComplaintsPage = () => {
     </div>
   </div>
 )}
-
 
 
     </div>

@@ -3,6 +3,8 @@ import Department from '../models/Department.js';
 import SlaRule from '../models/SlaRule.js';
 import User from '../models/User.js';
 import { notifyAdminForManualReassignment } from './notification.service.js';
+import { checkDuplicateComplaint } from '../agents/duplicateDetectionAgent.js';
+import { analyzeEscalationUrgency } from '../agents/smartEscalationAgent.js';
 
 const normalizeStatus = (status) => {
   if (!status) return status;
@@ -33,6 +35,10 @@ const toComplaintDto = (c) => ({
   sla_deadline: c.sla_deadline,
   submitted_at: c.submitted_at,
   updated_at: c.updated_at,
+  severity: c.severity || 'Low',
+  is_duplicate: c.is_duplicate || false,
+  duplicate_of: c.duplicate_of?.toString?.() || c.duplicate_of,
+  escalation_explanation: c.escalation_explanation,
 });
 
 const ensureDepartment = async (categoryName) => {
@@ -70,6 +76,15 @@ export const saveComplaintToDB = async (newComplaint) => {
     const slaHours = dept_id ? await calculateSlaDeadline(dept_id, priority) : 24;
     const sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
+    // AI extension: run severity checks (simple regex, fast, synchronous)
+    let severity = 'Low';
+    const combinedText = (newComplaint.title + ' ' + newComplaint.description).toLowerCase();
+    if (combinedText.includes('spark') || combinedText.includes('fire') || combinedText.includes('emergency') || combinedText.includes('hazard') || combinedText.includes('burst') || combinedText.includes('shock') || combinedText.includes('injury')) {
+      severity = 'High';
+    } else if (combinedText.includes('leak') || combinedText.includes('broken') || combinedText.includes('overflow') || combinedText.includes('damage') || combinedText.includes('dark')) {
+      severity = 'Medium';
+    }
+
     const doc = await Complaint.create({
       title: newComplaint.title,
       description: newComplaint.description,
@@ -87,6 +102,31 @@ export const saveComplaintToDB = async (newComplaint) => {
           ? { type: 'Point', coordinates: [Number(newComplaint.longitude), Number(newComplaint.latitude)] }
           : undefined,
       sla_deadline,
+      severity,
+      is_duplicate: false,
+      duplicate_of: null
+    });
+
+    // Launch duplicate check asynchronously in the background
+    setImmediate(async () => {
+      try {
+        const dupResult = await checkDuplicateComplaint({
+          title: newComplaint.title,
+          description: newComplaint.description,
+          category: newComplaint.category,
+          location: newComplaint.location,
+          currentId: doc._id
+        });
+        if (dupResult && dupResult.isDuplicate && dupResult.duplicateOf) {
+          await Complaint.updateOne(
+            { _id: doc._id },
+            { $set: { is_duplicate: true, duplicate_of: dupResult.duplicateOf } }
+          );
+          console.log(`[AI Background] Complaint ${doc._id} marked as duplicate of ${dupResult.duplicateOf}`);
+        }
+      } catch (dupErr) {
+        console.error("[AI Background] Duplicate check failed:", dupErr);
+      }
     });
 
     return toComplaintDto(doc);
@@ -96,12 +136,49 @@ export const saveComplaintToDB = async (newComplaint) => {
   }
 };
 
+export const updateStaffWorkloadAndAvailability = async (staffId) => {
+  if (!staffId) return;
+  try {
+    const activeComplaints = await Complaint.countDocuments({
+      staff_id: staffId,
+      status: 'IN_PROGRESS'
+    });
+
+    const resolvedComplaints = await Complaint.countDocuments({
+      staff_id: staffId,
+      status: 'RESOLVED'
+    });
+
+    let availabilityStatus = 'Available';
+    if (activeComplaints >= 3 && activeComplaints <= 5) {
+      availabilityStatus = 'Busy';
+    } else if (activeComplaints > 5) {
+      availabilityStatus = 'Overloaded';
+    }
+
+    await User.updateOne(
+      { _id: staffId },
+      { 
+        $set: { 
+          activeComplaints, 
+          resolvedComplaints,
+          availabilityStatus 
+        } 
+      }
+    );
+  } catch (err) {
+    console.error("Failed to update staff workload:", err);
+  }
+};
+
 /**
  * Update complaint status (and optionally assignment/priority).
  */
 export const updateComplaintStatusInDB = async (id, status, staffId, priority) => {
   const complaint = await Complaint.findById(id);
   if (!complaint) return null;
+
+  const oldStaffId = complaint.staff_id;
 
   if (staffId) {
     const staff = await User.findById(staffId).select('name');
@@ -134,6 +211,15 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
   }
 
   await complaint.save();
+
+  // Recalculate workloads
+  if (complaint.staff_id) {
+    await updateStaffWorkloadAndAvailability(complaint.staff_id);
+  }
+  if (oldStaffId && oldStaffId.toString() !== complaint.staff_id?.toString()) {
+    await updateStaffWorkloadAndAvailability(oldStaffId);
+  }
+
   return toComplaintDto(complaint);
 };
 
@@ -243,8 +329,20 @@ export const escalateComplaintsByCategory = async () => {
       const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
       complaint.temp_points = Math.max((complaint.temp_points || 0) - 1, 0);
+
       await complaint.save();
       escalated.push({ complaint_id: complaint._id.toString(), priority: complaint.priority });
+
+      // Run AI Urgency Analysis asynchronously in background
+      const cId = complaint._id;
+      setImmediate(async () => {
+        try {
+          const explanation = await analyzeEscalationUrgency(cId);
+          await Complaint.updateOne({ _id: cId }, { $set: { escalation_explanation: explanation } });
+        } catch (aiErr) {
+          console.error(`[AI Background] Escalation explanation failed for ${cId}:`, aiErr);
+        }
+      });
       continue;
     }
 
@@ -253,20 +351,51 @@ export const escalateComplaintsByCategory = async () => {
       const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
       complaint.temp_points = Math.max((complaint.temp_points || 0) - 1, 0);
+
       await complaint.save();
       escalated.push({ complaint_id: complaint._id.toString(), priority: complaint.priority });
+
+      // Run AI Urgency Analysis asynchronously in background
+      const cId = complaint._id;
+      setImmediate(async () => {
+        try {
+          const explanation = await analyzeEscalationUrgency(cId);
+          await Complaint.updateOne({ _id: cId }, { $set: { escalation_explanation: explanation } });
+        } catch (aiErr) {
+          console.error(`[AI Background] Escalation explanation failed for ${cId}:`, aiErr);
+        }
+      });
       continue;
     }
 
     // High priority: reset assignment and notify admin
     complaint.status = 'NEW';
+    const oldStaffId = complaint.staff_id;
     complaint.staff_id = undefined;
     complaint.assigned_to = undefined;
     const slaHours = complaint.dept_id ? await calculateSlaDeadline(complaint.dept_id, complaint.priority) : 24;
     complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
     complaint.temp_points = 3;
+
     await complaint.save();
+
+    // Workload recalcs for unassigned staff
+    if (oldStaffId) {
+      await updateStaffWorkloadAndAvailability(oldStaffId);
+    }
+
     escalated.push({ complaint_id: complaint._id.toString(), priority: complaint.priority });
+
+    // Run AI Urgency Analysis asynchronously in background
+    const cId = complaint._id;
+    setImmediate(async () => {
+      try {
+        const explanation = await analyzeEscalationUrgency(cId);
+        await Complaint.updateOne({ _id: cId }, { $set: { escalation_explanation: explanation } });
+      } catch (aiErr) {
+        console.error(`[AI Background] Escalation explanation failed for ${cId}:`, aiErr);
+      }
+    });
 
     try {
       await notifyAdminForManualReassignment(complaint._id.toString());

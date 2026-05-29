@@ -171,8 +171,11 @@ const StaffDashboard = () => {
   }, [complaints]);
 
   const handleResolvedComplaints = (complaint) => {
+    const token = sessionStorage.getItem("token");
     axios.put(`${API_BASE_URL}/api/complaints/status/${complaint.id}`, {
       status: "Resolved",
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
     }).catch(err => console.error(err));
 
     setComplaints(prevComplaints =>
@@ -534,7 +537,7 @@ const StaffDashboard = () => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="count" fill="#d55d1f" />
+                <Bar dataKey="count" fill="#d55d1f" isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
             <div className="flex justify-center mt-6">
