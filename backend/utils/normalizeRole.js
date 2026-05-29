@@ -13,4 +13,3 @@ const normalizeRole = (role) => {
 };
 
 export default normalizeRole;
-

@@ -17,7 +17,8 @@ import { notifyStatusChange } from '../services/notification.service.js';
 import Complaint from '../models/Complaint.js';
 
 const createComplaint = asynchandler(async (req, res) => {
-  const { title, description, category, location, user_id, latitude, longitude, priority } = Object.assign({}, req.body);
+  const { title, description, category, location, user_id, latitude, longitude, priority } =
+    Object.assign({}, req.body);
 
   if (!user_id || !title || !description || !category || !location) {
     return res.status(400).json(new ApiResponse(400, null, 'All fields are required'));
@@ -97,19 +98,26 @@ const updateComplaintStatus = asynchandler(async (req, res) => {
     console.error('notifyStatusChange failed:', err);
   }
 
-  return res.status(200).json(new ApiResponse(200, updated, 'Complaint status updated successfully'));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updated, 'Complaint status updated successfully'));
 });
 
 const updateComplaintPriority = asynchandler(async (req, res) => {
   const { id } = req.params;
   const { priority } = req.body;
 
-  if (!priority) return res.status(400).json(new ApiResponse(400, null, 'Priority is required for this update.'));
+  if (!priority)
+    return res
+      .status(400)
+      .json(new ApiResponse(400, null, 'Priority is required for this update.'));
 
   const updated = await updateComplaintPriorityInDB(id, priority);
   if (!updated) return res.status(404).json(new ApiResponse(404, null, 'Complaint not found'));
 
-  return res.status(200).json(new ApiResponse(200, updated, 'Complaint priority updated successfully'));
+  return res
+    .status(200)
+    .json(new ApiResponse(200, updated, 'Complaint priority updated successfully'));
 });
 
 const deleteComplaint = asynchandler(async (req, res) => {
@@ -175,11 +183,19 @@ const getComplaints = async (req, res) => {
 const escalateComplaints = asynchandler(async (req, res) => {
   const escalated = await escalateComplaintsByCategory();
   if (escalated.length === 0) {
-    return res.status(200).json(new ApiResponse(200, null, '✅ No complaints needed escalation today'));
+    return res
+      .status(200)
+      .json(new ApiResponse(200, null, '✅ No complaints needed escalation today'));
   }
-  return res.status(200).json(
-    new ApiResponse(200, { count: escalated.length, escalated }, '⚡ Complaints escalated successfully')
-  );
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { count: escalated.length, escalated },
+        '⚡ Complaints escalated successfully'
+      )
+    );
 });
 
 const getHeatmapData = async (req, res) => {
@@ -220,4 +236,3 @@ export {
   reassignComplaint,
   forceEscalateComplaint,
 };
-

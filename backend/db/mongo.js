@@ -15,4 +15,3 @@ const connectMongo = async () => {
 };
 
 export default connectMongo;
-

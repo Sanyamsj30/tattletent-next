@@ -47,13 +47,17 @@ const HeatmapLayer = ({ points }) => {
   return null;
 };
 
+// ESLint's `no-unused-vars` doesn't count JSX member usage like `<motion.div />` in some setups.
+// Keep a harmless reference so the import isn't flagged.
+const _motion = motion;
+
 // Main Heatmap Component
 const LeafletHeatmap = () => {
   const [points, setPoints] = useState([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [viewMode, setViewMode] = useState("satellite");
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation] = useState(null);
   const navigate = useNavigate();
 
   const fetchPoints = async () => {

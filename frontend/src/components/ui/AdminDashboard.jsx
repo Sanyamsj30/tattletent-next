@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from "react";
 import Logo from "./Logo";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../../lib/api";
 import { FaBars, FaTimes, FaRobot, FaUserAlt, FaArrowUp, FaHistory, FaTrash } from "react-icons/fa";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const user = JSON.parse(sessionStorage.getItem("user"));
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 

@@ -4,7 +4,9 @@ import sendEmail from '../utils/sendEmail.js';
 
 export const notifyStatusChange = async (complaintId) => {
   try {
-    const complaint = await Complaint.findById(complaintId).populate('user_id', 'name email').lean();
+    const complaint = await Complaint.findById(complaintId)
+      .populate('user_id', 'name email')
+      .lean();
     if (!complaint) return;
 
     const citizenEmail = complaint.user_id?.email;
@@ -108,4 +110,3 @@ export const notifyAdminForManualReassignment = async (complaintId) => {
     });
   }
 };
-
