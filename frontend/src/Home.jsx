@@ -3,9 +3,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import AppButton from "./components/ui/app-button";
 import Logo from "./components/ui/Logo";
-import { useNavigate, useLocation } from "react-router-dom";
-import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
-import jwtDecode from "jwt-decode"; // ✅ correct import
+import { useNavigate } from "react-router-dom";
 import {FaBars,FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from "react-icons/fa";
 import axios from "axios";
 import { API_BASE_URL } from "./lib/api";
@@ -20,6 +18,10 @@ const portals = [
   ["Authority Dashboard", "Manage and resolve issues efficiently.", "M3 3h18v18H3z"],
   ["Mobile App", "Report problems instantly with your phone.", "M12 6v6l4 2"],
 ];
+
+// ESLint's `no-unused-vars` doesn't count JSX member usage like `<motion.div />` in some setups.
+// Keep a harmless reference so the import isn't flagged.
+const _motion = motion;
 
 const features = [
   ["Real-Time Tracking", "Stay updated on the status of your complaints."],
@@ -833,7 +835,7 @@ const handleGoogleLogin = () => {
 )}
 
 {/* Forgot Password Modal */}
-{false && (
+{forgotPassword && (
   <motion.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}

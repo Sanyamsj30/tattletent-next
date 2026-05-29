@@ -42,4 +42,3 @@ export const searchUsers = async (filters) => {
     isVerified: u.isVerified || false,
   }));
 };
-
