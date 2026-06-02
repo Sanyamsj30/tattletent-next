@@ -1,9 +1,6 @@
 import * as React from "react";
 import { cva } from "class-variance-authority";
-
-function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
+import { cn } from "../../lib/utils";
 
 const appButtonVariants = cva(
   "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/50 disabled:opacity-50 disabled:pointer-events-none select-none transform active:scale-98 cursor-pointer",

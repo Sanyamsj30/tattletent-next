@@ -1,4 +1,4 @@
-import { searchUsers } from '../services/userService.js';
+import { searchUsers } from '../services/user.service.js';
 
 // search and filter
 const getUsers = async (req, res) => {

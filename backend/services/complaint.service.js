@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import { notifyAdminForManualReassignment } from './notification.service.js';
 import { checkDuplicateComplaint } from '../agents/duplicateDetectionAgent.js';
 import { analyzeEscalationUrgency } from '../agents/smartEscalationAgent.js';
-import { calculateDeterministicSeverity, calculateDeterministicPriority } from './ruleEngine.js';
+import { calculateDeterministicSeverity, calculateDeterministicPriority } from './rule-engine.service.js';
 import { runAutoAssignmentEngine } from './assignment.service.js';
 
 const normalizeStatus = (status) => {
@@ -235,7 +235,7 @@ export const updateStaffWorkloadAndAvailability = async (staffId) => {
       vendor.availabilityStatus = availabilityStatus;
 
       // Recalculate vendor performance score automatically
-      const { calculateVendorPerformanceScore } = await import('./ruleEngine.js');
+      const { calculateVendorPerformanceScore } = await import('./rule-engine.service.js');
       vendor.performanceScore = calculateVendorPerformanceScore(vendor);
       await vendor.save();
     }

@@ -11,6 +11,7 @@ import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
 import axios from "axios";
 import { API_BASE_URL } from "../../lib/api";
+import { useAuthSession } from "../../hooks/useAuthSession";
 import {
   AreaChart,
   Area,
@@ -23,8 +24,7 @@ import {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("user"));
-  const userId = user?.user_id || user?.id || user?._id;
+  const { user, userId } = useAuthSession();
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
   // Complaints states

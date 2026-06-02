@@ -1,5 +1,5 @@
 import Complaint from '../models/Complaint.js';
-import { callGemini } from './ai.service.js';
+import { callGemini } from '../services/ai.service.js';
 
 /**
  * Check if a newly submitted complaint is a semantic duplicate of another active complaint.

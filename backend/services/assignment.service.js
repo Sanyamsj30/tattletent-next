@@ -1,7 +1,7 @@
 import Complaint from '../models/Complaint.js';
 import User from '../models/User.js';
-import { callGemini } from '../agents/ai.service.js';
-import { recalculateVendorAvailability } from './ruleEngine.js';
+import { callGemini } from './ai.service.js';
+import { recalculateVendorAvailability } from './rule-engine.service.js';
 import { updateStaffWorkloadAndAvailability } from './complaint.service.js';
 
 /**

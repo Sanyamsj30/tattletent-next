@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import passport from 'passport';
 import generateToken from '../utils/generateToken.js';
 import sendEmail from '../utils/sendEmail.js';
-import { protect, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, adminOnly } from '../middlewares/auth.middleware.js';
 import User from '../models/User.js';
 import normalizeRole from '../utils/normalizeRole.js';
 

@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import passport from 'passport';
 import './config/passport-setup.js';
-import userRoute from './routes/userRoute.js';
+import userRoutes from './routes/user.routes.js';
 import complaintRoutes from './routes/complaint.routes.js';
 import './jobs/escalation.job.js';
 import feedbackRoutes from './routes/feedback.routes.js';
@@ -42,7 +42,7 @@ const authAndAiLimiter = rateLimit({
 });
 
 // Routes
-app.use('/api/users', globalLimiter, userRoute);
+app.use('/api/users', globalLimiter, userRoutes);
 app.use('/api/complaints', globalLimiter, complaintRoutes);
 app.use('/api/feedback', globalLimiter, feedbackRoutes);
 app.use('/api/auth', authAndAiLimiter, authRoutes);

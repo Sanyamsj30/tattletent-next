@@ -4,7 +4,7 @@ import {
   getAllFeedbacks,
   getFeedbackForComplaint,
 } from '../controllers/feedback.controllers.js';
-import { protect, staffOrAdmin } from '../middlewares/authMiddleware.js';
+import { protect, staffOrAdmin } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
