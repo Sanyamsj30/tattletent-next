@@ -2,23 +2,19 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { v2 as cloudinary } from 'cloudinary';
 
-// Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = 'public/temp/';
-    // Checking if folder exist
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    // Prevent spaces & special characters in filename
-    const uniqueName = Date.now() + '-' + file.originalname.replace(/\s+/g, '_');
-    cb(null, uniqueName);
-  },
-});
+// Configure Cloudinary dynamically if credentials exist in the environment
+if (process.env.CLOUDINARY_CLOUD_NAME) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
+}
+
+// Memory storage to hold files as raw buffers in RAM
+const storage = multer.memoryStorage();
 
 // File filter for image types
 const fileFilter = (req, file, cb) => {
@@ -37,36 +33,75 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// Post-upload image compression middleware using sharp
+// Promise-based helper to stream buffer directly to Cloudinary
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'tattletent',
+        format: 'webp',
+      },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
+    stream.end(buffer);
+  });
+};
+
+// Post-upload image compression and direct stream middleware
 export const compressImage = async (req, res, next) => {
   if (!req.file) return next();
 
-  const filePath = req.file.path;
-  const ext = path.extname(req.file.originalname).toLowerCase();
-  
-  // Define compressed file path under optimized webp format
-  const compressedFilename = `compressed-${Date.now()}-${path.basename(req.file.filename, ext)}.webp`;
-  const compressedPath = path.join(path.dirname(filePath), compressedFilename);
-
   try {
-    // Compress image to 80% quality WebP with max 1024px width (keeps aspect ratio)
-    await sharp(filePath)
+    // Compress raw buffer to 80% quality WebP with max 1024px width
+    const compressedBuffer = await sharp(req.file.buffer)
       .resize({ width: 1024, withoutEnlargement: true })
       .webp({ quality: 80 })
-      .toFile(compressedPath);
+      .toBuffer();
 
-    // Delete the original massive uploaded file asynchronously
-    fs.unlink(filePath, (unlinkErr) => {
-      if (unlinkErr) console.error("Error deleting original uploaded file:", unlinkErr);
-    });
+    const isCloudinaryConfigured = !!(
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+    );
 
-    // Update req.file object transparently for downstream middleware/controllers
-    req.file.path = compressedPath;
-    req.file.filename = compressedFilename;
-    req.file.mimetype = "image/webp";
-    req.file.size = fs.statSync(compressedPath).size;
+    if (isCloudinaryConfigured) {
+      // 1. Direct Cloudinary Stream Upload
+      const result = await uploadToCloudinary(compressedBuffer);
+      
+      // Update req.file properties transparently for downstream handlers
+      req.file.path = result.secure_url;
+      req.file.filename = result.public_id;
+      req.file.mimetype = 'image/webp';
+      req.file.size = result.bytes;
+      
+      console.log('☁️ Image successfully streamed to Cloudinary:', result.secure_url);
+    } else {
+      // 2. Local Fallback Disk Storage for Offline Development
+      const uploadPath = 'public/temp/';
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
+
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const baseName = path.basename(req.file.originalname, ext).replace(/\s+/g, '_');
+      const compressedFilename = `compressed-${Date.now()}-${baseName}.webp`;
+      const compressedPath = path.join(uploadPath, compressedFilename);
+
+      // Write Sharp buffer directly to disk
+      fs.writeFileSync(compressedPath, compressedBuffer);
+
+      req.file.path = compressedPath;
+      req.file.filename = compressedFilename;
+      req.file.mimetype = 'image/webp';
+      req.file.size = fs.statSync(compressedPath).size;
+
+      console.warn('⚠️ Cloudinary not configured. Fallback local image saved at:', compressedPath);
+    }
   } catch (err) {
-    console.error("Image compression failed, fallback to original upload:", err);
+    console.error('❌ Image compression/upload failed, proceeding with fallback:', err.message);
   }
 
   next();

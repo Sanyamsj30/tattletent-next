@@ -6,12 +6,9 @@ import sendEmail from '../utils/sendEmail.js';
 import { protect, adminOnly } from '../middlewares/auth.middleware.js';
 import User from '../models/User.js';
 import normalizeRole from '../utils/normalizeRole.js';
+import Otp from '../models/Otp.js';
 
 const router = Router();
-
-// In-memory OTP store (email -> { otpHash, expiresAt })
-const otpStore = new Map();
-const resetOtpStore = new Map();
 
 router.post('/send-otp', async (req, res) => {
   try {
@@ -26,9 +23,10 @@ router.post('/send-otp', async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    otpStore.set(normalizedEmail, { otpHash, expiresAt });
+    // Save persistent verification OTP
+    await Otp.deleteMany({ email: normalizedEmail, purpose: 'register' });
+    await Otp.create({ email: normalizedEmail, otpHash, purpose: 'register' });
 
     await sendEmail({
       email: normalizedEmail,
@@ -55,9 +53,10 @@ router.post('/send-reset-otp', async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpHash = await bcrypt.hash(otp, 10);
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    resetOtpStore.set(normalizedEmail, { otpHash, expiresAt });
+    // Save persistent password reset OTP
+    await Otp.deleteMany({ email: normalizedEmail, purpose: 'reset' });
+    await Otp.create({ email: normalizedEmail, otpHash, purpose: 'reset' });
 
     await sendEmail({
       email: normalizedEmail,
@@ -89,14 +88,11 @@ router.post('/reset-password', async (req, res) => {
         .json({ message: 'This account uses Google login. Please sign in with Google.' });
     }
 
-    const stored = resetOtpStore.get(normalizedEmail);
-    if (!stored)
+    const stored = await Otp.findOne({ email: normalizedEmail, purpose: 'reset' });
+    if (!stored) {
       return res
         .status(400)
         .json({ message: 'OTP not found or expired. Please request a new one.' });
-    if (new Date() > new Date(stored.expiresAt)) {
-      resetOtpStore.delete(normalizedEmail);
-      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
     }
 
     const validOtp = await bcrypt.compare(String(otp), stored.otpHash);
@@ -106,7 +102,7 @@ router.post('/reset-password', async (req, res) => {
     user.must_change_password = false;
     await user.save();
 
-    resetOtpStore.delete(normalizedEmail);
+    await Otp.deleteMany({ email: normalizedEmail, purpose: 'reset' });
 
     return res.status(200).json({ message: 'Password reset successful. Please log in.' });
   } catch (err) {
@@ -124,14 +120,11 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Please provide all required fields.' });
     }
 
-    const stored = otpStore.get(normalizedEmail);
-    if (!stored)
+    const stored = await Otp.findOne({ email: normalizedEmail, purpose: 'register' });
+    if (!stored) {
       return res
         .status(400)
         .json({ message: 'OTP not found or expired. Please request a new one.' });
-    if (new Date() > new Date(stored.expiresAt)) {
-      otpStore.delete(normalizedEmail);
-      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
     }
 
     const validOtp = await bcrypt.compare(String(otp), stored.otpHash);
@@ -147,7 +140,7 @@ router.post('/register', async (req, res) => {
       is_verified: true,
     });
 
-    otpStore.delete(normalizedEmail);
+    await Otp.deleteMany({ email: normalizedEmail, purpose: 'register' });
 
     const token = generateToken(created._id.toString());
     res.status(201).json({

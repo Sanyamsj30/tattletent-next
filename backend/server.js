@@ -9,9 +9,11 @@ import './jobs/escalation.job.js';
 import feedbackRoutes from './routes/feedback.routes.js';
 import publicRoutes from './routes/public.js';
 import aiRoutes from './routes/ai.routes.js';
+import jobRoutes from './routes/job.routes.js';
 import cors from 'cors';
 import path from 'path';
 import connectMongo from './db/mongo.js';
+import { createDefaultAdmin } from './utils/createAdmindefault.js';
 
 import { rateLimit } from 'express-rate-limit';
 
@@ -48,6 +50,7 @@ app.use('/api/feedback', globalLimiter, feedbackRoutes);
 app.use('/api/auth', authAndAiLimiter, authRoutes);
 app.use('/api/public', globalLimiter, publicRoutes);
 app.use('/api/ai', authAndAiLimiter, aiRoutes);
+app.use('/api/jobs', globalLimiter, jobRoutes);
 
 // Serve images under /temp
 app.use('/temp', express.static(path.join(process.cwd(), 'public/temp')));
@@ -57,6 +60,7 @@ const PORT = process.env.PORT || 5000;
 const start = async () => {
   try {
     await connectMongo();
+    await createDefaultAdmin();
     app.listen(PORT, () => {
       console.log(`🎪 Server running on port ${PORT}`);
     });
