@@ -2,10 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import L from "leaflet";
+window.L = L;
 import "./index.css";
-
 import Home from "./Home";
-import AuthSuccess from "./components/ui/AuthSuccess"; // ✅ New
+import AuthSuccess from "./components/ui/AuthSuccess";
 import CitizenDashboard from "./components/ui/CitizenDashboard";
 import StaffDashboard from "./components/ui/StaffDashboard";
 import AdminDashboard from "./components/ui/AdminDashboard";

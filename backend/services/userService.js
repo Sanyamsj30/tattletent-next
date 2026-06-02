@@ -7,7 +7,15 @@ export const searchUsers = async (filters) => {
   if (searchText) query.name = new RegExp(String(searchText), 'i');
   if (user_id) query._id = user_id;
   if (email) query.email = String(email).toLowerCase().trim();
-  if (role) query.role = role;
+  if (role) {
+    const r = String(role).trim().toLowerCase();
+    if (r === 'staff') query.role = 'Staff';
+    else if (r === 'citizen') query.role = 'Citizen';
+    else if (r === 'admin') query.role = 'Admin';
+    else if (r === 'ringmaster') query.role = 'Ringmaster';
+    else if (r === 'groundmaster') query.role = 'Groundmaster';
+    else query.role = role;
+  }
 
   const validSort = ['created_at', 'email', 'role'];
   const sortColumn = validSort.includes(sortBy) ? sortBy : 'created_at';

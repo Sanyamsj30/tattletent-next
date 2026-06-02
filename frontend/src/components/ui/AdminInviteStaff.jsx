@@ -1,8 +1,11 @@
-"use client";
 import React, { useState } from "react";
-import AppButton from "./app-button";
 import { useNavigate } from "react-router-dom";
+import AppLayout from "./AppLayout";
+import { Button } from "./button";
+import { Card, CardContent } from "./card";
+import { Badge } from "./badge";
 import { API_BASE_URL } from "../../lib/api";
+import { FiUserPlus, FiMail, FiArrowLeft, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 
 export default function AdminInviteStaff() {
   const token = sessionStorage.getItem("token");
@@ -31,15 +34,15 @@ export default function AdminInviteStaff() {
       });
 
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.message || "Failed to send invitation");
 
       setSuccess(true);
-      setMessage("Invitation sent successfully!");
+      setMessage("Personnel invitation sent successfully! Verification link dispatched.");
       setStaffName("");
       setEmail("");
     } catch (err) {
-      setMessage(err.message);
+      setSuccess(false);
+      setMessage(err.message || "Network error. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -47,90 +50,131 @@ export default function AdminInviteStaff() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FCF5EE] text-gray-900 flex flex-col items-center p-6 md:p-12">
-      
-      {/* Back Button */}
-      <div className="self-start mb-6">
-        <button
-          onClick={() => navigate("/admin-dashboard")}
-          className="text-[#d55d1f] hover:text-[#b54a16] font-medium"
-        >
-          &larr; Back to Dashboard
-        </button>
-      </div>
-
-      {/* Page Header */}
-      <div className="text-center mb-12 max-w-2xl">
-        <h1 className="text-4xl md:text-5xl font-bold text-[#d55d1f] mb-4">
-          Invite a Staff Member
-        </h1>
-        <p className="text-lg md:text-xl text-[#7a6f65]">
-          Add a new staff member by sending an invitation to their email.
-          They will receive instructions to create their account.
-        </p>
-      </div>
-
-      {/* Invitation Form */}
-      <form
-        onSubmit={handleSendInvite}
-        className="bg-white rounded-2xl shadow-lg p-8 md:p-12 w-full max-w-md"
-      >
-        {/* Success / Error Message */}
-        {message && (
-          <p
-            className={`text-center mb-4 text-sm font-medium ${
-              success ? "text-green-600" : "text-red-500"
-            }`}
-          >
-            {message}
-          </p>
-        )}
-
-        {/* Staff Name */}
-        <div className="mb-4">
-          <label htmlFor="staffName" className="block text-sm font-medium text-gray-700 mb-1">
-            Staff Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="staffName"
-            type="text"
-            placeholder="e.g., John Doe"
-            required
-            value={staffName}
-            onChange={(e) => setStaffName(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#d55d1f] outline-none"
-          />
+    <AppLayout requiredRole="Admin">
+      <div className="p-6 sm:p-10 max-w-4xl mx-auto space-y-8">
+        
+        {/* Header section */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-6 mt-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">
+              Invite Personnel
+            </h1>
+            <p className="text-sm text-slate-500 font-medium">
+              Create official civic contractor roles by sending a secure onboarding invitation email.
+            </p>
+          </div>
+          <Button variant="secondary" onClick={() => navigate("/admin-dashboard")} className="gap-2">
+            <FiArrowLeft /> Back to Dashboard
+          </Button>
         </div>
 
-        {/* Staff Email */}
-        <div className="mb-6">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="email"
-            type="email"
-            placeholder="staff@example.com"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#d55d1f] outline-none"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          
+          {/* Guidelines & Information */}
+          <div className="md:col-span-5 space-y-6">
+            <Card className="border border-slate-100">
+              <CardContent className="p-6 space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight uppercase tracking-wider flex items-center gap-2">
+                  🛡️ Security Guidelines
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Civic staff accounts grant override administrative routing rights, priority scoring access, and work status verification capabilities.
+                </p>
+                <div className="space-y-2 text-xs font-semibold text-slate-650">
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-500">✔</span>
+                    <span>Link expires automatically in 48 hours</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-500">✔</span>
+                    <span>Role automatically bound to 'Staff' level</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-emerald-500">✔</span>
+                    <span>Deterministic password setup on first click</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Invitation Form Card */}
+          <div className="md:col-span-7">
+            <Card className="border border-slate-100 shadow-sm bg-white">
+              <CardContent className="p-6 sm:p-8 space-y-6">
+                
+                {/* Result Message Banner */}
+                {message && (
+                  <div className={`p-4 rounded-xl text-xs font-semibold flex items-center gap-2 border ${
+                    success 
+                      ? "bg-emerald-50 border-emerald-100 text-emerald-800" 
+                      : "bg-red-50 border-red-100 text-red-800"
+                  }`}>
+                    {success ? <FiCheckCircle className="text-base text-emerald-500 flex-shrink-0" /> : <FiAlertCircle className="text-base text-red-500 flex-shrink-0" />}
+                    <p>{message}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleSendInvite} className="space-y-5">
+                  
+                  {/* Name Input */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="staffName" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Staff Member Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <FiUserPlus className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base" />
+                      <input
+                        id="staffName"
+                        type="text"
+                        placeholder="e.g., John Doe"
+                        required
+                        value={staffName}
+                        onChange={(e) => setStaffName(e.target.value)}
+                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email Input */}
+                  <div className="space-y-1.5">
+                    <label htmlFor="email" className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base" />
+                      <input
+                        id="email"
+                        type="email"
+                        placeholder="e.g., staff@tattletent.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      disabled={isLoading || !staffName || !email}
+                      className="w-full"
+                      variant="primary"
+                    >
+                      {isLoading ? "Sending secure invitation..." : "Send Secure Invitation"}
+                    </Button>
+                  </div>
+
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+
         </div>
 
-        {/* Send Invite Button */}
-        <AppButton
-          type="submit"
-          disabled={isLoading || !staffName || !email}
-          className={`w-full py-3 rounded-lg text-white transition-colors duration-200 ${
-            !staffName || !email
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#d55d1f] hover:bg-[#b54a16]"
-          }`}
-        >
-          {isLoading ? "Sending..." : "Send Invitation"}
-        </AppButton>
-      </form>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

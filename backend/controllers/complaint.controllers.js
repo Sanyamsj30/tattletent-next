@@ -180,21 +180,8 @@ const fetchComplaintCounts = async (req, res) => {
 const getComplaints = async (req, res) => {
   try {
     // Issue 7: Secure BOLA vulnerability for User-Specific Search
-    if (req.query.user_id) {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Authentication required for user-specific search.' });
-      }
-
-      const token = authHeader.split(' ')[1];
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        if (decoded.role === 'Citizen' && decoded.user_id !== req.query.user_id) {
-          return res.status(403).json({ error: 'Forbidden: You cannot query complaints filed by other citizens.' });
-        }
-      } catch (tokenErr) {
-        return res.status(401).json({ error: 'Invalid or expired token.' });
-      }
+    if (req.user.role === 'Citizen') {
+      req.query.user_id = req.user.user_id;
     }
 
     const filters = {

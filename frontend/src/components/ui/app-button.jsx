@@ -1,28 +1,26 @@
 import * as React from "react";
 import { cva } from "class-variance-authority";
 
-// ✅ Simple replacement for "@/lib/utils"
 function cn(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-// Define button variants
 const appButtonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none",
+  "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/50 disabled:opacity-50 disabled:pointer-events-none select-none transform active:scale-98 cursor-pointer",
   {
     variants: {
       variant: {
         default:
-          "bg-[#d55d1f] text-white hover:bg-[#b54a16] focus:ring-[#d55d1f]",
+          "bg-gradient-to-r from-primary-500 to-indigo-500 hover:from-primary-600 hover:to-indigo-600 text-white shadow-md shadow-primary-500/10 hover:shadow-lg glow-on-hover",
         outline:
-          "border border-[#d55d1f] text-[#d55d1f] bg-transparent hover:bg-[#d55d1f]/10 focus:ring-[#d55d1f]",
+          "border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 shadow-sm",
         ghost:
-          "bg-transparent text-[#d55d1f] hover:bg-[#d55d1f]/10 focus:ring-[#d55d1f]",
+          "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 px-3 rounded-md text-xs",
-        lg: "h-11 px-8 rounded-md text-base",
+        default: "h-11 px-5 py-2 text-sm",
+        sm: "h-9 px-3 rounded-xl text-xs",
+        lg: "h-12 px-7 rounded-xl text-base",
         icon: "h-10 w-10",
       },
     },
@@ -33,7 +31,6 @@ const appButtonVariants = cva(
   }
 );
 
-// ✅ Final button component
 const AppButton = React.forwardRef(
   ({ className, variant, size, ...props }, ref) => {
     return (

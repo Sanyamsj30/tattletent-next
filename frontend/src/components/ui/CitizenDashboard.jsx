@@ -1,48 +1,48 @@
-import { useState, useEffect } from "react";
-import React from "react";
-import Logo from "./Logo";
-import AppButton from "./app-button";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBars } from "react-icons/fa";
-import axios from "axios";
-import { API_BASE_URL } from "../../lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  FiPlus, FiCompass, FiUploadCloud, FiCheck, FiCheckCircle, 
+  FiClock, FiAlertCircle, FiTrendingUp, FiExternalLink, FiImage, FiMapPin 
+} from "react-icons/fi";
+import AppLayout from "./AppLayout";
+import { Button } from "./button";
+import { Card, CardContent } from "./card";
+import { Badge } from "./badge";
+import { Input, TextArea } from "./input";
 import ChatbotWidget from "./ChatbotWidget";
+import { API_BASE_URL } from "../../lib/api";
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [complaints, setComplaints] = useState([]);
-  const navigate = useNavigate(); 
-  const user = JSON.parse(sessionStorage.getItem("user"));
+  const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const navigate = useNavigate();
+  const user = JSON.parse(sessionStorage.getItem("user"));
+  const userId = user?.user_id || user?.id || user?._id;
 
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
-
-  const demoComplaints = [
-    { id: 1, category: "Water Leak", status: "Submitted", description: "Leak near Tent #5, pipe burst", date: "2025-10-02" },
-    { id: 2, category: "Pathway Damage", status: "Resolved", description: "Broken tiles in Sector C repaired", date: "2025-09-28" },
-    { id: 3, category: "Garbage", status: "In Progress", description: "Overflowing bin near park", date: "2025-10-01" }
-  ];
-
-  const handleDetails = (complaint) => {
-    setSelectedComplaint(complaint);
-    setIsViewOpen(true);
-  };
+  // Form step wizard states
+  const [formStep, setFormStep] = useState(1);
+  const [formCategory, setFormCategory] = useState("");
+  const [formTitle, setFormTitle] = useState("");
+  const [formLocation, setFormLocation] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [geoCaptured, setGeoCaptured] = useState(false);
+  const [geoCoords, setGeoCoords] = useState({ lat: null, lon: null });
 
   const fetchComplaintsByUser = async () => {
     try {
-      if (!user?.user_id) return;
-
-      const queryParams = new URLSearchParams({ user_id: user.user_id }).toString();
+      if (!userId) return;
+      const queryParams = new URLSearchParams({ user_id: userId }).toString();
       const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`, {
         headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
       });
-
       if (!response.ok) throw new Error("Failed to fetch complaints");
-
       const data = await response.json();
       setComplaints(data.map(c => ({
         id: c.complaint_id,
@@ -61,33 +61,11 @@ const CitizenDashboard = () => {
         duplicate_of: c.duplicate_of, 
         escalation_explanation: c.escalation_explanation
       })));
-
     } catch (err) {
       console.error("Error fetching complaints:", err);
-      setComplaints(demoComplaints);
     }
   };
 
-  useEffect(() => {
-    if (user?.user_id) {
-      fetchComplaintsByUser();
-    }
-  }, [user?.user_id]);
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "RESOLVED":
-        return "bg-green-100 text-green-800";
-      case "RESOLVED_PENDING":
-        return "bg-amber-100 text-amber-800 border border-amber-300 animate-pulse";
-      case "IN_PROGRESS":
-        return "bg-yellow-100 text-yellow-800";
-      case "NEW":
-      default:
-        return "bg-red-100 text-red-800";
-    }
-  };
-  
   const fetchCounts = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/complaints/counts`, {
@@ -101,6 +79,13 @@ const CitizenDashboard = () => {
       console.error(err);
     }
   };
+
+  useEffect(() => {
+    if (userId) {
+      fetchComplaintsByUser();
+      fetchCounts();
+    }
+  }, [userId]);
 
   const handleConfirmFix = async (complaint) => {
     const token = sessionStorage.getItem("token");
@@ -118,9 +103,9 @@ const CitizenDashboard = () => {
       alert("Resolution confirmed! Thank you for your feedback.");
       fetchComplaintsByUser();
       fetchCounts();
+      setIsViewOpen(false);
     } catch (err) {
       console.error("Failed to confirm resolution:", err);
-      alert("Failed to confirm resolution.");
     }
   };
 
@@ -142,21 +127,39 @@ const CitizenDashboard = () => {
       alert("Resolution rejected. The complaint has been returned to the contractor's active queue.");
       fetchComplaintsByUser();
       fetchCounts();
+      setIsViewOpen(false);
     } catch (err) {
       console.error("Failed to reject resolution:", err);
-      alert("Failed to reject resolution.");
     }
   };
 
-  useEffect(() => {
-    fetchCounts();
-  }, []);
-  
+  // Capture GPS coordinates reactively
+  const captureLocation = async () => {
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
+        const lat = parseFloat(position.coords.latitude);
+        const lon = parseFloat(position.coords.longitude);
+        setGeoCoords({ lat, lon });
+        setGeoCaptured(true);
+      } catch (err) {
+        console.warn("Geolocation failed:", err.message);
+      }
+    }
+  };
 
-  const handleNewComplaint = async (e) => {
-    e.preventDefault();
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleNewComplaintSubmit = async () => {
     if (isSubmitting) return;
-
     setIsSubmitting(true);
     try {
       const token = sessionStorage.getItem("token");
@@ -166,24 +169,20 @@ const CitizenDashboard = () => {
         return;
       }
 
-      const formData = new FormData(e.target);
-      formData.append("user_id", user.user_id);
+      const formData = new FormData();
+      formData.append("category", formCategory);
+      formData.append("title", formTitle);
+      formData.append("location", formLocation);
+      formData.append("description", formDescription);
+      formData.append("user_id", userId);
 
-      let lat = null, lon = null;
+      if (geoCaptured && geoCoords.lat != null) {
+        formData.append("latitude", geoCoords.lat);
+        formData.append("longitude", geoCoords.lon);
+      }
 
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-          });
-          lat = parseFloat(position.coords.latitude);
-          lon = parseFloat(position.coords.longitude);
-
-          formData.append("latitude", lat);
-          formData.append("longitude", lon);
-        } catch (geoErr) {
-          console.warn("Geolocation permission denied or timed out:", geoErr.message);
-        }
+      if (photoFile) {
+        formData.append("photo", photoFile);
       }
 
       const response = await fetch(`${API_BASE_URL}/api/complaints`, {
@@ -196,7 +195,7 @@ const CitizenDashboard = () => {
 
       if (response.ok) {
         alert("Complaint submitted successfully!");
-        e.target.reset();
+        resetForm();
         setIsSubmitOpen(false);
         fetchComplaintsByUser();
         fetchCounts();
@@ -206,465 +205,746 @@ const CitizenDashboard = () => {
       }
     } catch (error) {
       console.error("Error submitting complaint:", error);
-      alert("Failed to submit complaint.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
-    navigate("/"); 
+  const resetForm = () => {
+    setFormStep(1);
+    setFormCategory("");
+    setFormTitle("");
+    setFormLocation("");
+    setFormDescription("");
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setGeoCaptured(false);
+    setGeoCoords({ lat: null, lon: null });
   };
 
-  useEffect(() => {
-    const token = sessionStorage.getItem("token");
-    const userSession = sessionStorage.getItem("user");
-    
-    if (!token || !userSession) {
-      navigate("/"); 
-      return;
-    } 
-    
-    if (userSession && JSON.parse(userSession).role !== "Citizen") {
-      navigate("/"); 
-    }
-  }, [navigate]);
-
   return (
-    <div className="min-h-screen bg-[#FCF5EE] font-sans">
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 w-full bg-white shadow-md z-50">
-        <div className="flex items-center justify-between h-24 px-6 sm:px-8">
-          <Logo />
-          <button
-            className="sm:hidden p-2 rounded-md bg-gray-100 hover:bg-gray-200"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            <FaBars size={22} className="text-gray-800" />
-          </button>
-          <div className="hidden sm:flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Logged in as</p>
-              <p className="font-semibold text-gray-800">Citizen</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 transition duration-200"
-            >
-              <span className="text-xl">Logout</span>
-            </button>
-          </div>
-        </div>
-
-        {menuOpen && (
-          <div className="flex flex-col items-center gap-3 pb-4 sm:hidden bg-white shadow-md border-t">
-            <div className="text-center">
-              <p className="text-sm text-gray-600">Logged in as</p>
-              <p className="font-semibold text-gray-800">Citizen</p>
-            </div>
-            <button
-              onClick={() => {
-                handleLogout();
-                setMenuOpen(false);
-              }}
-              className="w-11/12 rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-4 py-2 transition duration-200"
-            >
-              Logout
-            </button>
-          </div>
-        )}
-      </nav>
-
-      {/* Main */}
-      <main className="container mx-auto px-4 py-12 space-y-12 max-w-6xl pt-32">
-        <div className="space-y-5 py-10 font-serif">
-          <h1 className="text-5xl sm:text-7xl font-bold bg-gradient-to-r from-orange-700 via-amber-600 to-yellow-500 bg-clip-text text-transparent leading-tight tracking-tight">
-            👋 Welcome, {user?.name}!
-          </h1>
-          <p className="text-2xl text-gray-700 mt-4 italic">
-            Your portal for transparency and action in local governance.
-          </p>
-          <p className="text-lg text-gray-600 leading-relaxed max-w-3xl">
-            Effortlessly submit new complaints, track their status, and see how your feedback is improving our community.
-          </p>
-        </div>
-
-        <hr className="border-gray-200" /> 
+    <AppLayout requiredRole="Citizen">
+      <div className="p-6 sm:p-10 max-w-6xl mx-auto space-y-10">
         
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-          {[
-            { title: "Total Complaints", count: (parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0) },
-            { title: "Resolved", count: counts.resolved },
-            { title: "In Progress", count: counts.in_progress },
-          ].map((s) => (
-            <div
-              key={s.title}
-              className="rounded-2xl px-3 py-8 shadow-xl flex flex-col items-center 
-                bg-gradient-to-r from-orange-100 via-amber-50 to-orange-100
-                transform transition duration-500 hover:scale-[1.02] text-orange-700"
-            >
-              <div className="text-4xl font-extrabold">{s.count}</div>
-              <div className="mt-2 font-semibold text-lg text-center">{s.title}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Quick Actions */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100"> 
-          <div className="flex items-start justify-between mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 flex items-center gap-2">
-              ⚡ Quick Actions
-            </h2>
-            <button
-              onClick={() => setIsSubmitOpen(true)}
-              className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2 whitespace-nowrap text-base font-semibold transition duration-200"
-            >
-              + New Complaint
-            </button>
+        {/* Welcome Banner */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-100 pb-8 mt-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800 tracking-tight">
+              Console Dashboard
+            </h1>
+            <p className="text-sm text-slate-500 font-medium">
+              Submit new grievances, review resolution audits, and track active workloads.
+            </p>
           </div>
-          <p className="text-gray-500 mb-6 text-lg">Common complaint categories</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { icon: "🚧", label: "Pathway Damage" },
-              { icon: "💧", label: "Water Leak" },
-              { icon: "🗑️", label: "Garbage" },
-              { icon: "⚡", label: "Electrical" },
-            ].map((cat) => (
-              <button
-                key={cat.label}
-                onClick={() => setIsSubmitOpen(true)}
-                className="h-28 flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-gray-200 hover:border-orange-500 hover:bg-orange-50 transition-all shadow-sm"
-              >
-                <span className="text-4xl">{cat.icon}</span>
-                <span className="text-sm font-medium text-gray-700">{cat.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Active Complaints List */}
-        <div className="bg-[#fdf7e8] rounded-2xl shadow-inner-soft p-8 border border-gray-300 border-l-4 border-l-red-400"> 
-          <h2 className="text-2xl font-bold mb-6 text-gray-900 font-mono">📋 Your Complaint History</h2> 
-          <div className="overflow-hidden rounded-lg border border-gray-300">
-            <div className="max-h-[400px] overflow-y-auto">
-              <table className="min-w-full divide-y divide-blue-200">
-                <thead className="bg-white sticky top-0 z-10">
-                  <tr>
-                    <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Category</th> 
-                    <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Status</th>
-                    <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Title</th>
-                    <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Date</th>
-                    <th className="p-4"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-blue-200 bg-white">
-                  {complaints.length > 0 ? (
-                    complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING").map(c => (
-                      <tr key={c.id} className="hover:bg-blue-50 transition">
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
-                        <td className="p-4">
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(c.status)}`}>
-                            {c.status === "RESOLVED_PENDING" ? "Verification Pending" : c.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.title}</td>
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.subdate}</td>
-                        <td className="p-4 text-right text-gray-600 text-sm font-mono flex items-center gap-2 justify-end">
-                          {c.status === "RESOLVED_PENDING" && (
-                            <div className="flex gap-2 mr-2">
-                              <button
-                                className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
-                                onClick={() => handleConfirmFix(c)}
-                              >
-                                Confirm Fix
-                              </button>
-                              <button
-                                className="px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg shadow-sm transition"
-                                onClick={() => handleRejectFix(c)}
-                              >
-                                Reject
-                              </button>
-                            </div>
-                          )}
-                          <button className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono" 
-                            onClick={()=>(handleDetails(c))}>
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="5" className="text-center p-4 text-gray-500">
-                        No active complaints found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Resolved Complaints Section */}
-        {complaints.some(c => c.status === "RESOLVED" && !c.is_duplicate) && (
-          <div className="bg-[#e6f6ed] rounded-2xl shadow-inner-soft p-8 border border-gray-300 border-l-4 border-l-green-400">
-            <h2 className="text-2xl font-bold mb-6 text-green-800 font-mono">✅ Resolved Complaints</h2>
-            <div className="overflow-hidden rounded-lg border border-gray-300">
-              <div className="max-h-[300px] overflow-y-auto">
-                <table className="min-w-full divide-y divide-blue-200">
-                  <thead className="bg-white sticky top-0 z-10">
-                    <tr>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Category</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Title</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Date</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Details</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Feedback</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-blue-200 bg-white">
-                    {complaints.filter(c => c.status === "RESOLVED" && !c.is_duplicate).map(c => (
-                      <tr key={c.id} className="hover:bg-blue-50 transition">
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.title}</td>
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.subdate}</td>
-                        <td className="p-4 text-gray-600 text-sm font-mono">
-                          <button
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono"
-                            onClick={() => handleDetails(c)}
-                          >
-                            View Details
-                          </button>
-                        </td>
-                        <td>
-                          <button
-                            className="px-3 py-1 rounded-full bg-green-600 text-white text-sm hover:bg-green-700 transition"
-                            onClick={() => navigate("/feedback-page", { state: { complaint: c } })}
-                          >
-                            Give Feedback
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Merged & Duplicate Reports Section */}
-        {complaints.some(c => c.status === "DUPLICATE" || c.is_duplicate) && (
-          <div className="bg-[#f3effa] rounded-2xl shadow-inner-soft p-8 border border-gray-300 border-l-4 border-l-purple-400">
-            <h2 className="text-2xl font-bold mb-6 text-purple-800 font-mono">🔗 Merged & Duplicate Reports</h2>
-            <div className="overflow-hidden rounded-lg border border-gray-300">
-              <div className="max-h-[300px] overflow-y-auto">
-                <table className="min-w-full divide-y divide-blue-200">
-                  <thead className="bg-white sticky top-0 z-10">
-                    <tr>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Category</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Title</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Date</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Status</th>
-                      <th className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider font-mono">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-blue-200 bg-white">
-                    {complaints.filter(c => c.status === "DUPLICATE" || c.is_duplicate).map(c => (
-                      <tr key={c.id} className="hover:bg-blue-50 transition">
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.category}</td>
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.title}</td>
-                        <td className="p-4 text-gray-900 font-medium font-mono">{c.subdate}</td>
-                        <td className="p-4">
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
-                            Merged
-                          </span>
-                        </td>
-                        <td className="p-4 text-gray-600 text-sm font-mono">
-                          <button
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium font-mono"
-                            onClick={() => handleDetails(c)}
-                          >
-                            View Details
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Submit Modal */}
-      {isSubmitOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-          onClick={() => setIsSubmitOpen(false)}
-        >
-          <div className="overflow-hidden bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-2xl font-bold text-orange-600 mb-6 border-b pb-2">Submit New Complaint</h3>
-            <form onSubmit={handleNewComplaint} className="space-y-4">
-              <div className="space-y-1">
-                <label className="block text-sm font-semibold text-gray-700">Complaint Category *</label>
-                <select
-                  name="category"
-                  required
-                  className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-500 transition shadow-inner bg-white"
-                >
-                  <option value="">Select Category</option>
-                  <option>Electrical</option>
-                  <option>Water Leak</option>
-                  <option>Pathway Damage</option>
-                  <option>Garbage</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-semibold text-gray-700">Title *</label>
-                <input
-                  name="title"
-                  type="text"
-                  required
-                  placeholder="Short summary of issue"
-                  className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-500 transition shadow-inner"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-semibold text-gray-700">Location / Address *</label>
-                <input
-                  name="location"
-                  type="text"
-                  required
-                  placeholder="e.g., Sector C near school"
-                  className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-500 transition shadow-inner"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-semibold text-gray-700">Detailed Description *</label>
-                <textarea
-                  name="description"
-                  required
-                  placeholder="Details of the issue..."
-                  rows={3}
-                  className="w-full p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-400 focus:border-orange-500 transition shadow-inner resize-none"
-                ></textarea>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-semibold text-gray-700">Upload Photo (optional)</label>
-                <input
-                  name="photo"
-                  type="file"
-                  accept="image/*"
-                  className="w-full text-sm"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <button
-                  type="button"
-                  disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-gray-200 text-gray-700 hover:bg-gray-300 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => setIsSubmitOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-orange-600 text-white hover:bg-orange-700 transition font-semibold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? "Submitting..." : "Submit"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* View Modal */}
-      {isViewOpen && selectedComplaint && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-          onClick={() => setIsViewOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative overflow-y-auto p-6"
-            onClick={(e) => e.stopPropagation()}
+          <Button
+            size="lg"
+            onClick={() => {
+              resetForm();
+              setIsSubmitOpen(true);
+            }}
+            className="w-full sm:w-auto"
           >
-            <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
-              onClick={() => setIsViewOpen(false)}
-            >
-              ✕
-            </button>
-
-            <h2 className="text-3xl font-bold text-orange-600 mb-4">
-              Complaint #{selectedComplaint.id}: {selectedComplaint.category}
-            </h2>
-
-            <div className="space-y-3">
-              {selectedComplaint.is_duplicate && (
-                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl text-purple-800 text-sm font-medium flex flex-col gap-1 mb-4">
-                  <div className="flex items-center gap-2 font-bold">
-                    <span>⚠️ Duplicate (Merged)</span>
-                  </div>
-                  <span>This issue has already been reported and is currently active. Your report has been merged to help prioritize it.</span>
-                </div>
-              )}
-              {selectedComplaint.escalation_explanation && (
-                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-medium mb-4">
-                  🔥 <strong>SLA Escalation:</strong> {selectedComplaint.escalation_explanation}
-                </div>
-              )}
-              <p><strong>Title:</strong> {selectedComplaint.title}</p>
-              <p><strong>Description:</strong> {selectedComplaint.description}</p>
-              <p><strong>Location:</strong> {selectedComplaint.location}</p>
-              <p><strong>Status:</strong> {selectedComplaint.is_duplicate ? "Duplicate (Merged)" : (selectedComplaint.status === "RESOLVED_PENDING" ? "Verification Pending" : selectedComplaint.status)}</p>
-              <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
-              <p>
-                <strong>Severity:</strong>{" "}
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                  selectedComplaint.severity === "High"
-                    ? "bg-red-100 text-red-800 border border-red-200"
-                    : selectedComplaint.severity === "Medium"
-                    ? "bg-yellow-100 text-yellow-800 border border-yellow-200"
-                    : "bg-blue-100 text-blue-800 border border-blue-200"
-                }`}>
-                  {selectedComplaint.severity || "Low"}
-                </span>
-              </p>
-              <p><strong>Assigned To:</strong> {selectedComplaint.assignedTo || "Unassigned"}</p>
-              <p><strong>Submit Date:</strong> {selectedComplaint.subdate}</p>
-              <p><strong>Last Update:</strong> {selectedComplaint.update}</p>
-            </div>
-
-            {selectedComplaint.photo && (
-              <div className="mt-6 flex justify-center">
-                <img
-                  src={`${API_BASE_URL}${selectedComplaint.photo}`}
-                  alt="Complaint"
-                  className="max-w-full max-h-[400px] rounded-lg shadow-md"
-                />
-              </div>
-            )}
-          </div>
+            <FiPlus className="mr-2 text-base" /> New Grievance Report
+          </Button>
         </div>
-      )}
+
+        {/* Dashboard Statistics */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <Card variant="glass" className="bg-[#fcfcff] border border-primary-100">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Reports</p>
+                <p className="text-4xl font-black text-slate-800 mt-1">
+                  {(parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0)}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-xl shadow-sm border border-primary-200/20">
+                📋
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card variant="glass" className="bg-[#fcfcff] border border-emerald-100">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Resolved</p>
+                <p className="text-4xl font-black text-emerald-600 mt-1">{counts.resolved}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-sm border border-emerald-200/20">
+                ✅
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card variant="glass" className="bg-[#fcfcff] border border-amber-100">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">In Progress</p>
+                <p className="text-4xl font-black text-amber-600 mt-1">{counts.in_progress}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shadow-sm border border-amber-200/20">
+                🔄
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Dynamic Category Launchers */}
+        <Card variant="default">
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-slate-800 tracking-tight">Lodge Category GRIEVANCES</h3>
+              <p className="text-xs text-slate-400 font-semibold">Select a fast-reporting template to populate metadata instantly</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { icon: "🚧", label: "Pathway Damage" },
+                { icon: "💧", label: "Water Leak" },
+                { icon: "🗑️", label: "Garbage" },
+                { icon: "⚡", label: "Electrical" },
+              ].map((cat) => (
+                <button
+                  key={cat.label}
+                  onClick={() => {
+                    resetForm();
+                    setFormCategory(cat.label);
+                    setFormStep(2);
+                    setIsSubmitOpen(true);
+                  }}
+                  className="h-28 flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200/80 hover:border-primary-500 hover:bg-primary-50/20 saas-hover-lift shadow-sm cursor-pointer"
+                >
+                  <span className="text-3xl">{cat.icon}</span>
+                  <span className="text-xs font-bold text-slate-650">{cat.label}</span>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Complaints Lists */}
+        <div className="space-y-6">
+          
+          {/* Active Complaints Table */}
+          <Card variant="default">
+            <CardContent className="p-0">
+              <div className="p-6 border-b border-slate-100">
+                <h3 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-pulse"></span>
+                  Active Grievances
+                </h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-100 text-sm">
+                  <thead className="bg-slate-50/50">
+                    <tr>
+                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
+                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Status</th>
+                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
+                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
+                      <th className="px-6 py-4"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING").length > 0 ? (
+                      complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING").map(c => (
+                        <tr key={c.id} className="hover:bg-slate-50/40 transition">
+                          <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
+                          <td className="px-6 py-4">
+                            <Badge variant={c.status === "RESOLVED_PENDING" ? "warning" : (c.status === "IN_PROGRESS" ? "info" : "danger")}>
+                              {c.status === "RESOLVED_PENDING" ? "Verification Pending" : c.status}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-slate-600 font-semibold">{c.title}</td>
+                          <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
+                          <td className="px-6 py-4 text-right flex items-center justify-end gap-3.5">
+                            {c.status === "RESOLVED_PENDING" && (
+                              <div className="flex gap-2">
+                                <button
+                                  className="px-3 py-1.5 bg-success-500 hover:bg-success-600 text-white text-xs font-bold rounded-xl shadow-sm transition"
+                                  onClick={() => handleConfirmFix(c)}
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  className="px-3 py-1.5 bg-danger-500 hover:bg-danger-600 text-white text-xs font-bold rounded-xl shadow-sm transition"
+                                  onClick={() => handleRejectFix(c)}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                            <button
+                              className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                              onClick={() => {
+                                setSelectedComplaint(c);
+                                setIsViewOpen(true);
+                              }}
+                            >
+                              Details <FiExternalLink />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="text-center py-10 text-slate-400 italic font-medium">
+                          No active complaints lodged.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Resolved Ledger Section */}
+          {complaints.some(c => c.status === "RESOLVED" && !c.is_duplicate) && (
+            <Card variant="default" className="border border-success-200/60">
+              <CardContent className="p-0">
+                <div className="p-6 border-b border-slate-100 bg-success-50/20">
+                  <h3 className="text-lg font-bold text-success-800 tracking-tight flex items-center gap-2">
+                    <FiCheckCircle className="text-success-500 animate-bounce" />
+                    Resolved Audits Ledger
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead className="bg-slate-50/50">
+                      <tr>
+                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
+                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
+                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
+                        <th className="px-6 py-4"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {complaints.filter(c => c.status === "RESOLVED" && !c.is_duplicate).map(c => (
+                        <tr key={c.id} className="hover:bg-slate-50/40 transition">
+                          <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
+                          <td className="px-6 py-4 text-slate-650 font-semibold">{c.title}</td>
+                          <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
+                          <td className="px-6 py-4 text-right flex items-center justify-end gap-3.5">
+                            <button
+                              className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                              onClick={() => {
+                                setSelectedComplaint(c);
+                                setIsViewOpen(true);
+                              }}
+                            >
+                              Details <FiExternalLink />
+                            </button>
+                            <Button
+                              size="sm"
+                              variant="success"
+                              onClick={() => navigate("/feedback-page", { state: { complaint: c } })}
+                            >
+                              Give Feedback
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Merged Duplicate Grid */}
+          {complaints.some(c => c.status === "DUPLICATE" || c.is_duplicate) && (
+            <Card variant="default" className="border border-indigo-200/60">
+              <CardContent className="p-0">
+                <div className="p-6 border-b border-slate-100 bg-indigo-50/20">
+                  <h3 className="text-lg font-bold text-indigo-800 tracking-tight flex items-center gap-2">
+                    📍 Linked Duplicate Grievances
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <thead className="bg-slate-50/50">
+                      <tr>
+                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
+                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
+                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
+                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Status</th>
+                        <th className="px-6 py-4"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {complaints.filter(c => c.status === "DUPLICATE" || c.is_duplicate).map(c => (
+                        <tr key={c.id} className="hover:bg-slate-50/40 transition">
+                          <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
+                          <td className="px-6 py-4 text-slate-650 font-semibold">{c.title}</td>
+                          <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
+                          <td className="px-6 py-4">
+                            <Badge variant="info">Merged</Badge>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                              onClick={() => {
+                                setSelectedComplaint(c);
+                                setIsViewOpen(true);
+                              }}
+                            >
+                              Details <FiExternalLink />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+        </div>
+      </div>
+
+      {/* Multi-Step Submit Wizard Modal */}
+      <AnimatePresence>
+        {isSubmitOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 overflow-y-auto"
+            onClick={() => setIsSubmitOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-strong overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Wizard Progress bar */}
+              <div className="h-2 w-full bg-slate-100 relative">
+                <motion.div
+                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary-500 to-indigo-500"
+                  animate={{ width: `${(formStep / 5) * 100}%` }}
+                  transition={{ duration: 0.3 }}
+                ></motion.div>
+              </div>
+
+              <div className="p-7 sm:p-9 space-y-6">
+                
+                {/* Header wizard step description */}
+                <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                  <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">Lodge New Grievance</h3>
+                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full uppercase tracking-wider">
+                    Step {formStep} of 5
+                  </span>
+                </div>
+
+                {/* Step 1: Category Selection Grid */}
+                {formStep === 1 && (
+                  <div className="space-y-4">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Select Complaint Area Area *</p>
+                    <div className="grid grid-cols-2 gap-3.5">
+                      {[
+                        { key: "Electrical", icon: "⚡" },
+                        { key: "Water Leak", icon: "💧" },
+                        { key: "Pathway Damage", icon: "🚧" },
+                        { key: "Garbage", icon: "🗑️" }
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => {
+                            setFormCategory(item.key);
+                            setFormStep(2);
+                          }}
+                          className={`p-5 rounded-2xl border-2 flex flex-col items-center justify-center gap-2.5 transition select-none cursor-pointer ${
+                            formCategory === item.key
+                              ? "border-primary-500 bg-primary-50/20 text-primary-750 font-extrabold"
+                              : "border-slate-100 hover:border-slate-200 hover:bg-slate-50 bg-white"
+                          }`}
+                        >
+                          <span className="text-3xl">{item.icon}</span>
+                          <span className="text-xs font-bold text-slate-700">{item.key}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Title Summary & Details */}
+                {formStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Short Title Summary *</label>
+                      <Input
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                        placeholder="Broken street lantern, leaking water pipe etc..."
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Detailed Grievance Description *</label>
+                      <TextArea
+                        value={formDescription}
+                        onChange={(e) => setFormDescription(e.target.value)}
+                        placeholder="Please write down explicit details, landmarks, and duration of the problem..."
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Location / Map Placement */}
+                {formStep === 3 && (
+                  <div className="space-y-5">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Civic Address / Description *</label>
+                      <Input
+                        value={formLocation}
+                        onChange={(e) => setFormLocation(e.target.value)}
+                        placeholder="e.g., Sector C near grocery store"
+                        required
+                      />
+                    </div>
+
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-4.5 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                          <FiMapPin className="text-primary-500" />
+                          GPS Coordinate Attachment
+                        </h4>
+                        <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                          {geoCaptured 
+                            ? `Lat: ${geoCoords.lat.toFixed(4)}, Lng: ${geoCoords.lon.toFixed(4)}` 
+                            : "Attach live location to speed up dispatched contractors."}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={geoCaptured ? "success" : "secondary"}
+                        onClick={captureLocation}
+                      >
+                        {geoCaptured ? "✓ Attached" : "🗺️ Get GPS"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 4: Photo Attachment */}
+                {formStep === 4 && (
+                  <div className="space-y-4">
+                    <p className="text-xs font-bold text-slate-550 uppercase tracking-wide">Evidence Photo Upload (optional)</p>
+                    
+                    <div className="border-2 border-dashed border-slate-200 hover:border-primary-400 bg-slate-50/50 hover:bg-slate-50 rounded-3xl p-8 transition flex flex-col items-center justify-center text-center relative group">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoSelect}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      {photoPreview ? (
+                        <div className="space-y-3 flex flex-col items-center">
+                          <img
+                            src={photoPreview}
+                            alt="Preview"
+                            className="max-h-[140px] rounded-xl object-contain border border-slate-200 shadow-sm"
+                          />
+                          <p className="text-[10px] font-bold text-danger-500 hover:underline cursor-pointer relative z-20" onClick={(e) => {
+                            e.stopPropagation();
+                            setPhotoFile(null);
+                            setPhotoPreview(null);
+                          }}>
+                            Remove Attachment
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <FiUploadCloud className="text-3xl text-slate-400 group-hover:text-primary-500 transition mb-3" />
+                          <p className="text-xs font-semibold text-slate-700">Drag & drop photo or click to browse</p>
+                          <p className="text-[10px] text-slate-400 mt-1">Supports JPEG, PNG up to 10MB</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 5: Final Review & Submission */}
+                {formStep === 5 && (
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-slate-450 uppercase tracking-widest border-b pb-1 mb-2">Grievance Summary</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50/80 p-4.5 rounded-2xl border border-slate-100">
+                      <div>
+                        <p className="font-bold text-slate-400">Category Area</p>
+                        <p className="font-extrabold text-slate-700 mt-0.5">{formCategory}</p>
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-400">Report Title</p>
+                        <p className="font-extrabold text-slate-700 mt-0.5 truncate">{formTitle}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="font-bold text-slate-400">Address Location</p>
+                        <p className="font-extrabold text-slate-700 mt-0.5">{formLocation}</p>
+                      </div>
+                      {geoCaptured && (
+                        <div className="col-span-2">
+                          <p className="font-bold text-slate-400">GPS Position</p>
+                          <p className="font-extrabold text-slate-700 mt-0.5">Attached ✓</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer Controls */}
+                <div className="flex justify-between items-center border-t border-slate-50 pt-4.5">
+                  {formStep > 1 ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setFormStep(formStep - 1)}
+                    >
+                      Back
+                    </Button>
+                  ) : (
+                    <div />
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setIsSubmitOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+
+                    {formStep < 5 ? (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        disabled={
+                          (formStep === 2 && (!formTitle || !formDescription)) ||
+                          (formStep === 3 && !formLocation)
+                        }
+                        onClick={() => setFormStep(formStep + 1)}
+                      >
+                        Next
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        disabled={isSubmitting}
+                        onClick={handleNewComplaintSubmit}
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit Grievance"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Linear-style Timeline Details Modal */}
+      <AnimatePresence>
+        {isViewOpen && selectedComplaint && (
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setIsViewOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-4xl h-[85vh] relative overflow-y-auto p-7 sm:p-9 flex flex-col gap-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition text-lg"
+                onClick={() => setIsViewOpen(false)}
+              >
+                ✕
+              </button>
+
+              <div className="border-b border-slate-100 pb-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full uppercase tracking-wider">
+                    Complaint ID #{selectedComplaint.id}
+                  </span>
+                  <Badge variant={selectedComplaint.status === "RESOLVED_PENDING" ? "warning" : (selectedComplaint.status === "RESOLVED" ? "success" : "info")}>
+                    {selectedComplaint.status === "RESOLVED_PENDING" ? "Verification Pending" : selectedComplaint.status}
+                  </Badge>
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight mt-2.5">
+                  {selectedComplaint.title}
+                </h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 flex-1">
+                {/* Left Side: Summary Metadata details */}
+                <div className="md:col-span-1 flex flex-col gap-6 text-xs text-slate-650 bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                  <div>
+                    <p className="font-bold text-slate-400">Category Area</p>
+                    <p className="font-extrabold text-slate-700 mt-0.5">{selectedComplaint.category}</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-400">Grievance Status</p>
+                    <p className="font-extrabold text-slate-700 mt-0.5">{selectedComplaint.status}</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-400">Severity Level</p>
+                    <p className="font-extrabold text-slate-700 mt-0.5">{selectedComplaint.severity || "Low"}</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-400">Address Address</p>
+                    <p className="font-extrabold text-slate-750 mt-0.5 leading-relaxed">{selectedComplaint.location}</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-400">Assigned Personnel</p>
+                    <p className="font-extrabold text-slate-700 mt-0.5">{selectedComplaint.assignedTo || "Unassigned / Pending routing"}</p>
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-400">Lodge Date</p>
+                    <p className="font-extrabold text-slate-700 mt-0.5">{selectedComplaint.subdate}</p>
+                  </div>
+                </div>
+
+                {/* Right Side: Timeline and Description */}
+                <div className="md:col-span-2 space-y-6">
+                  
+                  {/* Detailed descriptions */}
+                  <div className="space-y-2.5">
+                    <h3 className="text-sm font-bold text-slate-800 tracking-tight uppercase tracking-wider text-[11px] border-b pb-1">Detailed Description</h3>
+                    <p className="text-xs text-slate-550 leading-relaxed bg-slate-50/30 p-4 rounded-xl border border-slate-100">
+                      {selectedComplaint.description}
+                    </p>
+                  </div>
+
+                  {/* Evidence Images */}
+                  {selectedComplaint.photo && (
+                    <div className="space-y-2.5">
+                      <h3 className="text-sm font-bold text-slate-800 tracking-tight uppercase tracking-wider text-[11px] border-b pb-1 flex items-center gap-1.5">
+                        <FiImage /> Evidence Media
+                      </h3>
+                      <div className="flex justify-center bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                        <img
+                          src={`${API_BASE_URL}${selectedComplaint.photo}`}
+                          alt="Evidence complaint"
+                          className="max-w-full max-h-[220px] rounded-xl object-contain shadow-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Linear-style interactive timeline */}
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-800 tracking-tight uppercase tracking-wider text-[11px] border-b pb-1">Lifecycle Activity History</h3>
+                    
+                    <div className="relative border-l border-slate-100 pl-6 space-y-5 text-xs text-slate-500 font-medium">
+                      
+                      {/* Lodged Event */}
+                      <div className="relative">
+                        <span className="absolute -left-[30px] top-0.5 w-4.5 h-4.5 rounded-full bg-primary-100 text-primary-600 border border-primary-200 flex items-center justify-center text-[10px] font-bold">
+                          1
+                        </span>
+                        <div>
+                          <p className="font-extrabold text-slate-750">Grievance report filed successfully</p>
+                          <p className="text-[10px] text-slate-400">{selectedComplaint.subdate}</p>
+                        </div>
+                      </div>
+
+                      {/* AI Governance check */}
+                      <div className="relative">
+                        <span className="absolute -left-[30px] top-0.5 w-4.5 h-4.5 rounded-full bg-indigo-100 text-indigo-600 border border-indigo-200 flex items-center justify-center text-[10px] font-bold">
+                          2
+                        </span>
+                        <div>
+                          <p className="font-extrabold text-slate-750">AI Governance System Audited</p>
+                          {selectedComplaint.is_duplicate ? (
+                            <p className="text-[10px] text-purple-600 font-semibold leading-relaxed mt-0.5">
+                              ⚠️ Duplicate matched. Grievance linked to master ticket #{selectedComplaint.duplicate_of || "active ticket"} to optimize priority weight.
+                            </p>
+                          ) : (
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              Unique report verified. Geospatial priority coordinates generated.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* SLA Escalation alerts */}
+                      {selectedComplaint.escalation_explanation && (
+                        <div className="relative">
+                          <span className="absolute -left-[30px] top-0.5 w-4.5 h-4.5 rounded-full bg-amber-100 text-amber-600 border border-amber-200 flex items-center justify-center text-[10px] font-bold">
+                            🔥
+                          </span>
+                          <div>
+                            <p className="font-bold text-amber-700">Forced SLA Escalation triggered</p>
+                            <p className="text-[10px] text-amber-600 leading-relaxed mt-0.5">{selectedComplaint.escalation_explanation}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Work In Progress / Assign */}
+                      <div className="relative">
+                        <span className="absolute -left-[30px] top-0.5 w-4.5 h-4.5 rounded-full bg-amber-100 text-amber-650 border border-amber-200 flex items-center justify-center text-[10px] font-bold">
+                          3
+                        </span>
+                        <div>
+                          <p className="font-extrabold text-slate-750">
+                            {selectedComplaint.assignedTo 
+                              ? `Assigned to contractor: ${selectedComplaint.assignedTo}` 
+                              : "Pending Contractor dispatch"}
+                          </p>
+                          <p className="text-[10px] text-slate-400">{selectedComplaint.update}</p>
+                        </div>
+                      </div>
+
+                      {/* Resolution actions inside timeline */}
+                      {selectedComplaint.status === "RESOLVED_PENDING" && (
+                        <div className="relative">
+                          <span className="absolute -left-[30px] top-0.5 w-4.5 h-4.5 rounded-full bg-amber-100 text-amber-600 border border-amber-200 flex items-center justify-center text-[10px] font-bold">
+                            ⏳
+                          </span>
+                          <div className="bg-amber-50/40 p-4 border border-amber-100/60 rounded-2xl flex flex-col gap-2 mt-1">
+                            <p className="font-extrabold text-amber-800">Resolution Completed: Verification Required</p>
+                            <p className="text-[10px] text-slate-500 leading-relaxed">
+                              The contractor has completed resolutions. Please confirm or reject the fix below:
+                            </p>
+                            <div className="flex gap-2.5 mt-1.5">
+                              <Button
+                                size="sm"
+                                variant="success"
+                                onClick={() => handleConfirmFix(selectedComplaint)}
+                              >
+                                Confirm & Close Ticket
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => handleRejectFix(selectedComplaint)}
+                              >
+                                Reject & Send Back
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <ChatbotWidget />
-      <footer className="text-center py-4 bg-white shadow-inner text-gray-600 text-sm">
-        © {new Date().getFullYear()} TattleTent. All rights reserved.
-      </footer>
-    </div>
+    </AppLayout>
   );
 };
 

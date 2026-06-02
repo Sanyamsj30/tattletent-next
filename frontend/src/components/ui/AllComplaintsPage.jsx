@@ -1,75 +1,104 @@
 import React, { useState, useEffect, useMemo } from "react";
-import Logo from './Logo'
+import Logo from './Logo';
 import { useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
 import { API_BASE_URL } from "../../lib/api";
-
+import { motion, AnimatePresence } from "framer-motion";
+import { FiSearch, FiSliders, FiDownload, FiRefreshCw, FiExternalLink, FiFileText, FiMapPin, FiCalendar, FiUser, FiInfo, FiTag, FiFile } from "react-icons/fi";
+import { Button } from "./button";
+import { Badge } from "./badge";
+import { Card, CardContent } from "./card";
 
 const AllComplaintsPage = () => {
-
-  const navigate=useNavigate();
+  const navigate = useNavigate();
 
   const [complaints, setComplaints] = useState([]);
- /*  const [complaints, setComplaints] = useState([
-    { id: 1, category: "Water Leak", location: "Tent #5", status: "Pending", citizen: "John Doe", priority: null, description: "Leak near Tent #5, pipe burst", assignedTo: null },
-    { id: 2, category: "Garbage", location: "Central Park", status: "In Progress", citizen: "Mike Johnson", priority: "Low", description: "Overflowing bin near park", assignedTo: "John Doe" },
-    { id: 3, category: "Electrical", location: "Sector B", status: "Pending", citizen: "Sarah Lee", priority: null, description: "Street light not working", assignedTo: null },
-    { id: 4, category: "Pathway Damage", location: "Sector C", status: "Resolved", citizen: "Jane Smith", priority: "Medium", description: "Broken tiles in Sector C repaired", assignedTo: "Mike Johnson", solution: "Tiles replaced" },
-    // Add more complaints for testing pagination  
-    { id: 5, category: "Garbage", location: "Sector D", status: "Pending", citizen: "Anna Lee", priority: null, description: "Trash not collected", assignedTo: null },
-    { id: 6, category: "Water Leak", location: "Sector E", status: "Pending", citizen: "Bob Smith", priority: null, description: "Pipe leak near road", assignedTo: null },
-    { id: 7, category: "Electrical", location: "Sector F", status: "Resolved", citizen: "Carol White", priority: "High", description: "Power outage fixed", assignedTo: "Jane Smith", solution: "Replaced transformer" },
-    { id: 8, category: "Pathway Damage", location: "Sector G", status: "In Progress", citizen: "David Green", priority: "Medium", description: "Uneven pavement", assignedTo: "Mike Johnson" },
-  ]);
- */
-    const fetchComplaintsByUser = async () => {
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const complaintsPerPage = 6;
+
+  // Determine login state and user details for smart navigation
+  const token = sessionStorage.getItem("token");
+  const userStr = sessionStorage.getItem("user");
+  const isLoggedIn = !!(token && userStr);
+
+  const getDashboardUrl = () => {
+    if (!isLoggedIn) return "/";
     try {
-  
-      const response = await fetch(`${API_BASE_URL}/api/public/complaints/search`);
-  
+      const parsed = JSON.parse(userStr);
+      const role = String(parsed.role || "").toLowerCase();
+      if (role === "admin" || role === "ringmaster") return "/admin-dashboard";
+      if (role === "staff") return "/staff-dashboard";
+      return "/citizen-dashboard";
+    } catch (e) {
+      return "/citizen-dashboard";
+    }
+  };
+
+  const fetchComplaintsByUser = async () => {
+    try {
+      let isAdminOrStaff = false;
+      if (isLoggedIn && userStr) {
+        try {
+          const parsed = JSON.parse(userStr);
+          const role = String(parsed.role || "").toLowerCase();
+          if (role === "admin" || role === "ringmaster" || role === "staff") {
+            isAdminOrStaff = true;
+          }
+        } catch (e) {
+          console.error("Error parsing user from session:", e);
+        }
+      }
+
+      const endpoint = isAdminOrStaff
+        ? `${API_BASE_URL}/api/complaints/search`
+        : `${API_BASE_URL}/api/public/complaints/search`;
+
+      const headers = {};
+      if (isAdminOrStaff && token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(endpoint, { headers });
       if (!response.ok) throw new Error("Failed to fetch complaints");
-  
       const data = await response.json();
       setComplaints(data.map(c => ({
         id: c.complaint_id,
         category: c.category,
         status: c.status,
         location: c.location,
-        priority: c.priority,
+        priority: c.priority_level || c.priority,
+        severity: c.severity || "Low",
         description: c.description,
         assignedTo: c.assigned_to,
         photo: c.photo,
+        solution: c.solution,
+        citizen: c.citizen_name || "Civic Citizen",
         date: new Date(c.submitted_at).toLocaleDateString()
       })));
-  
     } catch (err) {
       console.error("Error fetching complaints:", err);
-      setComplaints([]); // fallback to empty array
+      setComplaints([]);
     }
   };
-  
+
   useEffect(() => {
-      fetchComplaintsByUser();
+    fetchComplaintsByUser();
   }, []);
-
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-
-
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const complaintsPerPage = 5; // number of complaints per page
-
-  //const staffList = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Lee"];
 
   const filteredComplaints = useMemo(() => {
     return complaints.filter(c => {
       const matchesStatus = filterStatus === "all" || c.status.toLowerCase() === filterStatus.toLowerCase();
       const matchesCategory = filterCategory === "all" || c.category.toLowerCase() === filterCategory.toLowerCase();
-      const matchesSearch = searchTerm === "" || c.category.toLowerCase().includes(searchTerm.toLowerCase()) || c.location.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = searchTerm === "" || 
+        c.category.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        c.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.id.toString().includes(searchTerm) ||
+        c.description.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesStatus && matchesCategory && matchesSearch;
     });
   }, [complaints, filterStatus, filterCategory, searchTerm]);
@@ -86,243 +115,506 @@ const AllComplaintsPage = () => {
   };
 
   const exportComplaintPDF = (complaint) => {
-  const doc = new jsPDF();
-  doc.setFontSize(18);
-  doc.text(`Complaint #${complaint.id}`, 14, 22);
-  doc.setFontSize(12);
-  doc.text(`Category: ${complaint.category}`, 14, 40);
-  doc.text(`Location: ${complaint.location}`, 14, 50);
-  doc.text(`Status: ${complaint.status}`, 14, 60);
-  doc.text(`Priority: ${complaint.priority || "Not Set"}`, 14, 70);
-  doc.text(`Reported by: ${complaint.citizen || "Unknown"}`, 14, 80);
-  doc.text(`Date: ${complaint.date}`, 14, 90);
-  doc.text(`Description: ${complaint.description}`, 14, 100, { maxWidth: 180 });
-  if (complaint.solution) doc.text(`Solution: ${complaint.solution}`, 14, 120, { maxWidth: 180 });
-  doc.save(`Complaint_${complaint.id}.pdf`);
-};
+    const doc = new jsPDF();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.text("TATTLE TENT", 14, 25);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text("Official Civic Grievance Transparency Ledger", 14, 30);
+    doc.setDrawColor(226, 232, 240); // slate-200
+    doc.line(14, 35, 196, 35);
 
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(99, 102, 241); // indigo-500
+    doc.text(`Complaint Record #${complaint.id}`, 14, 45);
+
+    doc.setFontSize(11);
+    doc.setTextColor(51, 65, 85); // slate-700
+    
+    const details = [
+      ["Category", complaint.category],
+      ["Location", complaint.location],
+      ["Status", complaint.status],
+      ["Severity Level", complaint.severity || "Low"],
+      ["Priority Tier", complaint.priority || "Standard"],
+      ["Report Date", complaint.date],
+      ["Assigned Contractor", complaint.assignedTo || "AI Auto-Assigned"]
+    ];
+
+    let currentY = 55;
+    details.forEach(([label, val]) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 14, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.text(String(val), 60, currentY);
+      currentY += 8;
+    });
+
+    currentY += 4;
+    doc.setDrawColor(241, 245, 249);
+    doc.line(14, currentY, 196, currentY);
+    currentY += 10;
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Grievance Description", 14, currentY);
+    currentY += 6;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    const splitDesc = doc.splitTextToSize(complaint.description, 180);
+    doc.text(splitDesc, 14, currentY);
+    currentY += splitDesc.length * 5 + 10;
+
+    if (complaint.solution) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(16, 185, 129); // emerald-500
+      doc.text("Official Resolution Report", 14, currentY);
+      currentY += 6;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      const splitSol = doc.splitTextToSize(complaint.solution, 180);
+      doc.text(splitSol, 14, currentY);
+    }
+
+    doc.save(`TattleTent_Complaint_${complaint.id}.pdf`);
+  };
 
   const exportCSV = () => {
     const csvContent = [
-      ["ID", "Category", "Location", "Status", "Date", "Priority", "Assigned To", "Description"],
-      ...complaints.map(c => [c.id, c.category, c.location, c.status, c.date, c.priority || "", c.assignedTo || "", c.description])
+      ["ID", "Category", "Location", "Status", "Date", "Priority", "Severity", "Assigned To", "Description"],
+      ...complaints.map(c => [
+        c.id, 
+        c.category, 
+        `"${c.location.replace(/"/g, '""')}"`, 
+        c.status, 
+        c.date, 
+        c.priority || "Not Set", 
+        c.severity || "Low",
+        c.assignedTo || "AI Auto-Assigned", 
+        `"${c.description.replace(/"/g, '""')}"`
+      ])
     ].map(e => e.join(",")).join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "all_complaints.csv";
+    link.download = `tattletent_ledger_${new Date().toISOString().slice(0,10)}.csv`;
     link.click();
   };
 
+  const getStatusBadgeVariant = (status) => {
+    switch (String(status).toUpperCase()) {
+      case "RESOLVED":
+        return "success";
+      case "IN_PROGRESS":
+        return "warning";
+      case "PENDING":
+      case "NEW":
+      default:
+        return "primary";
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#FCF5EE] font-sans p-6 pt-32">
-    <div className="fixed top-0 left-0 w-full h-24 flex items-center justify-between px-8 bg-white shadow-md z-50">
-    <Logo/>
-    <div className="flex items-center gap-4">
-      <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2" onClick={() => navigate("/")}>
-        Home
-      </button>
-      <button className="rounded-full bg-[#d55d1f] hover:bg-[#b54a16] text-white px-5 py-2" onClick={() => navigate("/admin-dashboard")}>
-        My Dashboard
-      </button>
-    </div>
-  </div>
-
- 
-  <div className="text-center mb-8">
-    <h2 className="text-5xl font-bold text-orange-700 mb-2">All Complaints</h2>
-    <p className="text-gray-700 text-lg">View and Export all complaints efficiently.</p>
-  </div>
-
-      {/* Search & Filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-        <input
-          type="text"
-          placeholder="Search by keyword..."
-          className="px-4 py-2 border rounded-lg w-full lg:w-1/3 focus:ring-2 focus:ring-orange-300"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <select
-            className="px-4 py-2 border rounded-lg w-full sm:w-auto"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="all">All Status</option>
-            <option value="new">New</option>
-            <option value="in_progress">In Progress</option>
-            <option value="resolved">Resolved</option>
-          </select>
-
-          <select
-            className="px-4 py-2 border rounded-lg w-full sm:w-auto"
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-          >
-            <option value="all">All Categories</option>
-            <option value="pathway damage">Pathway Damage</option>
-            <option value="water leak">Water Leak</option>
-            <option value="garbage">Garbage</option>
-            <option value="electrical">Electrical</option>
-          </select>
-
-          <button
-            onClick={exportCSV}
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
-          >
-            Export CSV
-          </button>
-
-          <button
-            onClick={() => {
-              setSearchTerm("");
-              setFilterCategory("all");
-              setFilterStatus("all");
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
-          >
-            Clear Filters
-          </button>
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans pb-16">
+      {/* Visual background grids */}
+      <div className="absolute inset-0 grid-mesh-bg opacity-30 pointer-events-none z-0"></div>
+      
+      {/* Top Navbar */}
+      <div className="fixed top-0 left-0 w-full h-20 flex items-center justify-between px-6 sm:px-10 bg-white/80 backdrop-blur-md border-b border-slate-100 z-50 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Logo />
+          <span className="font-extrabold text-lg text-slate-800 tracking-tight hidden sm:block">
+            TattleTent
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" size="sm" onClick={() => navigate("/")}>
+            Home
+          </Button>
+          {isLoggedIn ? (
+            <Button variant="primary" size="sm" onClick={() => navigate(getDashboardUrl())}>
+              My Console
+            </Button>
+          ) : (
+            <Button variant="primary" size="sm" onClick={() => navigate("/")}>
+              Get Started
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Complaints Table */}
-      <div className="overflow-x-auto rounded-lg border border-gray-300">
-        <table className="min-w-full divide-y divide-blue-200">
-          <thead className="bg-white">
-            <tr>
-              {["ID","Category","Location","Status","Date","Priority","Assigned To","View"].map(h=>(
-                <th key={h} className="p-4 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-blue-200 bg-white">
-            {currentComplaints.map(c=>(
-              <tr key={c.id} className="hover:bg-blue-50 transition">
-                <td className="p-4 font-bold">{c.id}</td>
-                <td className="p-4">{c.category}</td>
-                <td className="p-4">{c.location}</td>
-                <td className="p-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${c.status==="RESOLVED"?"bg-green-100 text-green-800":c.status==="IN_PROGRESS"?"bg-yellow-100 text-yellow-800":"bg-red-100 text-red-800"}`}>
-                    {c.status}
-                  </span>
-                </td>
-                <td className="p-4">{c.date}</td>
-                <td className="p-4">{c.priority || "Not Set"}</td>
-                <td className="p-4">{c.assignedTo || "Unassigned"}</td>
-                <td className="p-4 flex gap-2">
-  <button
-    className="px-3 py-1.5 bg-orange-600 text-white rounded-lg text-sm hover:bg-orange-700 transition"
-    onClick={() => handleView(c)}
-  >
-    OPEN
-  </button>
-  <button
-    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
-    onClick={() => exportComplaintPDF(c)}
-  >
-    PDF
-  </button>
-</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Main Container */}
+      <div className="pt-28 max-w-7xl mx-auto px-4 sm:px-6 relative z-10 space-y-8">
+        
+        {/* Title Hero */}
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <Badge variant="info">CIVIC TRANSPARENCY</Badge>
+          <h1 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
+            Public Transparency Ledger
+          </h1>
+          <p className="text-sm sm:text-base text-slate-500 font-medium">
+            Explore live public grievance tracking, verified SLA performance, and certified community resolutions in real-time.
+          </p>
+        </div>
+
+        {/* Search & Advanced Filters */}
+        <Card className="border border-slate-100 shadow-sm">
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+              
+              {/* Keyword Search Input */}
+              <div className="md:col-span-5 relative">
+                <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base" />
+                <input
+                  type="text"
+                  placeholder="Search complaints by ID, category, or location..."
+                  className="w-full pl-11 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+
+              {/* Status Select Filter */}
+              <div className="md:col-span-2.5">
+                <select
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer"
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="all">🚦 All Statuses</option>
+                  <option value="new">🆕 New</option>
+                  <option value="in_progress">⚙️ In Progress</option>
+                  <option value="resolved">✅ Resolved</option>
+                </select>
+              </div>
+
+              {/* Category Select Filter */}
+              <div className="md:col-span-2.5">
+                <select
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer"
+                  value={filterCategory}
+                  onChange={(e) => {
+                    setFilterCategory(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="all">📁 All Categories</option>
+                  <option value="pathway damage">🛣️ Pathway Damage</option>
+                  <option value="water leak">💧 Water Leak</option>
+                  <option value="garbage">🚮 Garbage Outflow</option>
+                  <option value="electrical">⚡ Electrical</option>
+                </select>
+              </div>
+
+              {/* Export Button & Action Buttons */}
+              <div className="md:col-span-2 flex gap-2">
+                <Button
+                  onClick={exportCSV}
+                  variant="success"
+                  size="sm"
+                  className="flex-1 text-xs py-3 h-full gap-2 rounded-xl"
+                  title="Export Transparency Data to CSV"
+                >
+                  <FiDownload className="text-sm" /> CSV
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilterCategory("all");
+                    setFilterStatus("all");
+                    setCurrentPage(1);
+                  }}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1 text-xs py-3 h-full gap-1.5 rounded-xl border border-slate-200"
+                  title="Reset Search Filters"
+                >
+                  <FiRefreshCw className="text-xs" /> Reset
+                </Button>
+              </div>
+
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Complaints Table Ledger List */}
+        <Card className="border border-slate-100 overflow-hidden shadow-sm bg-white">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="bg-slate-50/50">
+                <tr>
+                  {["ID", "Grievance Category", "Address / Location", "Status", "Date Filed", "Assigned Actioner", "Actions"].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left font-bold text-slate-400 uppercase tracking-widest text-[10px]">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {currentComplaints.length > 0 ? (
+                  currentComplaints.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50/40 transition">
+                      <td className="px-6 py-4 font-bold text-slate-700">
+                        #{c.id}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-slate-800">{c.category}</span>
+                          <span className="text-[10px] text-slate-400 font-semibold uppercase mt-0.5 tracking-wider">
+                            Severity: {c.severity}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-slate-600">
+                        {c.location}
+                      </td>
+                      <td className="px-6 py-4">
+                        <Badge variant={getStatusBadgeVariant(c.status)}>
+                          {c.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 font-bold text-xs">
+                        {c.date}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-slate-600 font-bold font-mono text-xs bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">
+                          {c.assignedTo || "AI Auto-Assigned"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            size="sm" 
+                            variant="secondary" 
+                            onClick={() => handleView(c)}
+                            className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900"
+                          >
+                            <FiExternalLink className="mr-1 text-xs" /> View
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            onClick={() => exportComplaintPDF(c)}
+                            className="text-xs px-3 py-1 bg-transparent hover:bg-primary-50 rounded-lg"
+                          >
+                            <FiFileText className="mr-1 text-xs" /> PDF
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="text-center py-16 text-slate-400 italic font-semibold">
+                      No transparency records match the selected filter query criteria.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Table Footer Pagination */}
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-slate-50 flex items-center justify-between bg-slate-50/20 text-xs font-semibold">
+              <div className="text-slate-400">
+                Showing <span className="font-bold text-slate-700">{indexOfFirst + 1}</span> to <span className="font-bold text-slate-700">{Math.min(indexOfLast, filteredComplaints.length)}</span> of <span className="font-bold text-slate-700">{filteredComplaints.length}</span> results
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3.5 py-1.5 rounded-lg text-xs"
+                >
+                  Prev
+                </Button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <Button
+                    key={i}
+                    variant={currentPage === i + 1 ? "primary" : "secondary"}
+                    size="sm"
+                    onClick={() => setCurrentPage(i + 1)}
+                    className="w-8 h-8 rounded-lg text-xs p-0 flex items-center justify-center font-bold"
+                  >
+                    {i + 1}
+                  </Button>
+                ))}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-3.5 py-1.5 rounded-lg text-xs"
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <button
-            className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => prev - 1)}
+      {/* Details Lightbox Modal View */}
+      <AnimatePresence>
+        {isViewOpen && selectedComplaint && (
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setIsViewOpen(false)}
           >
-            Prev
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              className={`px-3 py-1 rounded-lg ${currentPage === i+1 ? "bg-orange-600 text-white" : "bg-gray-200 hover:bg-gray-300"}`}
-              onClick={() => setCurrentPage(i+1)}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-y-auto p-6 sm:p-8 shadow-strong relative space-y-6"
+              onClick={(e) => e.stopPropagation()}
             >
-              {i+1}
-            </button>
-          ))}
-          <button
-            className="px-3 py-1 rounded-lg bg-gray-200 hover:bg-gray-300"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(prev => prev + 1)}
-          >
-            Next
-          </button>
-        </div>
-      )}
+              {/* Close Button */}
+              <button
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-650 transition text-lg w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center"
+                onClick={() => setIsViewOpen(false)}
+              >
+                ✕
+              </button>
 
-      {isViewOpen && selectedComplaint && (
-  <div
-    className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-    onClick={() => setIsViewOpen(false)}
-  >
-    <div
-      className="bg-white rounded-2xl w-full max-w-4xl h-[85vh] relative overflow-y-auto p-6"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {/* Close button */}
-      <button
-        className="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-xl"
-        onClick={() => setIsViewOpen(false)}
-      >
-        ✕
-      </button>
+              {/* Modal Header */}
+              <div className="border-b border-slate-100 pb-4 space-y-2">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <Badge variant={getStatusBadgeVariant(selectedComplaint.status)}>
+                    {selectedComplaint.status}
+                  </Badge>
+                  <span className="text-xs font-bold text-slate-400">Record ID: #{selectedComplaint.id}</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-800">
+                  {selectedComplaint.category}
+                </h2>
+                <p className="text-xs text-slate-400 font-semibold flex items-center gap-1">
+                  <FiCalendar /> Reported on {selectedComplaint.date}
+                </p>
+              </div>
 
-      {/* Complaint Details */}
-      <h2 className="text-3xl font-bold text-orange-600 mb-4">
-        Complaint #{selectedComplaint.id}: {selectedComplaint.category}
-      </h2>
+              {/* Content Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                
+                {/* Meta details list */}
+                <div className="md:col-span-5 space-y-4 bg-slate-50/50 border border-slate-100 p-5 rounded-2xl">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b pb-2 mb-3">Audit Details</h4>
+                  
+                  <div className="space-y-3 text-xs">
+                    <div className="flex justify-between py-1 border-b border-slate-100/50">
+                      <span className="text-slate-400 font-semibold flex items-center gap-1.5"><FiMapPin /> Location</span>
+                      <span className="text-slate-700 font-bold text-right">{selectedComplaint.location}</span>
+                    </div>
 
-      <div className="space-y-3">
-        <p><strong>Description:</strong> {selectedComplaint.description}</p>
-        <p><strong>Location:</strong> {selectedComplaint.location}</p>
-        <p><strong>Status:</strong> {selectedComplaint.status}</p>
-        <p><strong>Priority:</strong> {selectedComplaint.priority}</p>
-        <p><strong>Reported by:</strong> {selectedComplaint.citizen}</p>
-        <p><strong>Date:</strong> {selectedComplaint.date}</p>
-        {selectedComplaint.solution && (
-          <p><strong>Solution:</strong> {selectedComplaint.solution}</p>
+                    <div className="flex justify-between py-1 border-b border-slate-100/50">
+                      <span className="text-slate-400 font-semibold flex items-center gap-1.5">⚖️ Severity</span>
+                      <span className="text-slate-700 font-bold uppercase">{selectedComplaint.severity}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1 border-b border-slate-100/50">
+                      <span className="text-slate-400 font-semibold flex items-center gap-1.5"><FiTag /> Priority Tier</span>
+                      <span className="text-slate-700 font-bold">{selectedComplaint.priority || "Standard"}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1 border-b border-slate-100/50">
+                      <span className="text-slate-400 font-semibold flex items-center gap-1.5"><FiUser /> Submitter</span>
+                      <span className="text-slate-700 font-bold">{selectedComplaint.citizen}</span>
+                    </div>
+
+                    <div className="flex justify-between py-1">
+                      <span className="text-slate-400 font-semibold flex items-center gap-1.5">🛠️ Assignee</span>
+                      <span className="text-slate-700 font-bold font-mono text-[10px]">{selectedComplaint.assignedTo || "AI Auto-Assigned"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main complaint body */}
+                <div className="md:col-span-7 space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                      <FiInfo className="text-primary-500" /> Narrative Details
+                    </h3>
+                    <p className="text-slate-600 text-sm leading-relaxed bg-slate-50 border border-slate-100 p-4 rounded-2xl whitespace-pre-line font-medium">
+                      {selectedComplaint.description}
+                    </p>
+                  </div>
+
+                  {/* Resolution Report */}
+                  {selectedComplaint.solution && (
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                        ✅ Resolution Work Summary
+                      </h3>
+                      <p className="text-emerald-800 text-sm leading-relaxed bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl whitespace-pre-line font-semibold">
+                        {selectedComplaint.solution}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Large Image Showcase */}
+              {selectedComplaint.photo && (
+                <div className="border-t border-slate-100 pt-6">
+                  <h4 className="text-sm font-bold text-slate-850 mb-3 flex items-center gap-1.5">
+                    <FiFile className="text-indigo-500" /> Attached Photo Evidence
+                  </h4>
+                  <div className="bg-slate-50 rounded-2xl p-2.5 border border-slate-100 flex justify-center overflow-hidden">
+                    <img
+                      src={`${API_BASE_URL}${selectedComplaint.photo}`}
+                      alt={selectedComplaint.category}
+                      className="max-w-full max-h-[360px] rounded-xl shadow-md object-contain transition-transform duration-300 hover:scale-[1.01]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2 justify-end pt-4 border-t border-slate-100">
+                <Button
+                  onClick={() => exportComplaintPDF(selectedComplaint)}
+                  variant="secondary"
+                  className="gap-2 border border-slate-200 text-slate-600 hover:text-slate-900"
+                >
+                  <FiFileText /> Save Official PDF
+                </Button>
+                <Button
+                  onClick={() => setIsViewOpen(false)}
+                  className="px-8"
+                >
+                  Close Record
+                </Button>
+              </div>
+
+            </motion.div>
+          </div>
         )}
-      </div>
-
-      {/* Image below text */}
-      {selectedComplaint.photo && (
-        <div className="mt-6 flex justify-center">
-          <img
-            src={`http://localhost:5000${selectedComplaint.photo}`}
-            alt={selectedComplaint.category}
-            className="max-w-full max-h-[400px] rounded-lg shadow-md object-contain"
-          />
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
+      </AnimatePresence>
 
     </div>
   );
 };
-
-const Modal = ({ title, children, onClose }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl p-6" onClick={e=>e.stopPropagation()}>
-      <h3 className="text-2xl font-bold text-orange-600 mb-4">{title}</h3>
-      {children}
-    </div>
-  </div>
-);
 
 export default AllComplaintsPage;
