@@ -33,7 +33,7 @@ const createComplaint = asynchandler(async (req, res) => {
     category,
     location,
     priority: priority || 'Low',
-    photo: req.file ? `/temp/${req.file.filename}` : null,
+    photo: req.file ? (req.file.path.startsWith('http') ? req.file.path : `/temp/${req.file.filename}`) : null,
     latitude: latitude != null ? Number(latitude) : undefined,
     longitude: longitude != null ? Number(longitude) : undefined,
   });

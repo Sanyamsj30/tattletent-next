@@ -343,7 +343,8 @@ export const searchComplaints = async (filters) => {
   const query = { is_deleted: { $ne: true } };
 
   if (searchText) {
-    const re = new RegExp(String(searchText), 'i');
+    const escaped = String(searchText).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const re = new RegExp(escaped, 'i');
     query.$or = [{ title: re }, { description: re }];
   }
 
