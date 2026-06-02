@@ -1,6 +1,6 @@
 import Complaint from '../models/Complaint.js';
 import User from '../models/User.js';
-import { callGemini } from './ai.service.js';
+import { callGemini } from '../services/ai.service.js';
 
 /**
  * Auto Report Agent: Creates natural language summaries of performance based on database statistics.

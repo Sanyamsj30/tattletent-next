@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Logo from './Logo';
 import { useNavigate } from "react-router-dom";
 import AppLayout from "./AppLayout";
+import { useAuthSession } from "../../hooks/useAuthSession";
 import { jsPDF } from "jspdf";
 import { API_BASE_URL } from "../../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -23,35 +24,23 @@ const AllComplaintsPage = () => {
   const complaintsPerPage = 6;
 
   // Determine login state and user details for smart navigation
-  const token = sessionStorage.getItem("token");
-  const userStr = sessionStorage.getItem("user");
-  const isLoggedIn = !!(token && userStr);
+  const { token, user, isLoggedIn } = useAuthSession();
 
   const getDashboardUrl = () => {
     if (!isLoggedIn) return "/";
-    try {
-      const parsed = JSON.parse(userStr);
-      const role = String(parsed.role || "").toLowerCase();
-      if (role === "admin" || role === "ringmaster") return "/admin-dashboard";
-      if (role === "staff") return "/staff-dashboard";
-      return "/citizen-dashboard";
-    } catch (e) {
-      return "/citizen-dashboard";
-    }
+    const role = String(user?.role || "").toLowerCase();
+    if (role === "admin" || role === "ringmaster") return "/admin-dashboard";
+    if (role === "staff") return "/staff-dashboard";
+    return "/citizen-dashboard";
   };
 
   const fetchComplaintsByUser = async () => {
     try {
       let isAdminOrStaff = false;
-      if (isLoggedIn && userStr) {
-        try {
-          const parsed = JSON.parse(userStr);
-          const role = String(parsed.role || "").toLowerCase();
-          if (role === "admin" || role === "ringmaster" || role === "staff") {
-            isAdminOrStaff = true;
-          }
-        } catch (e) {
-          console.error("Error parsing user from session:", e);
+      if (isLoggedIn && user) {
+        const role = String(user.role || "").toLowerCase();
+        if (role === "admin" || role === "ringmaster" || role === "staff") {
+          isAdminOrStaff = true;
         }
       }
 

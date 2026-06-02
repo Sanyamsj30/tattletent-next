@@ -6,8 +6,10 @@ import {
   FiBell, FiLock, FiUserPlus, FiUser, FiInfo, FiChevronDown, FiFileText
 } from "react-icons/fi";
 import Logo from "./Logo";
+import { useAuthSession } from "../../hooks/useAuthSession";
 
 export default function AppLayout({ children, requiredRole = "" }) {
+  const { isLoggedIn, user: sessionUser } = useAuthSession();
   const [collapsed, setCollapsed] = useState(false);
   const [user, setUser] = useState({ name: "Guest", role: "Citizen" });
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -16,18 +18,14 @@ export default function AppLayout({ children, requiredRole = "" }) {
   const location = useLocation();
 
   useEffect(() => {
-    const token = sessionStorage.getItem("token");
-    const storedUser = sessionStorage.getItem("user");
-    
-    if (!token || !storedUser) {
+    if (!isLoggedIn) {
       navigate("/");
       return;
     }
 
-    const parsedUser = JSON.parse(storedUser);
-    setUser(parsedUser);
+    setUser(sessionUser);
 
-    const role = String(parsedUser.role || "").toLowerCase();
+    const role = String(sessionUser.role || "").toLowerCase();
     const reqRole = String(requiredRole || "").toLowerCase();
     if (reqRole) {
       const isAdminMatch = reqRole === "admin" && (role === "admin" || role === "ringmaster");
@@ -36,7 +34,7 @@ export default function AppLayout({ children, requiredRole = "" }) {
         navigate("/");
       }
     }
-  }, [navigate, requiredRole]);
+  }, [navigate, requiredRole, isLoggedIn, sessionUser]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("token");

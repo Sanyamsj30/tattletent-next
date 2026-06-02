@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import '../models/User.js';
 import dotenv from 'dotenv';
-import { searchUsers } from '../services/userService.js';
+import { searchUsers } from '../services/user.service.js';
 
 dotenv.config();
 

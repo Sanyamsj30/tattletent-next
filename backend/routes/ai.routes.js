@@ -1,6 +1,6 @@
 import express from 'express';
 import { askChatbot, getReport, getRecommendations } from '../controllers/ai.controllers.js';
-import { protect, staffOrAdmin, adminOnly } from '../middlewares/authMiddleware.js';
+import { protect, staffOrAdmin, adminOnly } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 

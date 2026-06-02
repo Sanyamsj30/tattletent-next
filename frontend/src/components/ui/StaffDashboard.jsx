@@ -11,6 +11,7 @@ import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
 import axios from "axios";
 import { API_BASE_URL } from "../../lib/api";
+import { useAuthSession } from "../../hooks/useAuthSession";
 import {
   BarChart,
   Bar,
@@ -23,8 +24,8 @@ import {
 } from "recharts";
 
 const StaffDashboard = () => {
-  const user = JSON.parse(sessionStorage.getItem("user")) || { name: "Guest" };
-  const userId = user?.user_id || user?.id || user?._id;
+  const { user: sessionUser, userId } = useAuthSession();
+  const user = sessionUser || { name: "Guest" };
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
 
   const [showPerformance, setShowPerformance] = useState(false);

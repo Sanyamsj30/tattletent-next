@@ -1,7 +1,7 @@
 import express from "express"
 import upload, { compressImage } from "../middlewares/upload.middleware.js";
 import { createComplaint, updateComplaintStatus,updateComplaintPriority, deleteComplaint, fetchComplaintCounts, getComplaints,escalateComplaints, getHeatmapData, reassignComplaint, forceEscalateComplaint } from "../controllers/complaint.controllers.js";
-import { protect, staffOrAdmin, adminOnly } from "../middlewares/authMiddleware.js";
+import { protect, staffOrAdmin, adminOnly } from "../middlewares/auth.middleware.js";
 
 
 const router = express.Router();

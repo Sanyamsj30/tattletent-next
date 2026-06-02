@@ -1,5 +1,5 @@
 import Complaint from '../models/Complaint.js';
-import { callGemini } from './ai.service.js';
+import { callGemini } from '../services/ai.service.js';
 
 /**
  * Smart Escalation Agent: Evaluates overdue complaints and generates natural language explanations of urgency and impact.

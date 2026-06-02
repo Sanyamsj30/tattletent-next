@@ -9,15 +9,15 @@ import axios from "axios";
 import { API_BASE_URL } from "../../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiCpu, FiUser, FiBarChart2, FiArrowLeft, FiActivity, FiStar, FiMail, FiMap } from "react-icons/fi";
+import { useAuthSession } from "../../hooks/useAuthSession";
 
 const AssignStaffPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const user = JSON.parse(sessionStorage.getItem("user"));
+  const { user, userId } = useAuthSession();
 
   const { complaint } = location.state || {};
   
-  const userId = user?.user_id || user?.id || user?._id;
   const complaintId = complaint?.id || complaint?.complaint_id || complaint?._id;
 
   // Safe redirect hook

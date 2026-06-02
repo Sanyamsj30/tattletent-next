@@ -1,4 +1,4 @@
-import { callGroq } from './ai.service.js';
+import { callGroq } from '../services/ai.service.js';
 import Complaint from '../models/Complaint.js';
 
 /**
