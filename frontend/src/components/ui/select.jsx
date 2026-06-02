@@ -5,10 +5,10 @@ export function Select({ value, onValueChange, children, className = "", placeho
     <select
       value={value}
       onChange={(e) => onValueChange(e.target.value)}
-      className={`w-full rounded-lg border px-4 py-3 bg-white transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-1 cursor-pointer ${
+      className={`w-full rounded-xl border px-4 py-2.5 bg-white text-sm text-slate-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 cursor-pointer ${
         error 
-          ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' 
-          : 'border-secondary-200 focus:border-primary-500 focus:ring-primary-500/20 hover:border-secondary-300'
+          ? 'border-danger-300 focus:border-danger-500 focus:ring-danger-500/20' 
+          : 'border-slate-200 focus:border-primary-500 hover:border-slate-300'
       } ${className}`}
     >
       <option value="">{placeholder}</option>

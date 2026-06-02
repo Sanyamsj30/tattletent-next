@@ -2,23 +2,23 @@ import React from "react";
 
 export function Button({ children, onClick, size = "md", variant = "primary", className = "", disabled = false, ...props }) {
   const base =
-    "rounded-lg font-medium transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed hover-lift";
+    "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500/50 disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-98 select-none";
   
   const sizes = {
-    sm: "text-sm px-4 py-2",
-    md: "text-base px-6 py-3",
-    lg: "text-lg px-8 py-4",
-    xl: "text-xl px-10 py-5",
+    sm: "text-xs px-3.5 py-2",
+    md: "text-sm px-5 py-2.5",
+    lg: "text-base px-6 py-3",
+    xl: "text-lg px-8 py-4",
   };
   
   const variants = {
-    primary:"px-4 py-2 rounded-md text-sm bg-primary text-white shadow hover:bg-primaryDark transition",
-    secondary: "bg-white text-secondary-700 border border-secondary-200 shadow-soft hover:bg-secondary-50 hover:shadow-medium focus:ring-secondary-500",
-    accent: "bg-gradient-accent text-white shadow-soft hover:shadow-medium focus:ring-accent-500 border border-accent-600",
-    gold: "bg-gradient-gold text-white shadow-soft hover:shadow-medium focus:ring-gold-500 border border-gold-600",
-    outline: "bg-transparent border-2 border-primary-600 text-primary-600 hover:bg-primary-50 focus:ring-primary-500",
-    ghost: "bg-transparent text-secondary-700 hover:bg-secondary-100 focus:ring-secondary-500",
-    danger: "bg-red-600 text-white shadow-soft hover:bg-red-700 hover:shadow-medium focus:ring-red-500 border border-red-700",
+    primary: "bg-gradient-to-r from-primary-500 to-indigo-500 hover:from-primary-600 hover:to-indigo-600 text-white shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/30 text-white glow-on-hover",
+    secondary: "bg-white text-slate-700 border border-slate-200/80 shadow-sm hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900",
+    accent: "bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-600 hover:to-fuchsia-600 text-white shadow-lg shadow-violet-500/20 hover:shadow-xl hover:shadow-violet-500/30",
+    outline: "bg-transparent border-2 border-primary-500 text-primary-600 hover:bg-primary-50",
+    ghost: "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    danger: "bg-gradient-to-r from-danger-500 to-red-600 hover:from-danger-600 hover:to-red-700 text-white shadow-lg shadow-danger-500/20 hover:shadow-xl hover:shadow-danger-500/30",
+    success: "bg-gradient-to-r from-success-500 to-emerald-600 hover:from-success-600 hover:to-emerald-700 text-white shadow-lg shadow-success-500/20 hover:shadow-xl hover:shadow-success-500/30",
   };
 
   return (

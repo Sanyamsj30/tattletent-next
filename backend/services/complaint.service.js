@@ -21,44 +21,51 @@ const normalizeStatus = (status) => {
   return status;
 };
 
-const toComplaintDto = (c) => ({
-  complaint_id: c._id.toString(),
-  title: c.title,
-  description: c.description,
-  category: c.category,
-  location: c.location,
-  dept_id: c.dept_id?.toString?.() || c.dept_id,
-  priority: c.priority,
-  status: c.status,
-  photo: c.photo,
-  user_id: c.user_id?.toString?.() || c.user_id,
-  staff_id: c.staff_id?.toString?.() || c.staff_id,
-  assigned_to: c.assigned_to,
-  latitude: c.latitude,
-  longitude: c.longitude,
-  sla_deadline: c.sla_deadline,
-  submitted_at: c.submitted_at,
-  updated_at: c.updated_at,
-  severity: c.severity || 'Low',
-  is_duplicate: c.is_duplicate || false,
-  duplicate_of: c.duplicate_of?.toString?.() || c.duplicate_of,
-  escalation_explanation: c.escalation_explanation,
-  priority_score: c.priority_score || 0,
-  priority_level: c.priority_level || 'Low',
-  is_auto_assigned: c.is_auto_assigned !== false,
-  recommendation_explanation: c.recommendation_explanation,
-  priority_breakdown: c.priority_breakdown || { severity: 0, duplicates: 0, escalations: 0, location: 0, age: 0 },
-  assignment_history: (c.assignment_history || []).map(h => ({
-    old_staff_id: h.old_staff_id?.toString?.() || h.old_staff_id,
-    new_staff_id: h.new_staff_id?.toString?.() || h.new_staff_id,
-    old_staff_name: h.old_staff_name,
-    new_staff_name: h.new_staff_name,
-    timestamp: h.timestamp,
-    admin_id: h.admin_id?.toString?.() || h.admin_id,
-    admin_name: h.admin_name,
-    reason: h.reason,
-  })),
-});
+const toComplaintDto = (c) => {
+  const userIdStr = c.user_id?._id?.toString() || c.user_id?.toString() || c.user_id;
+  const staffIdStr = c.staff_id?._id?.toString() || c.staff_id?.toString() || c.staff_id;
+
+  return {
+    complaint_id: c._id.toString(),
+    title: c.title,
+    description: c.description,
+    category: c.category,
+    location: c.location,
+    dept_id: c.dept_id?.toString?.() || c.dept_id,
+    priority: c.priority,
+    status: c.status,
+    photo: c.photo,
+    user_id: userIdStr,
+    citizen_name: c.user_id?.name || 'Civic Citizen',
+    citizen_email: c.user_id?.email || '',
+    staff_id: staffIdStr,
+    assigned_to: c.staff_id?.name || c.assigned_to,
+    latitude: c.latitude,
+    longitude: c.longitude,
+    sla_deadline: c.sla_deadline,
+    submitted_at: c.submitted_at,
+    updated_at: c.updated_at,
+    severity: c.severity || 'Low',
+    is_duplicate: c.is_duplicate || false,
+    duplicate_of: c.duplicate_of?.toString?.() || c.duplicate_of,
+    escalation_explanation: c.escalation_explanation,
+    priority_score: c.priority_score || 0,
+    priority_level: c.priority_level || 'Low',
+    is_auto_assigned: c.is_auto_assigned !== false,
+    recommendation_explanation: c.recommendation_explanation,
+    priority_breakdown: c.priority_breakdown || { severity: 0, duplicates: 0, escalations: 0, location: 0, age: 0 },
+    assignment_history: (c.assignment_history || []).map(h => ({
+      old_staff_id: h.old_staff_id?.toString?.() || h.old_staff_id,
+      new_staff_id: h.new_staff_id?.toString?.() || h.new_staff_id,
+      old_staff_name: h.old_staff_name,
+      new_staff_name: h.new_staff_name,
+      timestamp: h.timestamp,
+      admin_id: h.admin_id?.toString?.() || h.admin_id,
+      admin_name: h.admin_name,
+      reason: h.reason,
+    })),
+  };
+};
 
 const ensureDepartment = async (categoryName) => {
   const name = String(categoryName || '').trim();
@@ -312,7 +319,7 @@ export const getComplaintCounts = async () => {
   const [resolved, pending, in_progress] = await Promise.all([
     Complaint.countDocuments({ status: 'RESOLVED' }),
     Complaint.countDocuments({ status: 'NEW' }),
-    Complaint.countDocuments({ status: 'IN_PROGRESS' }),
+    Complaint.countDocuments({ status: { $in: ['IN_PROGRESS', 'RESOLVED_PENDING'] } }),
   ]);
   return { resolved, pending, in_progress };
 };
@@ -372,7 +379,13 @@ export const searchComplaints = async (filters) => {
   if (isNaN(limit) || limit < 1) limit = 50;
   const skip = (page - 1) * limit;
 
-  const results = await Complaint.find(query).sort(sort).skip(skip).limit(limit).lean();
+  const results = await Complaint.find(query)
+    .populate('user_id', 'name email')
+    .populate('staff_id', 'name email')
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .lean();
   return results.map((c) => toComplaintDto(c));
 };
 
