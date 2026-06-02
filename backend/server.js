@@ -13,6 +13,8 @@ import cors from 'cors';
 import path from 'path';
 import connectMongo from './db/mongo.js';
 
+import { rateLimit } from 'express-rate-limit';
+
 dotenv.config();
 
 const app = express();
@@ -20,15 +22,32 @@ const app = express();
 app.use(express.json());
 app.use(passport.initialize());
 app.use('/public', express.static('public'));
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || 'http://localhost:5173', credentials: true }));
+
+// Rate Limiters
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // Limit each IP to 100 requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes.' }
+});
+
+const authAndAiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 15, // Limit each IP to 15 sensitive requests per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests from this IP, please try again after 15 minutes.' }
+});
 
 // Routes
-app.use('/api/users', userRoute);
-app.use('/api/complaints', complaintRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/public', publicRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/users', globalLimiter, userRoute);
+app.use('/api/complaints', globalLimiter, complaintRoutes);
+app.use('/api/feedback', globalLimiter, feedbackRoutes);
+app.use('/api/auth', authAndAiLimiter, authRoutes);
+app.use('/api/public', globalLimiter, publicRoutes);
+app.use('/api/ai', authAndAiLimiter, aiRoutes);
 
 // Serve images under /temp
 app.use('/temp', express.static(path.join(process.cwd(), 'public/temp')));

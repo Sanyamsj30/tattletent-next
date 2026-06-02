@@ -28,7 +28,9 @@ const StaffDashboard = () => {
 
   const fetchCounts = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/complaints/counts`);
+      const res = await axios.get(`${API_BASE_URL}/api/complaints/counts`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
       setCounts(res.data);
     } catch {
       console.warn("Backend not connected, using demo data");

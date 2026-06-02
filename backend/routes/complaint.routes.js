@@ -8,10 +8,10 @@ const router = express.Router();
 
 router.post("/", protect, upload.single("photo"), compressImage, createComplaint);
 router.put("/status/:id", protect, updateComplaintStatus);
-router.put("/priority/:id", protect, staffOrAdmin, updateComplaintPriority);
-router.delete("/:id", protect, staffOrAdmin, deleteComplaint);
-router.get('/counts', fetchComplaintCounts);
-router.get('/search', getComplaints);
+router.put("/priority/:id", protect, adminOnly, updateComplaintPriority);
+router.delete("/:id", protect, adminOnly, deleteComplaint);
+router.get('/counts', protect, fetchComplaintCounts);
+router.get('/search', protect, getComplaints);
 router.post("/escalate", protect, staffOrAdmin, escalateComplaints); // manual trigger route
 router.get("/heatmap", getHeatmapData);
 router.put("/reassign/:id", protect, adminOnly, reassignComplaint);

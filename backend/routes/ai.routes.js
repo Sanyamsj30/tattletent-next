@@ -5,7 +5,7 @@ import { protect, staffOrAdmin, adminOnly } from '../middlewares/authMiddleware.
 const router = express.Router();
 
 // Chatbot assistant
-router.post('/chatbot', askChatbot);
+router.post('/chatbot', protect, askChatbot);
 
 // Auto report (Admin Only)
 router.get('/report', protect, adminOnly, getReport);

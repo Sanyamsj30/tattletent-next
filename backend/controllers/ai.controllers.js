@@ -6,13 +6,13 @@ import { getAssignmentRecommendation } from '../agents/assignmentRecommendationA
 
 // Chatbot controller
 const askChatbot = asynchandler(async (req, res) => {
-  const { message, userId } = req.body;
+  const { message } = req.body;
   
   if (!message) {
     return res.status(400).json(new ApiResponse(400, null, 'Message content is required'));
   }
 
-  const chatResponse = await handleChatbotMessage(userId || req.user?.user_id, message);
+  const chatResponse = await handleChatbotMessage(req.user?.user_id, message);
   return res.status(200).json(new ApiResponse(200, { response: chatResponse }, 'Success'));
 });
 

@@ -2,6 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../../lib/api";
 
+const escapeHTML = (str) => {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -111,7 +121,7 @@ const ChatbotWidget = () => {
                       : "bg-white text-gray-800 border border-gray-100 rounded-tl-none"
                   }`}
                   dangerouslySetInnerHTML={{
-                    __html: m.text
+                    __html: escapeHTML(m.text)
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                       .replace(/\*(.*?)\*/g, "<em>$1</em>")
                       .replace(/\n/g, "<br/>"),

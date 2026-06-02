@@ -5,6 +5,7 @@ import {
   getFeedbacksFromDB,
   getFeedbacksForComplaintFromDB,
 } from '../services/feedback.service.js';
+import { logAuditEvent } from '../services/audit.service.js';
 
 const createFeedback = asynchandler(async (req, res) => {
   const { complaint_id, rating, comment } = req.body;
@@ -12,7 +13,21 @@ const createFeedback = asynchandler(async (req, res) => {
     return res.status(400).json(new ApiResponse(400, null, 'Complaint ID is required'));
   }
 
-  const feedback = await saveFeedbackToDB({ complaint_id, rating, comment });
+  const feedback = await saveFeedbackToDB({
+    complaint_id,
+    rating,
+    comment,
+    user_id: req.user.user_id,
+  });
+
+  // Log audit event
+  logAuditEvent({
+    action: 'FEEDBACK_SUBMITTED',
+    complaint_id: feedback.complaint_id,
+    user: req.user,
+    details: { rating, comment },
+  });
+
   return res.status(201).json(new ApiResponse(201, feedback, 'Feedback submitted successfully'));
 });
 

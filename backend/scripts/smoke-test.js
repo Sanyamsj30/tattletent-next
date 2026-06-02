@@ -9,7 +9,7 @@ const waitForServer = async (url, timeoutMs = 15000) => {
   while (Date.now() - start < timeoutMs) {
     try {
       const res = await fetch(url, { method: 'GET' });
-      if (res.ok) return true;
+      if (res.status === 200 || res.status === 401) return true;
     } catch {
       // ignore until server is up
     }
@@ -33,7 +33,7 @@ const run = async () => {
   server.stderr.on('data', (d) => (stderr += d.toString()));
 
   const base = 'http://localhost:5000';
-  const ok = await waitForServer(`${base}/api/complaints/counts`);
+  const ok = await waitForServer(`${base}/api/public/complaints/counts`);
 
   if (!ok) {
     server.kill('SIGTERM');
@@ -43,7 +43,13 @@ const run = async () => {
     process.exit(1);
   }
 
-  const endpoints = ['/api/complaints/counts', '/api/complaints/heatmap', '/api/feedback'];
+  const endpoints = [
+    '/api/public/complaints/counts',
+    '/api/public/complaints/heatmap',
+    '/api/public/feedback',
+    '/api/complaints/counts',
+    '/api/feedback'
+  ];
 
   const results = [];
   for (const ep of endpoints) {
@@ -60,8 +66,8 @@ const run = async () => {
   }
 
   const bad = results.filter((r) => {
-    // /api/feedback is expected to require auth; a 401 here is a healthy sign.
-    if (r.ep === '/api/feedback' && r.status === 401) return false;
+    // These private endpoints are expected to require auth; a 401 here is a healthy sign.
+    if ((r.ep === '/api/feedback' || r.ep === '/api/complaints/counts') && r.status === 401) return false;
     return r.status >= 400;
   });
   if (bad.length) {
