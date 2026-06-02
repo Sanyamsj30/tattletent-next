@@ -196,7 +196,7 @@ export default function LandingPage() {
       }
 
       const role = String(loginData.user.role || "").toLowerCase();
-      if (role === "ringmaster" || role === "admin") navigate("/admin-dashboard");
+      if (role === "ringmaster" || role === "admin" || role==="Admin") navigate("/admin-dashboard");
       else if (loginData.user.role === "Staff") navigate("/staff-dashboard");
       else navigate("/citizen-dashboard");
 
