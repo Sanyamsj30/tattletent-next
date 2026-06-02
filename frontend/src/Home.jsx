@@ -258,7 +258,7 @@ const handleGoogleLogin = () => {
   const fetchComplaints = async () => {
     try {  
       const queryParams = new URLSearchParams({ status: "Resolved" }).toString();
-      const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`);
+      const response = await fetch(`${API_BASE_URL}/api/public/complaints/search?${queryParams}`);
   
       if (!response.ok) throw new Error("Failed to fetch complaints");
   
@@ -288,7 +288,7 @@ const handleGoogleLogin = () => {
 
   const fetchCounts = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/complaints/counts`);
+      const res = await axios.get(`${API_BASE_URL}/api/public/complaints/counts`);
       setCounts(res.data);
     } catch (err) {
       console.error(err);

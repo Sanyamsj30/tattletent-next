@@ -483,8 +483,12 @@ export const escalateComplaintsByCategory = async () => {
 };
 
 export const fetchHeatmapData = async () => {
-  const docs = await Complaint.find({ 'geolocation.coordinates.0': { $exists: true } })
-    .select('geolocation')
+  const docs = await Complaint.find({
+    'geolocation.coordinates.0': { $exists: true },
+    is_deleted: { $ne: true },
+    status: { $ne: 'RESOLVED' },
+  })
+    .select('geolocation title category status priority severity sla_deadline priority_score')
     .lean();
 
   return docs
@@ -492,7 +496,42 @@ export const fetchHeatmapData = async () => {
       const coords = c?.geolocation?.coordinates;
       if (!coords || coords.length < 2) return null;
       const [longitude, latitude] = coords;
-      return { complaint_id: c._id.toString(), latitude, longitude };
+
+      // Dynamic weight calculation
+      let weight = 1.0;
+
+      // Severity factor
+      if (c.severity === 'Critical') weight += 3.0;
+      else if (c.severity === 'High') weight += 2.0;
+      else if (c.severity === 'Medium') weight += 1.0;
+
+      // Priority factor
+      if (c.priority === 'High') weight += 2.0;
+      else if (c.priority === 'Medium') weight += 1.0;
+
+      // SLA Overdue check
+      if (c.sla_deadline && new Date(c.sla_deadline) < new Date()) {
+        weight += 2.5; // SLA breached!
+      }
+
+      // Priority Score contribution
+      weight += (c.priority_score || 0) / 20.0;
+
+      // Cap at 10.0
+      weight = Math.min(weight, 10.0);
+
+      return {
+        complaint_id: c._id.toString(),
+        latitude,
+        longitude,
+        title: c.title,
+        category: c.category,
+        status: c.status,
+        priority: c.priority,
+        severity: c.severity || 'Low',
+        priority_score: c.priority_score || 0,
+        weight: Number(weight.toFixed(2)),
+      };
     })
     .filter(Boolean);
 };

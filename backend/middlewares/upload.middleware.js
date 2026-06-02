@@ -1,6 +1,7 @@
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 
 // Multer
 const storage = multer.diskStorage({

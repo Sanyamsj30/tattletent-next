@@ -14,11 +14,13 @@ import {
   forceEscalateComplaintInDB,
 } from '../services/complaint.service.js';
 import { notifyStatusChange } from '../services/notification.service.js';
+import { logAuditEvent } from '../services/audit.service.js';
 import Complaint from '../models/Complaint.js';
 
 const createComplaint = asynchandler(async (req, res) => {
-  const { title, description, category, location, user_id, latitude, longitude, priority } =
+  const { title, description, category, location, latitude, longitude, priority } =
     Object.assign({}, req.body);
+  const user_id = req.user?.user_id;
 
   if (!user_id || !title || !description || !category || !location) {
     return res.status(400).json(new ApiResponse(400, null, 'All fields are required'));
@@ -34,6 +36,14 @@ const createComplaint = asynchandler(async (req, res) => {
     photo: req.file ? `/temp/${req.file.filename}` : null,
     latitude: latitude != null ? Number(latitude) : undefined,
     longitude: longitude != null ? Number(longitude) : undefined,
+  });
+
+  // Log audit event
+  logAuditEvent({
+    action: 'COMPLAINT_CREATED',
+    complaint_id: complaint._id,
+    user: req.user,
+    details: { category, priority: priority || 'Low' },
   });
 
   return res.status(201).json(new ApiResponse(201, complaint, 'Complaint submitted successfully'));
@@ -55,13 +65,13 @@ const updateComplaintStatus = asynchandler(async (req, res) => {
     return res.status(403).json(new ApiResponse(403, null, 'Access denied. Unauthorized role.'));
   }
 
+  const complaint = await Complaint.findById(id);
+  if (!complaint) {
+    return res.status(404).json(new ApiResponse(404, null, 'Complaint not found.'));
+  }
+
   if (isCitizen) {
     // Citizens can only confirm or reject their own RESOLVED_PENDING complaints
-    const complaint = await Complaint.findById(id);
-    if (!complaint) {
-      return res.status(404).json(new ApiResponse(404, null, 'Complaint not found.'));
-    }
-
     if (complaint.user_id.toString() !== req.user.user_id) {
       return res.status(403).json(new ApiResponse(403, null, 'Access denied. You do not own this complaint.'));
     }
@@ -79,8 +89,17 @@ const updateComplaintStatus = asynchandler(async (req, res) => {
     staffId = undefined;
     priority = undefined;
   } else {
-    // Issue 5: Redirect Staff/Vendor resolutions to RESOLVED_PENDING first
+    // Staff or Admin
     const isStaff = role === 'Staff';
+
+    if (isStaff) {
+      // Step 6: Restrict staff status updates to assigned complaints only
+      if (!complaint.staff_id || complaint.staff_id.toString() !== req.user.user_id) {
+        return res.status(403).json(new ApiResponse(403, null, 'Access denied. This complaint is not assigned to you.'));
+      }
+    }
+
+    // Issue 5: Redirect Staff/Vendor resolutions to RESOLVED_PENDING first
     const isMarkingResolved = String(status).trim().toLowerCase() === 'resolved';
 
     if (isStaff && isMarkingResolved) {
@@ -88,8 +107,21 @@ const updateComplaintStatus = asynchandler(async (req, res) => {
     }
   }
 
+  const oldStatus = complaint.status;
   const updated = await updateComplaintStatusInDB(id, status, staffId, priority);
   if (!updated) return res.status(404).json(new ApiResponse(404, null, 'Complaint not found'));
+
+  // Log audit event
+  logAuditEvent({
+    action: 'STATUS_UPDATED',
+    complaint_id: id,
+    user: req.user,
+    details: {
+      oldStatus,
+      newStatus: status,
+      priorityChangedTo: priority,
+    },
+  });
 
   // Best-effort notification (email)
   try {
@@ -124,6 +156,14 @@ const deleteComplaint = asynchandler(async (req, res) => {
   const { id } = req.params;
   const deleted = await deleteComplaintFromDB(id);
   if (!deleted) return res.status(404).json(new ApiResponse(404, null, 'Complaint not found'));
+
+  logAuditEvent({
+    action: 'COMPLAINT_DELETED',
+    complaint_id: id,
+    user: req.user,
+    details: { reason: 'Soft deleted by staff or admin' },
+  });
+
   return res.status(200).json(new ApiResponse(200, null, 'Complaint deleted successfully'));
 });
 
@@ -213,6 +253,14 @@ const reassignComplaint = asynchandler(async (req, res) => {
   const { staffId, reason } = req.body;
 
   const updated = await adminReassignComplaintInDB(id, staffId, req.user, reason);
+
+  logAuditEvent({
+    action: 'MANUAL_REASSIGNMENT',
+    complaint_id: id,
+    user: req.user,
+    details: { assignedToStaffId: staffId, reason },
+  });
+
   return res.status(200).json(new ApiResponse(200, updated, 'Complaint reassigned successfully'));
 });
 
@@ -221,6 +269,14 @@ const forceEscalateComplaint = asynchandler(async (req, res) => {
   const { reason } = req.body;
 
   const updated = await forceEscalateComplaintInDB(id, req.user, reason);
+
+  logAuditEvent({
+    action: 'FORCED_ESCALATION',
+    complaint_id: id,
+    user: req.user,
+    details: { reason },
+  });
+
   return res.status(200).json(new ApiResponse(200, updated, 'Complaint escalated successfully'));
 });
 

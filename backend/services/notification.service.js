@@ -12,7 +12,8 @@ export const notifyStatusChange = async (complaintId) => {
     const citizenEmail = complaint.user_id?.email;
     if (!citizenEmail) return;
 
-    const feedbackUrl = `http://localhost:5173/feedback-page?complaintId=${complaint._id.toString()}`;
+    const frontendUrl = process.env.FRONTEND_URL || process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+    const feedbackUrl = `${frontendUrl}/feedback-page?complaintId=${complaint._id.toString()}`;
 
     const feedbackContent =
       complaint.status === 'RESOLVED'

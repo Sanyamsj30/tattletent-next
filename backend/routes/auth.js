@@ -367,7 +367,7 @@ router.get('/me', protect, async (req, res) => {
 });
 
 // OAUTH
-const FRONTEND_URL = 'http://localhost:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
 
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 

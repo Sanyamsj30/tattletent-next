@@ -90,7 +90,9 @@ const CitizenDashboard = () => {
   
   const fetchCounts = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/complaints/counts`);
+      const res = await fetch(`${API_BASE_URL}/api/complaints/counts`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
       if (res.ok) {
         const data = await res.json();
         setCounts(data);
