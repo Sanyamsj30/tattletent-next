@@ -15,7 +15,7 @@ if (clientID && clientSecret) {
       {
         clientID,
         clientSecret,
-        callbackURL: `${process.env.BASE_URI}/api/auth/google/callback`,
+        callbackURL: `${process.env.FRONTEND_ORIGIN}/api/auth/google/callback`,
         proxy: true,
       },
       async (accessToken, refreshToken, profile, done) => {
