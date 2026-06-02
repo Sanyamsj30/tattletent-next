@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   FiLayout, FiMap, FiLogOut, FiMenu, FiChevronLeft, 
-  FiBell, FiLock, FiUserPlus, FiUser, FiInfo, FiChevronDown
+  FiBell, FiLock, FiUserPlus, FiUser, FiInfo, FiChevronDown, FiFileText
 } from "react-icons/fi";
 import Logo from "./Logo";
 
@@ -54,6 +54,7 @@ export default function AppLayout({ children, requiredRole = "" }) {
     if (role === "admin" || role === "ringmaster") {
       return [
         { path: "/admin-dashboard", label: "Executive Admin Panel", icon: <FiLayout /> },
+        { path: "/all-complaints", label: "All Complaints Ledger", icon: <FiFileText /> },
         { path: "/invite-staff", label: "Invite Civic Staff", icon: <FiUserPlus /> },
         { path: "/heatmap", label: "Interactive Heatmap", icon: <FiMap /> },
         ...common
@@ -61,12 +62,14 @@ export default function AppLayout({ children, requiredRole = "" }) {
     } else if (role === "staff") {
       return [
         { path: "/staff-dashboard", label: "Contractor Worklist", icon: <FiLayout /> },
+        { path: "/all-complaints", label: "All Complaints Ledger", icon: <FiFileText /> },
         ...common
       ];
     } else {
       // Citizen default
       return [
         { path: "/citizen-dashboard", label: "My Grievances Console", icon: <FiLayout /> },
+        { path: "/all-complaints", label: "All Complaints Ledger", icon: <FiFileText /> },
         { path: "/learn-more", label: "Information Guide", icon: <FiInfo /> },
         ...common
       ];
@@ -152,7 +155,7 @@ export default function AppLayout({ children, requiredRole = "" }) {
       <div className={`flex-1 flex flex-col min-w-0 overflow-hidden relative h-full transition-all duration-300 ease-in-out ${collapsed ? "md:pl-[80px]" : "md:pl-[280px]"}`}>
         
         {/* Sticky Top Navbar */}
-        <header className="h-20 bg-white border-b border-slate-100 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-10 flex-shrink-0 bg-white/95 backdrop-blur-md">
+        <header className="h-20 bg-white border-b border-slate-100 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 flex-shrink-0 bg-white/95 backdrop-blur-md">
           {/* Left Breadcrumbs */}
           <div className="flex items-center gap-4">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest block sm:inline">

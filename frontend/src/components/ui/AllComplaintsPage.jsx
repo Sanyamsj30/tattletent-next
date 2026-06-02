@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Logo from './Logo';
 import { useNavigate } from "react-router-dom";
+import AppLayout from "./AppLayout";
 import { jsPDF } from "jspdf";
 import { API_BASE_URL } from "../../lib/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -226,38 +227,8 @@ const AllComplaintsPage = () => {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans pb-16">
-      {/* Visual background grids */}
-      <div className="absolute inset-0 grid-mesh-bg opacity-30 pointer-events-none z-0"></div>
-      
-      {/* Top Navbar */}
-      <div className="fixed top-0 left-0 w-full h-20 flex items-center justify-between px-6 sm:px-10 bg-white/80 backdrop-blur-md border-b border-slate-100 z-50 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Logo />
-          <span className="font-extrabold text-lg text-slate-800 tracking-tight hidden sm:block">
-            TattleTent
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={() => navigate("/")}>
-            Home
-          </Button>
-          {isLoggedIn ? (
-            <Button variant="primary" size="sm" onClick={() => navigate(getDashboardUrl())}>
-              My Console
-            </Button>
-          ) : (
-            <Button variant="primary" size="sm" onClick={() => navigate("/")}>
-              Get Started
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Main Container */}
-      <div className="pt-28 max-w-7xl mx-auto px-4 sm:px-6 relative z-10 space-y-8">
-        
+  const pageContent = (
+    <>
         {/* Title Hero */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
           <Badge variant="info">CIVIC TRANSPARENCY</Badge>
@@ -363,7 +334,7 @@ const AllComplaintsPage = () => {
               <thead className="bg-slate-50/50">
                 <tr>
                   {["ID", "Grievance Category", "Address / Location", "Status", "Date Filed", "Assigned Actioner", "Actions"].map((h) => (
-                    <th key={h} className="px-6 py-4 text-left font-bold text-slate-400 uppercase tracking-widest text-[10px]">
+                    <th key={h} className="px-6 py-2.5 text-left font-bold text-slate-400 uppercase tracking-widest text-[10px]">
                       {h}
                     </th>
                   ))}
@@ -373,10 +344,10 @@ const AllComplaintsPage = () => {
                 {currentComplaints.length > 0 ? (
                   currentComplaints.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50/40 transition">
-                      <td className="px-6 py-4 font-bold text-slate-700">
+                      <td className="px-6 py-2 font-bold text-slate-700">
                         #{c.id}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-2">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-800">{c.category}</span>
                           <span className="text-[10px] text-slate-400 font-semibold uppercase mt-0.5 tracking-wider">
@@ -384,29 +355,29 @@ const AllComplaintsPage = () => {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-slate-600">
+                      <td className="px-6 py-2 font-semibold text-slate-600">
                         {c.location}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-2">
                         <Badge variant={getStatusBadgeVariant(c.status)}>
                           {c.status}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-slate-400 font-bold text-xs">
+                      <td className="px-6 py-2 text-slate-400 font-bold text-xs">
                         {c.date}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-2">
                         <span className="text-slate-600 font-bold font-mono text-xs bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">
                           {c.assignedTo || "AI Auto-Assigned"}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-2">
                         <div className="flex items-center gap-2">
                           <Button 
                             size="sm" 
                             variant="secondary" 
                             onClick={() => handleView(c)}
-                            className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900"
+                            className="text-xs px-3 py-1 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900"
                           >
                             <FiExternalLink className="mr-1 text-xs" /> View
                           </Button>
@@ -414,7 +385,7 @@ const AllComplaintsPage = () => {
                             size="sm" 
                             variant="outline" 
                             onClick={() => exportComplaintPDF(c)}
-                            className="text-xs px-3 py-1 bg-transparent hover:bg-primary-50 rounded-lg"
+                            className="text-xs px-3 py-0.5 bg-transparent hover:bg-primary-50 rounded-lg"
                           >
                             <FiFileText className="mr-1 text-xs" /> PDF
                           </Button>
@@ -474,10 +445,8 @@ const AllComplaintsPage = () => {
           )}
         </Card>
 
-      </div>
-
-      {/* Details Lightbox Modal View */}
-      <AnimatePresence>
+        {/* Details Lightbox Modal View */}
+        <AnimatePresence>
         {isViewOpen && selectedComplaint && (
           <div
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
@@ -612,7 +581,45 @@ const AllComplaintsPage = () => {
           </div>
         )}
       </AnimatePresence>
+    </>
+  );
 
+  if (isLoggedIn) {
+    return (
+      <AppLayout>
+        <div className="p-6 sm:p-10 max-w-7xl mx-auto space-y-8 relative z-10">
+          {pageContent}
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans pb-16">
+      {/* Visual background grids */}
+      <div className="absolute inset-0 grid-mesh-bg opacity-30 pointer-events-none z-0"></div>
+      
+      {/* Top Navbar */}
+      <div className="fixed top-0 left-0 w-full h-20 flex items-center justify-between px-6 sm:px-10 bg-white/80 backdrop-blur-md border-b border-slate-100 z-50 shadow-sm">
+        <div className="flex items-center gap-3">
+          <Logo />
+          <span className="font-extrabold text-lg text-slate-800 tracking-tight hidden sm:block">
+            TattleTent
+          </span>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" size="sm" onClick={() => navigate("/")}>
+            Home
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => navigate("/")}>
+            Get Started
+          </Button>
+        </div>
+      </div>
+
+      <div className="pt-28 max-w-7xl mx-auto px-4 sm:px-6 relative z-10 space-y-8">
+        {pageContent}
+      </div>
     </div>
   );
 };

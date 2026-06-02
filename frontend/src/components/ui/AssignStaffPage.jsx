@@ -300,27 +300,42 @@ const AssignStaffPage = () => {
                       </div>
                     </div>
 
-                    <div className="flex gap-2 mt-5">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={() => {
-                          setStaffToAssign(s);
-                          setSelectedPriority(complaint.priority_level || "Medium");
-                          setPriorityModalOpen(true);
-                        }}
-                        className="flex-1 py-2 text-xs rounded-lg"
-                      >
-                        Select & Route
-                      </Button>
+                    <div className="flex flex-col gap-2 mt-5">
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          onClick={() => {
+                            setStaffToAssign(s);
+                            setSelectedPriority(complaint.priority_level || "Medium");
+                            setPriorityModalOpen(true);
+                          }}
+                          className="flex-1 py-2 text-xs rounded-lg"
+                        >
+                          Route With Setup
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="success"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to instantly assign ${s.name}?`)) {
+                              handleAssign(s.id);
+                            }
+                          }}
+                          className="flex-1 py-2 text-xs rounded-lg font-bold"
+                        >
+                          ⚡ Instant Assign
+                        </Button>
+                      </div>
 
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={() => fetchStaffPerformance(s)}
-                        className="flex-1 py-2 text-xs rounded-lg border border-slate-200"
+                        className="w-full py-1.5 text-xs rounded-lg border border-slate-200"
                       >
-                        <FiBarChart2 className="mr-1" /> Metrics
+                        <FiBarChart2 className="mr-1" /> View Metrics
                       </Button>
                     </div>
                   </CardContent>

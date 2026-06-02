@@ -37,7 +37,7 @@ const AdminDashboard = () => {
   // Pagination states
   const [currentNewPage, setCurrentNewPage] = useState(1);
   const [currentAssignedPage, setCurrentAssignedPage] = useState(1);
-  const complaintsPerPage = 5;
+  const complaintsPerPage = 10;
 
   const fetchCounts = async () => {
     try {
@@ -336,7 +336,7 @@ const AdminDashboard = () => {
                 <thead className="bg-slate-50/50">
                   <tr>
                     {["ID", "Category", "Priority Score", "Assignment Mode", "Location", "Actions"].map((h) => (
-                      <th key={h} className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
+                      <th key={h} className="px-6 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
                         {h}
                       </th>
                     ))}
@@ -346,7 +346,7 @@ const AdminDashboard = () => {
                   {paginatedNewComplaints.length > 0 ? (
                     paginatedNewComplaints.map((c) => (
                       <tr key={c.id} className="hover:bg-slate-50/40 transition">
-                        <td className="px-6 py-4 font-bold text-slate-700">
+                        <td className="px-6 py-2 font-bold text-slate-700">
                           #{c.id}
                           {c.is_duplicate && (
                             <span className="block text-[9px] text-danger-700 bg-danger-50 border border-danger-100 rounded px-1.5 py-0.5 mt-1 font-bold w-max animate-pulse">
@@ -354,18 +354,18 @@ const AdminDashboard = () => {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 font-bold text-slate-650">
+                        <td className="px-6 py-2 font-bold text-slate-650">
                           {c.category}
                           <span className={`block text-[9px] rounded px-1.5 py-0.5 mt-1 font-bold w-max ${getSeverityBadge(c.severity)}`}>
                             {c.severity || "Low"} Severity
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2">
                           <Badge variant={getPriorityBadge(c.priority_level)}>
                             {c.priority_level} ({c.priority_score || 0})
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 text-[10px] font-bold text-slate-550">
+                        <td className="px-6 py-2 text-[10px] font-bold text-slate-550">
                           {c.assignedTo ? (
                             c.is_auto_assigned ? (
                               <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
@@ -378,12 +378,12 @@ const AdminDashboard = () => {
                             )
                           ) : (
                             <span className="inline-flex items-center gap-1 text-slate-450 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
-                              <FiClock /> Unrouted
+                                <FiClock /> Unrouted
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-slate-500 font-bold">{c.location}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2 text-slate-500 font-bold">{c.location}</td>
+                        <td className="px-6 py-2">
                           <div className="flex flex-wrap gap-2 justify-end">
                             <Button size="sm" variant="primary" onClick={() => handleAssignClick(c)}>
                               Assign
@@ -452,7 +452,7 @@ const AdminDashboard = () => {
                 <thead className="bg-slate-50/50">
                   <tr>
                     {["ID", "Category", "Priority Score", "Assignment Mode", "Location", "Assigned Contractor", "Actions"].map((h) => (
-                      <th key={h} className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
+                      <th key={h} className="px-6 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">
                         {h}
                       </th>
                     ))}
@@ -462,7 +462,7 @@ const AdminDashboard = () => {
                   {paginatedAssignedComplaints.length > 0 ? (
                     paginatedAssignedComplaints.map((c) => (
                       <tr key={c.id} className="hover:bg-slate-50/40 transition">
-                        <td className="px-6 py-4 font-bold text-slate-700">
+                        <td className="px-6 py-2 font-bold text-slate-700">
                           #{c.id}
                           {c.is_duplicate && (
                             <span className="block text-[9px] text-danger-700 bg-danger-50 border border-danger-100 rounded px-1.5 py-0.5 mt-1 font-bold w-max animate-pulse">
@@ -470,18 +470,18 @@ const AdminDashboard = () => {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 font-bold text-slate-650">
+                        <td className="px-6 py-2 font-bold text-slate-650">
                           {c.category}
                           <span className={`block text-[9px] rounded px-1.5 py-0.5 mt-1 font-bold w-max ${getSeverityBadge(c.severity)}`}>
                             {c.severity || "Low"} Severity
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2">
                           <Badge variant={getPriorityBadge(c.priority_level)}>
                             {c.priority_level} ({c.priority_score || 0})
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 text-[10px] font-bold text-slate-550">
+                        <td className="px-6 py-2 text-[10px] font-bold text-slate-550">
                           {c.assignedTo ? (
                             c.is_auto_assigned ? (
                               <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
@@ -498,9 +498,9 @@ const AdminDashboard = () => {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-slate-500 font-bold">{c.location}</td>
-                        <td className="px-6 py-4 font-bold text-slate-600 font-mono text-xs">{c.assignedTo}</td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-2 text-slate-500 font-bold">{c.location}</td>
+                        <td className="px-6 py-2 font-bold text-slate-600 font-mono text-xs">{c.assignedTo}</td>
+                        <td className="px-6 py-2">
                           <div className="flex flex-wrap gap-2 justify-end">
                             <Button size="sm" variant="primary" onClick={() => handleAssignClick(c)}>
                               Reassign

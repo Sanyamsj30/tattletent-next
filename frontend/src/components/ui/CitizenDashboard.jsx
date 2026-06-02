@@ -26,6 +26,7 @@ const CitizenDashboard = () => {
 
   // Form step wizard states
   const [formStep, setFormStep] = useState(1);
+  const [quickMode, setQuickMode] = useState(false);
   const [formCategory, setFormCategory] = useState("");
   const [formTitle, setFormTitle] = useState("");
   const [formLocation, setFormLocation] = useState("");
@@ -212,6 +213,7 @@ const CitizenDashboard = () => {
 
   const resetForm = () => {
     setFormStep(1);
+    setQuickMode(false);
     setFormCategory("");
     setFormTitle("");
     setFormLocation("");
@@ -521,7 +523,7 @@ const CitizenDashboard = () => {
               <div className="h-2 w-full bg-slate-100 relative">
                 <motion.div
                   className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary-500 to-indigo-500"
-                  animate={{ width: `${(formStep / 5) * 100}%` }}
+                  animate={{ width: quickMode ? "100%" : `${(formStep / 5) * 100}%` }}
                   transition={{ duration: 0.3 }}
                 ></motion.div>
               </div>
@@ -531,13 +533,132 @@ const CitizenDashboard = () => {
                 {/* Header wizard step description */}
                 <div className="flex justify-between items-center border-b border-slate-50 pb-3">
                   <h3 className="text-lg font-extrabold text-slate-800 tracking-tight">Lodge New Grievance</h3>
-                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full uppercase tracking-wider">
-                    Step {formStep} of 5
-                  </span>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setQuickMode(!quickMode)}
+                      className="text-xs font-bold text-primary-500 bg-primary-50 px-3 py-1 rounded-full uppercase tracking-wider hover:bg-primary-100 transition select-none"
+                    >
+                      {quickMode ? "✨ Wizard Mode" : "⚡ Quick File Mode"}
+                    </button>
+                    {!quickMode && (
+                      <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full uppercase tracking-wider">
+                        Step {formStep} of 5
+                      </span>
+                    )}
+                  </div>
                 </div>
 
+                {/* Quick File Mode Form */}
+                {quickMode && (
+                  <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Category Area *</label>
+                      <select
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all cursor-pointer"
+                        value={formCategory}
+                        onChange={(e) => setFormCategory(e.target.value)}
+                      >
+                        <option value="">-- Select Category --</option>
+                        <option value="Electrical">⚡ Electrical</option>
+                        <option value="Water Leak">💧 Water Leak</option>
+                        <option value="Pathway Damage">🚧 Pathway Damage</option>
+                        <option value="Garbage">🗑️ Garbage</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Report Title *</label>
+                      <Input
+                        value={formTitle}
+                        onChange={(e) => setFormTitle(e.target.value)}
+                        placeholder="e.g., Water main burst, street light out"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Civic Address / Location *</label>
+                      <Input
+                        value={formLocation}
+                        onChange={(e) => setFormLocation(e.target.value)}
+                        placeholder="e.g., Sector C near grocery store"
+                        required
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Detailed Description *</label>
+                      <TextArea
+                        value={formDescription}
+                        onChange={(e) => setFormDescription(e.target.value)}
+                        placeholder="Please write down explicit details, landmarks..."
+                        required
+                      />
+                    </div>
+
+                    {/* Compact Map Coordinates Block */}
+                    <div className="bg-slate-50/80 border border-slate-100 rounded-2xl p-4 flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 font-sans">
+                          <FiMapPin className="text-primary-500" />
+                          GPS Coordinate Attachment
+                        </h4>
+                        <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                          {geoCaptured 
+                            ? `Lat: ${geoCoords.lat.toFixed(4)}, Lng: ${geoCoords.lon.toFixed(4)}` 
+                            : "Attach live GPS coordinates to accelerate routing."}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={geoCaptured ? "success" : "secondary"}
+                        onClick={captureLocation}
+                        className="py-1 px-3 text-xs"
+                      >
+                        {geoCaptured ? "✓ Attached" : "🗺️ Get GPS"}
+                      </Button>
+                    </div>
+
+                    {/* Compact Image File Upload */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Evidence Photo Upload (optional)</label>
+                      <div className="border-2 border-dashed border-slate-200 hover:border-primary-400 bg-slate-50/50 hover:bg-slate-50 rounded-2xl p-4 transition flex flex-col items-center justify-center text-center relative group">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoSelect}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        />
+                        {photoPreview ? (
+                          <div className="space-y-2 flex flex-col items-center">
+                            <img
+                              src={photoPreview}
+                              alt="Preview"
+                              className="max-h-[80px] rounded-lg object-contain border border-slate-200 shadow-sm"
+                            />
+                            <p className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer relative z-20" onClick={(e) => {
+                              e.stopPropagation();
+                              setPhotoFile(null);
+                              setPhotoPreview(null);
+                            }}>
+                              Remove Attachment
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <FiUploadCloud className="text-xl text-slate-450" />
+                            <span className="text-xs font-semibold text-slate-700">Browse photo evidence</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Step 1: Category Selection Grid */}
-                {formStep === 1 && (
+                {!quickMode && formStep === 1 && (
                   <div className="space-y-4">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Select Complaint Area Area *</p>
                     <div className="grid grid-cols-2 gap-3.5">
@@ -569,7 +690,7 @@ const CitizenDashboard = () => {
                 )}
 
                 {/* Step 2: Title Summary & Details */}
-                {formStep === 2 && (
+                {!quickMode && formStep === 2 && (
                   <div className="space-y-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Short Title Summary *</label>
@@ -593,7 +714,7 @@ const CitizenDashboard = () => {
                 )}
 
                 {/* Step 3: Location / Map Placement */}
-                {formStep === 3 && (
+                {!quickMode && formStep === 3 && (
                   <div className="space-y-5">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-bold text-slate-550 uppercase tracking-wide">Civic Address / Description *</label>
@@ -630,7 +751,7 @@ const CitizenDashboard = () => {
                 )}
 
                 {/* Step 4: Photo Attachment */}
-                {formStep === 4 && (
+                {!quickMode && formStep === 4 && (
                   <div className="space-y-4">
                     <p className="text-xs font-bold text-slate-550 uppercase tracking-wide">Evidence Photo Upload (optional)</p>
                     
@@ -668,7 +789,7 @@ const CitizenDashboard = () => {
                 )}
 
                 {/* Step 5: Final Review & Submission */}
-                {formStep === 5 && (
+                {!quickMode && formStep === 5 && (
                   <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-450 uppercase tracking-widest border-b pb-1 mb-2">Grievance Summary</h4>
                     <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50/80 p-4.5 rounded-2xl border border-slate-100">
@@ -696,7 +817,7 @@ const CitizenDashboard = () => {
 
                 {/* Footer Controls */}
                 <div className="flex justify-between items-center border-t border-slate-50 pt-4.5">
-                  {formStep > 1 ? (
+                  {!quickMode && formStep > 1 ? (
                     <Button
                       type="button"
                       variant="secondary"
@@ -717,7 +838,16 @@ const CitizenDashboard = () => {
                       Cancel
                     </Button>
 
-                    {formStep < 5 ? (
+                    {quickMode ? (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        disabled={isSubmitting || !formCategory || !formTitle || !formLocation || !formDescription}
+                        onClick={handleNewComplaintSubmit}
+                      >
+                        {isSubmitting ? "Submitting..." : "Submit Grievance"}
+                      </Button>
+                    ) : formStep < 5 ? (
                       <Button
                         type="button"
                         variant="primary"
