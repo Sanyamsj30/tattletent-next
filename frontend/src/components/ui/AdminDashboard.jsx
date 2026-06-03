@@ -521,7 +521,7 @@ const AdminDashboard = () => {
                 zoom={5}
                 minZoom={3}
                 maxZoom={18}
-                style={{ width: "100%", height: "100%", zIndex: 1 }}
+                style={{ width: "100%", height: "450px", zIndex: 1 }}
                 zoomControl={true}
               >
                 <TileLayer
@@ -529,11 +529,13 @@ const AdminDashboard = () => {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 />
                 {mapMarkers.map((m) => {
-                  if (m.latitude == null || m.longitude == null) return null;
+                  const lat = parseFloat(m.latitude);
+                  const lng = parseFloat(m.longitude);
+                  if (isNaN(lat) || isNaN(lng)) return null;
                   return (
                     <Marker
                       key={m.complaint_id}
-                      position={[m.latitude, m.longitude]}
+                      position={[lat, lng]}
                       icon={createMarkerIcon(m.status, m.severity)}
                     >
                       <Popup>
