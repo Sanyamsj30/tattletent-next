@@ -17,6 +17,7 @@ const AllComplaintsPage = () => {
   const [complaints, setComplaints] = useState([]);
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
@@ -68,7 +69,9 @@ const AllComplaintsPage = () => {
         photo: c.photo,
         solution: c.solution,
         citizen: c.citizen_name || "Civic Citizen",
-        date: new Date(c.submitted_at).toLocaleDateString()
+        date: new Date(c.submitted_at).toLocaleDateString(),
+        is_duplicate: c.is_duplicate || false,
+        duplicate_of: c.duplicate_of
       })));
     } catch (err) {
       console.error("Error fetching complaints:", err);
@@ -89,9 +92,13 @@ const AllComplaintsPage = () => {
         c.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.id.toString().includes(searchTerm) ||
         c.description.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesStatus && matchesCategory && matchesSearch;
+      const matchesType = 
+        filterType === "all" ||
+        (filterType === "unique" && !c.is_duplicate) ||
+        (filterType === "duplicate" && c.is_duplicate);
+      return matchesStatus && matchesCategory && matchesSearch && matchesType;
     });
-  }, [complaints, filterStatus, filterCategory, searchTerm]);
+  }, [complaints, filterStatus, filterCategory, searchTerm, filterType]);
 
   // Pagination calculations
   const indexOfLast = currentPage * complaintsPerPage;
@@ -316,6 +323,77 @@ const AllComplaintsPage = () => {
           </CardContent>
         </Card>
 
+        {/* Statistics Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="border border-slate-100 shadow-xs bg-white">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Total Ledger Grievances</p>
+                <h3 className="text-2xl font-black text-slate-800 mt-2">{complaints.length}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center text-lg">
+                📋
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border border-slate-100 shadow-xs bg-white">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Unique Incidents</p>
+                <h3 className="text-2xl font-black text-success-700 mt-2">{complaints.filter(c => !c.is_duplicate).length}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-success-50 text-success-600 flex items-center justify-center text-lg">
+                🛡️
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border border-slate-100 shadow-xs bg-white">
+            <CardContent className="p-5 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Linked Duplicates</p>
+                <h3 className="text-2xl font-black text-indigo-700 mt-2">{complaints.filter(c => c.is_duplicate).length}</h3>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+                🔗
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Ledger Tabs */}
+        <div className="flex border-b border-slate-200 gap-2">
+          <button
+            onClick={() => { setFilterType("all"); setCurrentPage(1); }}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              filterType === "all"
+                ? "border-primary-500 text-primary-600 font-extrabold"
+                : "border-transparent text-slate-400 hover:text-slate-650"
+            }`}
+          >
+            📋 All Grievances
+          </button>
+          <button
+            onClick={() => { setFilterType("unique"); setCurrentPage(1); }}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              filterType === "unique"
+                ? "border-success-500 text-success-600 font-extrabold"
+                : "border-transparent text-slate-400 hover:text-slate-650"
+            }`}
+          >
+            🛡️ Unique Complaints Only
+          </button>
+          <button
+            onClick={() => { setFilterType("duplicate"); setCurrentPage(1); }}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer ${
+              filterType === "duplicate"
+                ? "border-indigo-500 text-indigo-600 font-extrabold"
+                : "border-transparent text-slate-400 hover:text-slate-650"
+            }`}
+          >
+            🔗 Linked Duplicates
+          </button>
+        </div>
+
         {/* Complaints Table Ledger List */}
         <Card className="border border-slate-100 overflow-hidden shadow-sm bg-white">
           <div className="overflow-x-auto">
@@ -509,6 +587,18 @@ const AllComplaintsPage = () => {
 
                 {/* Main complaint body */}
                 <div className="md:col-span-7 space-y-6">
+                  {selectedComplaint.is_duplicate && (
+                    <div className="bg-indigo-50 border border-indigo-150 rounded-2xl p-4 flex items-start gap-3 shadow-xs">
+                      <span className="text-base">ℹ️</span>
+                      <div>
+                        <h4 className="text-xs font-black text-indigo-800 uppercase tracking-wide leading-none">Linked Duplicate Grievance</h4>
+                        <p className="text-xs text-indigo-700 font-semibold leading-relaxed mt-2">
+                          This grievance is a duplicate and is linked to the primary master ticket <span className="font-mono bg-indigo-100/70 border border-indigo-200/50 px-1.5 py-0.5 rounded text-indigo-900 font-bold">#{selectedComplaint.duplicate_of || "active ticket"}</span>. The contractor shown is resolving the original ticket.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                       <FiInfo className="text-primary-500" /> Narrative Details

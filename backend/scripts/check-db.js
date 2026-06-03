@@ -10,9 +10,8 @@ const run = async () => {
   const count = await mongoose.model('Complaint').countDocuments({});
   console.log('Total Complaints in DB:', count);
   const active = await mongoose.model('Complaint').find({}).lean();
-  console.log('Complaints list:');
   active.forEach(c => {
-    console.log(`- ID: ${c._id}, Status: ${c.status}, AssignedTo: ${c.assigned_to}, Deleted: ${c.is_deleted}`);
+    console.log(`- ID: ${c._id}, Status: ${c.status}, Geoloc: ${JSON.stringify(c.geolocation)}, Deleted: ${c.is_deleted}`);
   });
   process.exit(0);
 };

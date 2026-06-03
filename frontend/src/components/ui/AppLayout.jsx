@@ -11,11 +11,16 @@ import { useAuthSession } from "../../hooks/useAuthSession";
 export default function AppLayout({ children, requiredRole = "" }) {
   const { isLoggedIn, user: sessionUser } = useAuthSession();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState({ name: "Guest", role: "Citizen" });
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -100,6 +105,77 @@ export default function AppLayout({ children, requiredRole = "" }) {
   return (
     <div className="h-screen w-screen bg-slate-50 flex overflow-hidden font-sans">
       
+      {/* Mobile Drawer Overlay */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <div className="fixed inset-0 z-40 md:hidden flex">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs"
+            />
+            {/* Sidebar drawer content */}
+            <motion.div
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", bounce: 0, duration: 0.3 }}
+              className="relative flex flex-col w-[280px] h-full bg-slate-900 text-slate-200 z-50 shadow-2xl"
+            >
+              {/* Header */}
+              <div className="h-24 flex items-center justify-between px-6 border-b border-slate-800/80 flex-shrink-0">
+                <Logo showText={true} variant="dark" />
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="text-slate-400 hover:text-white text-base w-8 h-8 rounded-full hover:bg-slate-800 flex items-center justify-center transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+              {/* Navigation Tabs */}
+              <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => {
+                        navigate(item.path);
+                        setMobileOpen(false);
+                      }}
+                      className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-semibold tracking-wide transition select-none cursor-pointer ${
+                        isActive
+                          ? "bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-lg shadow-primary-500/10 font-bold"
+                          : "text-slate-400 hover:bg-slate-800/60 hover:text-white"
+                      }`}
+                    >
+                      <span className="text-lg">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Logout Footer */}
+              <div className="p-4 border-t border-slate-800 bg-slate-950/40">
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileOpen(false);
+                  }}
+                  className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 hover:text-red-300 transition cursor-pointer"
+                >
+                  <FiLogOut className="text-lg" />
+                  <span>Logout Account</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Sidebar Navigation */}
       <motion.aside
         animate={{ width: collapsed ? 80 : 280 }}
@@ -166,7 +242,14 @@ export default function AppLayout({ children, requiredRole = "" }) {
         {/* Sticky Top Navbar */}
         <header className="h-20 bg-white border-b border-slate-100 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 flex-shrink-0 bg-white/95 backdrop-blur-md">
           {/* Left Breadcrumbs */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden w-9 h-9 rounded-lg bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-600 border border-slate-200 transition focus:outline-none"
+              title="Open Menu"
+            >
+              <FiMenu className="text-base" />
+            </button>
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest block sm:inline">
               {getBreadcrumbs()}
             </span>

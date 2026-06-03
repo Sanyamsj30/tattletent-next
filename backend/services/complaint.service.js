@@ -23,7 +23,20 @@ const normalizeStatus = (status) => {
 
 const toComplaintDto = (c) => {
   const userIdStr = c.user_id?._id?.toString() || c.user_id?.toString() || c.user_id;
-  const staffIdStr = c.staff_id?._id?.toString() || c.staff_id?.toString() || c.staff_id;
+  let staffIdStr = c.staff_id?._id?.toString() || c.staff_id?.toString() || c.staff_id;
+  let assignedToName = c.staff_id?.name || c.assigned_to;
+
+  if ((c.is_duplicate || c.status === 'DUPLICATE') && c.duplicate_of) {
+    const orig = c.duplicate_of;
+    if (orig && typeof orig === 'object') {
+      const origStaffId = orig.staff_id?._id?.toString() || orig.staff_id?.toString() || orig.staff_id;
+      const origStaffName = orig.staff_id?.name || orig.assigned_to;
+      if (origStaffId || origStaffName) {
+        staffIdStr = origStaffId || staffIdStr;
+        assignedToName = origStaffName || assignedToName;
+      }
+    }
+  }
 
   return {
     complaint_id: c._id.toString(),
@@ -39,7 +52,7 @@ const toComplaintDto = (c) => {
     citizen_name: c.user_id?.name || 'Civic Citizen',
     citizen_email: c.user_id?.email || '',
     staff_id: staffIdStr,
-    assigned_to: c.staff_id?.name || c.assigned_to,
+    assigned_to: assignedToName,
     latitude: c.latitude,
     longitude: c.longitude,
     sla_deadline: c.sla_deadline,
@@ -47,7 +60,7 @@ const toComplaintDto = (c) => {
     updated_at: c.updated_at,
     severity: c.severity || 'Low',
     is_duplicate: c.is_duplicate || false,
-    duplicate_of: c.duplicate_of?.toString?.() || c.duplicate_of,
+    duplicate_of: c.duplicate_of?._id?.toString?.() || c.duplicate_of?.toString?.() || c.duplicate_of,
     supported_by: (c.supported_by || []).map(id => id.toString()),
     escalation_explanation: c.escalation_explanation,
     priority_score: c.priority_score || 0,
@@ -395,6 +408,7 @@ export const searchComplaints = async (filters) => {
   const results = await Complaint.find(query)
     .populate('user_id', 'name email')
     .populate('staff_id', 'name email')
+    .populate({ path: 'duplicate_of', populate: { path: 'staff_id', select: 'name email' } })
     .sort(sort)
     .skip(skip)
     .limit(limit)

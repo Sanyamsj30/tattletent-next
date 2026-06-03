@@ -34,7 +34,6 @@ router.get('/complaints/search', async (req, res) => {
       staff_id: undefined,
     };
     const complaints = await searchComplaints(filters);
-    // Basic redaction for public portal
     const redacted = complaints.map((c) => ({
       complaint_id: c.complaint_id,
       title: c.title,
@@ -46,6 +45,8 @@ router.get('/complaints/search', async (req, res) => {
       photo: c.photo,
       submitted_at: c.submitted_at,
       updated_at: c.updated_at,
+      is_duplicate: c.is_duplicate || false,
+      duplicate_of: c.duplicate_of || null,
     }));
     res.status(200).json(redacted);
   } catch (err) {
