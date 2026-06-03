@@ -304,6 +304,7 @@ router.post('/login', async (req, res) => {
           name: user.name,
           email: user.email,
           role: normalizeRole(user.role),
+          must_change_password: true,
         },
       });
     }
@@ -316,6 +317,7 @@ router.post('/login', async (req, res) => {
         name: user.name,
         email: user.email,
         role: normalizeRole(user.role),
+        must_change_password: false,
       },
     });
   } catch (err) {
@@ -360,7 +362,7 @@ router.put('/change-password', protect, async (req, res) => {
 router.get('/me', protect, async (req, res) => {
   try {
     const user = await User.findById(req.user.user_id)
-      .select('_id name email role created_at')
+      .select('_id name email role created_at must_change_password')
       .lean();
     if (!user) return res.status(404).json({ message: 'User not found.' });
     return res.status(200).json({
@@ -370,6 +372,7 @@ router.get('/me', protect, async (req, res) => {
         email: user.email,
         role: normalizeRole(user.role),
         created_at: user.created_at,
+        must_change_password: user.must_change_password || false,
       },
     });
   } catch (err) {

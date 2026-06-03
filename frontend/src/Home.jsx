@@ -182,9 +182,10 @@ export default function LandingPage() {
         return;
       }
 
+      const userData = { ...loginData.user, must_change_password: !!loginData.must_change_password };
       sessionStorage.setItem("token", loginData.token);
-      sessionStorage.setItem("user", JSON.stringify(loginData.user));
-      setUser(loginData.user);
+      sessionStorage.setItem("user", JSON.stringify(userData));
+      setUser(userData);
 
       setLoginOpen(false);
       setEmail("");
