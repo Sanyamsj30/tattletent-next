@@ -244,8 +244,8 @@ const AssignStaffPage = () => {
                 {[
                   { label: "Contractor Status", val: recommendation.topChoice.availabilityStatus, color: recommendation.topChoice.availabilityStatus === "Available" ? "text-emerald-600" : "text-amber-500" },
                   { label: "Active Workload", val: `${recommendation.topChoice.activeComplaints} Active` },
-                  { label: "SLA Adherence Rate", val: `${recommendation.topChoice.slaComplianceRate}%` },
-                  { label: "Citizen Rating", val: `⭐ ${recommendation.topChoice.citizenRating}/5` },
+                  { label: "SLA Adherence Rate", val: recommendation.topChoice.resolvedComplaints > 0 ? `${recommendation.topChoice.slaComplianceRate}%` : "N/A" },
+                  { label: "Citizen Rating", val: recommendation.topChoice.resolvedComplaints > 0 ? `⭐ ${recommendation.topChoice.citizenRating}/5` : "N/A" },
                   { label: "AI Audit Score", val: `${recommendation.topChoice.performanceScore || 100}/100` },
                 ].map((stat, idx) => (
                   <div key={idx} className="bg-slate-50/50 border border-slate-200/40 p-3 rounded-xl text-center">
@@ -292,15 +292,10 @@ const AssignStaffPage = () => {
                       </p>
 
                       <div className="grid grid-cols-2 gap-2 mt-4 text-[10px] text-slate-500 font-semibold font-mono bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
-                        <div className="flex items-center gap-1"><FiStar className="text-amber-400" /> {s.citizenRating || 5}/5 Rating</div>
-                        <div className="flex items-center gap-1"><FiActivity className="text-indigo-400" /> {s.slaComplianceRate || 100}% SLA</div>
+                        <div className="flex items-center gap-1"><FiStar className="text-amber-400" /> {s.resolvedComplaints > 0 ? `${s.citizenRating}/5 Rating` : "N/A Rating"}</div>
+                        <div className="flex items-center gap-1"><FiActivity className="text-indigo-400" /> {s.resolvedComplaints > 0 ? `${s.slaComplianceRate}% SLA` : "N/A SLA"}</div>
                         <div className="flex items-center gap-1">💼 {s.activeComplaints || 0} active</div>
                         <div className="flex items-center gap-1">🏁 {s.resolvedComplaints || 0} solved</div>
-                      </div>
-
-                      <div className="mt-3 text-[10px] text-slate-450 flex items-center gap-1 font-semibold">
-                        <FiMap className="text-slate-400 flex-shrink-0" />
-                        <span className="truncate">Wards: {s.assignedWards?.join(", ") || "None"}</span>
                       </div>
                     </div>
 

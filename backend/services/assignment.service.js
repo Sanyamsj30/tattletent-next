@@ -57,16 +57,7 @@ export const runAutoAssignmentEngine = async (complaintId) => {
 
       let totalScore = workloadScore + perfScore + slaScore + ratingScore;
 
-      // 5. Ward match bonus (+50 points)
-      // Check if any assigned ward matches the complaint location
-      const hasWardMatch = (vendor.assignedWards || []).some(ward =>
-        complaintLocation.includes(String(ward).toLowerCase())
-      );
-      if (hasWardMatch) {
-        totalScore += 50;
-      }
-
-      // 6. Overloaded penalty
+      // 5. Overloaded penalty
       if (vendor.availabilityStatus === 'Overloaded') {
         totalScore -= 100;
       }

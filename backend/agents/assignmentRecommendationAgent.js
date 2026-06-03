@@ -25,33 +25,40 @@ export const getAssignmentRecommendation = async (complaintId) => {
     for (const staff of staffList) {
       let score = 0;
 
-      // 1. Ward / Location Match (30 pts)
-      const wardMatch = staff.assignedWards?.some(ward => 
-        complaint.location.toLowerCase().includes(ward.toLowerCase())
-      );
-      if (wardMatch) {
-        score += 30;
-      }
+      // Bayesian Credibility Weighting (Cold Start Protection)
+      const credibilityLimit = 5; 
+      const resolvedCount = staff.resolvedComplaints || 0;
+      const weight = Math.min(resolvedCount / credibilityLimit, 1.0); 
+      
+      // Neutral baseline averages for new/inexperienced staff
+      const baseSla = 85;      // 85% SLA baseline
+      const basePerf = 80;     // 80/100 baseline performance
+      const baseRating = 4.0;  // 4.0/5 baseline rating
+      
+      const effectiveSla = (weight * (staff.slaComplianceRate || 100)) + ((1 - weight) * baseSla);
+      const effectivePerf = (weight * (staff.performanceScore || 100)) + ((1 - weight) * basePerf);
+      const effectiveRating = (weight * (staff.citizenRating || 5)) + ((1 - weight) * baseRating);
 
-      // 2. SLA Compliance Rate (0.3 weight)
-      const slaRate = staff.slaComplianceRate || 100;
-      score += (slaRate * 0.3);
+      // 1. SLA Compliance Rate (0.4 weight - Max 40 points)
+      score += (effectiveSla * 0.4);
 
-      // 3. Performance Score (0.2 weight)
-      const perfScore = staff.performanceScore || 100;
-      score += (perfScore * 0.2);
+      // 2. Performance Score (0.3 weight - Max 30 points)
+      score += (effectivePerf * 0.3);
 
-      // 4. Citizen Rating (Rating * 2 multiplier)
-      const rating = staff.citizenRating || 5;
-      score += (rating * 2);
+      // 3. Citizen Rating (Rating * 3 multiplier - Max 15 points)
+      score += (effectiveRating * 3);
 
-      // 5. Workload status & Active Complaints Penalties
+      // 4. Workload status & Active Complaints Penalties (Continuous Scale - Max 15 points)
       const activeCount = staff.activeComplaints || 0;
-      if (activeCount < 3) {
-        score += 10; // Low workload / Available bonus
-      } else if (activeCount > 5) {
-        score -= 20; // High workload / Overloaded penalty
-      }
+      let workloadScore = 0;
+      if (activeCount === 0) workloadScore = 15;
+      else if (activeCount === 1) workloadScore = 12;
+      else if (activeCount === 2) workloadScore = 9;
+      else if (activeCount === 3) workloadScore = 6;
+      else if (activeCount === 4) workloadScore = 0;
+      else if (activeCount === 5) workloadScore = -15;
+      else workloadScore = -30; // Overloaded
+      score += workloadScore;
 
       recommendations.push({
         staffId: staff._id.toString(),
@@ -59,8 +66,9 @@ export const getAssignmentRecommendation = async (complaintId) => {
         email: staff.email,
         score: Math.round(score),
         activeComplaints: activeCount,
-        slaComplianceRate: slaRate,
-        citizenRating: rating,
+        resolvedComplaints: resolvedCount,
+        slaComplianceRate: staff.slaComplianceRate || 100,
+        citizenRating: staff.citizenRating || 5,
         availabilityStatus: staff.availabilityStatus || 'Available',
         performanceScore: staff.performanceScore || 100
       });

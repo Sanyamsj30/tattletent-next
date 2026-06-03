@@ -45,9 +45,14 @@ const ChatbotWidget = () => {
     setIsLoading(true);
 
     try {
+      const token = sessionStorage.getItem("token");
       const response = await axios.post(`${API_BASE_URL}/api/ai/chatbot`, {
         message: text,
         userId: user?.user_id || null,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       const replyText = response.data?.data?.response || "I didn't quite get that. Let's try again!";

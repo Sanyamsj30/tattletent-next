@@ -38,8 +38,9 @@ export default function AppLayout({ children, requiredRole = "" }) {
     const reqRole = String(requiredRole || "").toLowerCase();
     if (reqRole) {
       const isAdminMatch = reqRole === "admin" && (role === "admin" || role === "ringmaster");
+      const isStaffOrAdminMatch = reqRole === "stafforadmin" && (role === "admin" || role === "ringmaster" || role === "staff");
       const isDirectMatch = role === reqRole;
-      if (!isAdminMatch && !isDirectMatch) {
+      if (!isAdminMatch && !isStaffOrAdminMatch && !isDirectMatch) {
         navigate("/");
       }
     }
@@ -80,7 +81,6 @@ export default function AppLayout({ children, requiredRole = "" }) {
       // Citizen default
       return [
         { path: "/citizen-dashboard", label: "My Grievances Console", icon: <FiLayout /> },
-        { path: "/all-complaints", label: "All Complaints Ledger", icon: <FiFileText /> },
         { path: "/learn-more", label: "Information Guide", icon: <FiInfo /> },
         ...common
       ];

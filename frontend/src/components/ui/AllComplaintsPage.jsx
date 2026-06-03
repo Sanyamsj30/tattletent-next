@@ -573,43 +573,12 @@ const AllComplaintsPage = () => {
     </>
   );
 
-  if (isLoggedIn) {
-    return (
-      <AppLayout>
-        <div className="p-6 sm:p-10 max-w-7xl mx-auto space-y-8 relative z-10">
-          {pageContent}
-        </div>
-      </AppLayout>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans pb-16">
-      {/* Visual background grids */}
-      <div className="absolute inset-0 grid-mesh-bg opacity-30 pointer-events-none z-0"></div>
-      
-      {/* Top Navbar */}
-      <div className="fixed top-0 left-0 w-full h-20 flex items-center justify-between px-6 sm:px-10 bg-white/80 backdrop-blur-md border-b border-slate-100 z-50 shadow-sm">
-        <div className="flex items-center gap-3">
-          <Logo />
-          <span className="font-extrabold text-lg text-slate-800 tracking-tight hidden sm:block">
-            TattleTent
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={() => navigate("/")}>
-            Home
-          </Button>
-          <Button variant="primary" size="sm" onClick={() => navigate("/")}>
-            Get Started
-          </Button>
-        </div>
-      </div>
-
-      <div className="pt-28 max-w-7xl mx-auto px-4 sm:px-6 relative z-10 space-y-8">
+    <AppLayout requiredRole="StaffOrAdmin">
+      <div className="p-6 sm:p-10 max-w-7xl mx-auto space-y-8 relative z-10">
         {pageContent}
       </div>
-    </div>
+    </AppLayout>
   );
 };
 
