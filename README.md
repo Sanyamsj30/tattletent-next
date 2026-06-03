@@ -2,6 +2,11 @@
 
 TattleTent is a modern, full-stack, AI-assisted municipal grievance tracking and SLA governance platform. It empowers citizens to report local issues with photo evidence and high-accuracy GPS coordinates, while enabling civic administrators and contractors to manage, auto-assign, resolve, and audit grievances under strict SLA policies. A public Transparency Portal builds civic trust through real-time ledger data.
 
+## 🔗 Live Deployment Links
+*   **Production Frontend (Vercel)**: [https://tattletent-next.vercel.app](https://tattletent-next.vercel.app)
+*   **Production Backend (Render)**: [https://tattletent-next-bakend.onrender.com](https://tattletent-next-bakend.onrender.com)
+*   **SLA Escalation Webhook**: [https://tattletent-next-bakend.onrender.com/api/jobs/escalate](https://tattletent-next-bakend.onrender.com/api/jobs/escalate)
+
 ---
 
 ## 🚀 Key Features
@@ -34,6 +39,16 @@ TattleTent is a modern, full-stack, AI-assisted municipal grievance tracking and
 *   **Civic Transparency Portal**: A publicly accessible ledger of city grievances featuring advanced searches, status filters, and category breakdowns.
 *   **Unique Complaints Tab**: Filters out redundant duplicates, showing only distinct physical incidents.
 *   **PDF/CSV Exporting**: Citizens can download certified PDF receipts of grievances or export ledger summaries to CSV.
+
+---
+
+## 🤖 Agentic AI Governance
+
+TattleTent is built on autonomous agent workflows that operate in the background to streamline municipal workloads:
+
+*   **Duplicate Detection Agent**: Integrates smart location comparison (matching addresses and coordinate proximity) and category alignment. If a candidate complaint matches an active grievance, the agent flags it, links it to the original master ticket (`duplicate_of`), and automatically upgrades the original ticket's severity and priority scores to account for the increased supporter volume.
+*   **Assignment Recommendation Agent**: Runs instantly upon ticket creation to match the optimal contractor. The agent parses departmental guidelines, active workloads, and live contractor availability metrics. It calculates ranking suitability based on past SLA compliance rates, average resolution times, and citizen ratings, assigning the best candidate with zero administrative latency.
+*   **AI Urgency Analysis Agent**: Triggers automatically in the background during manual or automated SLA escalations. The agent evaluates the complaint title, description, category, and historical delay factors using language model parameters (Groq/Gemini APIs) to generate a detailed, readable *Urgency Justification* for citizens and admins.
 
 ---
 
