@@ -581,8 +581,10 @@ const CitizenDashboard = () => {
                 <MapContainer
                   center={geoCaptured && geoCoords.lat != null ? [geoCoords.lat, geoCoords.lon] : [22.9734, 78.6569]}
                   zoom={geoCaptured && geoCoords.lat != null ? 14 : 5}
-                  minZoom={3}
+                  minZoom={5}
                   maxZoom={18}
+                  maxBounds={[[6.0, 68.0], [38.0, 98.0]]}
+                  maxBoundsViscosity={1.0}
                   style={{ width: "100%", height: "450px", zIndex: 1 }}
                   zoomControl={true}
                 >
