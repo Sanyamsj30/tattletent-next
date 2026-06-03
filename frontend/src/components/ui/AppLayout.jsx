@@ -68,7 +68,6 @@ export default function AppLayout({ children, requiredRole = "" }) {
         { path: "/admin-dashboard", label: "Executive Admin Panel", icon: <FiLayout /> },
         { path: "/all-complaints", label: "All Complaints Ledger", icon: <FiFileText /> },
         { path: "/invite-staff", label: "Invite Civic Staff", icon: <FiUserPlus /> },
-        { path: "/heatmap", label: "Interactive Heatmap", icon: <FiMap /> },
         ...common
       ];
     } else if (role === "staff") {
@@ -92,7 +91,6 @@ export default function AppLayout({ children, requiredRole = "" }) {
   const getBreadcrumbs = () => {
     const path = location.pathname;
     if (path.includes("dashboard")) return "System Console / Overview";
-    if (path.includes("heatmap")) return "Geospatial Map / Hotspot Planning";
     if (path.includes("invite-staff")) return "Civic Administration / Personnel Management";
     if (path.includes("change-password")) return "Account Security / Passwords";
     if (path.includes("learn-more")) return "Support / Platform Information";

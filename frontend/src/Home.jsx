@@ -639,7 +639,6 @@ export default function LandingPage() {
             <ul className="space-y-2 text-sm text-slate-400">
               <li><a href="/" className="hover:text-primary-400 transition">Home Console</a></li>
               <li><a href="/all-complaints" className="hover:text-primary-400 transition">Transparency Ledger</a></li>
-              <li><a href="/heatmap" className="hover:text-primary-400 transition">Civic Heatmap</a></li>
               <li><a href="/faq" className="hover:text-primary-400 transition">FAQ Help</a></li>
             </ul>
           </div>

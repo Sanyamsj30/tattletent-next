@@ -355,9 +355,6 @@ const AdminDashboard = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => navigate("/heatmap")}>
-              🛰️ Hotspot Map
-            </Button>
             <Button onClick={() => navigate("/invite-staff")}>
               <FiUsers className="mr-2" /> Invite Personnel
             </Button>

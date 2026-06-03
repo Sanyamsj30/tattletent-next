@@ -105,6 +105,7 @@ const CitizenDashboard = () => {
         setIsSubmitOpen(false);
         fetchComplaintsByUser();
         fetchCounts();
+        fetchMarkers();
       } else {
         alert("Failed to register support.");
       }
@@ -117,31 +118,31 @@ const CitizenDashboard = () => {
   const [mapMarkers, setMapMarkers] = useState([]);
   const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
 
-  useEffect(() => {
-    const fetchMarkers = async () => {
-      if (viewTab !== "map") return;
-      try {
-        setIsLoadingMarkers(true);
-        const queryParams = new URLSearchParams();
-        if (mapFilters.status !== "All") queryParams.append("status", mapFilters.status);
-        if (mapFilters.category !== "All") queryParams.append("category", mapFilters.category);
-        if (mapFilters.fromDate) queryParams.append("fromDate", mapFilters.fromDate);
-        if (mapFilters.toDate) queryParams.append("toDate", mapFilters.toDate);
+  async function fetchMarkers() {
+    if (viewTab !== "map") return;
+    try {
+      setIsLoadingMarkers(true);
+      const queryParams = new URLSearchParams();
+      if (mapFilters.status !== "All") queryParams.append("status", mapFilters.status);
+      if (mapFilters.category !== "All") queryParams.append("category", mapFilters.category);
+      if (mapFilters.fromDate) queryParams.append("fromDate", mapFilters.fromDate);
+      if (mapFilters.toDate) queryParams.append("toDate", mapFilters.toDate);
 
-        const response = await fetch(`${API_BASE_URL}/api/complaints/map-markers?${queryParams}`, {
-          headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
-        });
-        if (response.ok) {
-          const resData = await response.json();
-          setMapMarkers(resData.data || []);
-        }
-      } catch (err) {
-        console.error("Error fetching map markers:", err);
-      } finally {
-        setIsLoadingMarkers(false);
+      const response = await fetch(`${API_BASE_URL}/api/complaints/map-markers?${queryParams}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
+      });
+      if (response.ok) {
+        const resData = await response.json();
+        setMapMarkers(resData.data || []);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching map markers:", err);
+    } finally {
+      setIsLoadingMarkers(false);
+    }
+  }
 
+  useEffect(() => {
     fetchMarkers();
   }, [viewTab, mapFilters]);
 
@@ -615,6 +616,18 @@ const CitizenDashboard = () => {
                               <p>👥 Supporters: <span className="font-bold text-slate-700">{m.supporters_count}</span></p>
                               {m.is_duplicate && <p className="text-indigo-500 font-bold">📍 Linked Duplicate</p>}
                             </div>
+                            {m.status !== "RESOLVED" && (
+                              <div className="pt-1.5 border-t border-slate-100 flex justify-end">
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  className="h-6 text-[10px] px-2.5 py-0.5 w-full flex items-center justify-center gap-1"
+                                  onClick={() => handleSupportComplaint(m.complaint_id)}
+                                >
+                                  🤝 Support Grievance
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </Popup>
                       </Marker>
