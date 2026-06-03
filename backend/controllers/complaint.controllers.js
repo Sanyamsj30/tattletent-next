@@ -12,6 +12,9 @@ import {
   fetchHeatmapData,
   adminReassignComplaintInDB,
   forceEscalateComplaintInDB,
+  getNearbyComplaints,
+  supportComplaintInDB,
+  getMapMarkers,
 } from '../services/complaint.service.js';
 import { notifyStatusChange } from '../services/notification.service.js';
 import { logAuditEvent } from '../services/audit.service.js';
@@ -185,6 +188,7 @@ const getComplaints = async (req, res) => {
     }
 
     const filters = {
+      id: req.query.id,
       user_id: req.query.user_id,
       searchText: req.query.q,
       category: req.query.category,
@@ -267,6 +271,43 @@ const forceEscalateComplaint = asynchandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, updated, 'Complaint escalated successfully'));
 });
 
+const fetchNearbyComplaints = asynchandler(async (req, res) => {
+  const { longitude, latitude, radius, category } = req.query;
+
+  if (longitude == null || latitude == null) {
+    return res.status(400).json(new ApiResponse(400, null, 'Longitude and Latitude are required'));
+  }
+
+  const nearby = await getNearbyComplaints(longitude, latitude, radius || 100, category);
+  return res.status(200).json(new ApiResponse(200, nearby, 'Nearby complaints fetched successfully'));
+});
+
+const supportComplaint = asynchandler(async (req, res) => {
+  const { id } = req.params;
+  const user_id = req.user?.user_id;
+
+  if (!user_id) {
+    return res.status(401).json(new ApiResponse(401, null, 'Unauthorized'));
+  }
+
+  const updated = await supportComplaintInDB(id, user_id);
+
+  logAuditEvent({
+    action: 'COMPLAINT_SUPPORTED',
+    complaint_id: id,
+    user: req.user,
+    details: { user_id },
+  });
+
+  return res.status(200).json(new ApiResponse(200, updated, 'Complaint supported successfully'));
+});
+
+const getMapMarkersData = asynchandler(async (req, res) => {
+  const { status, category, fromDate, toDate } = req.query;
+  const markers = await getMapMarkers({ status, category, fromDate, toDate });
+  return res.status(200).json(new ApiResponse(200, markers, 'Map markers fetched successfully'));
+});
+
 export {
   createComplaint,
   updateComplaintStatus,
@@ -278,4 +319,7 @@ export {
   getHeatmapData,
   reassignComplaint,
   forceEscalateComplaint,
+  fetchNearbyComplaints,
+  supportComplaint,
+  getMapMarkersData,
 };

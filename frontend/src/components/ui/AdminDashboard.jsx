@@ -22,6 +22,28 @@ import {
   ResponsiveContainer,
   CartesianGrid
 } from "recharts";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+const createMarkerIcon = (status, severity) => {
+  let color = '#3b82f6'; // Blue for NEW
+  if (status === 'IN_PROGRESS') color = '#eab308'; // Amber for IN_PROGRESS
+  if (status === 'RESOLVED') color = '#22c55e'; // Green for RESOLVED
+  if (status === 'RESOLVED_PENDING') color = '#f97316'; // Orange for Verification Pending
+  if (severity === 'Critical' || severity === 'High') color = '#ef4444'; // Red for Escalated/Urgent
+
+  return L.divIcon({
+    html: `<span class="flex h-5 w-5 relative">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background-color: ${color}"></span>
+      <span class="relative inline-flex rounded-full h-5 w-5 border-2 border-white shadow-lg" style="background-color: ${color}"></span>
+    </span>`,
+    className: 'custom-leaflet-icon',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+};
+
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -39,6 +61,107 @@ const AdminDashboard = () => {
   const [currentNewPage, setCurrentNewPage] = useState(1);
   const [currentAssignedPage, setCurrentAssignedPage] = useState(1);
   const complaintsPerPage = 10;
+
+  const [viewTab, setViewTab] = useState("list"); // "list" or "map"
+  const [mapFilters, setMapFilters] = useState({ status: "All", category: "All", fromDate: "", toDate: "" });
+  const [mapMarkers, setMapMarkers] = useState([]);
+  const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
+
+  useEffect(() => {
+    const fetchMarkers = async () => {
+      if (viewTab !== "map") return;
+      try {
+        setIsLoadingMarkers(true);
+        const queryParams = new URLSearchParams();
+        if (mapFilters.status !== "All") queryParams.append("status", mapFilters.status);
+        if (mapFilters.category !== "All") queryParams.append("category", mapFilters.category);
+        if (mapFilters.fromDate) queryParams.append("fromDate", mapFilters.fromDate);
+        if (mapFilters.toDate) queryParams.append("toDate", mapFilters.toDate);
+
+        const response = await fetch(`${API_BASE_URL}/api/complaints/map-markers?${queryParams}`, {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
+        });
+        if (response.ok) {
+          const resData = await response.json();
+          setMapMarkers(resData.data || []);
+        }
+      } catch (err) {
+        console.error("Error fetching map markers:", err);
+      } finally {
+        setIsLoadingMarkers(false);
+      }
+    };
+
+    fetchMarkers();
+  }, [viewTab, mapFilters]);
+
+  const handleMapAuditClick = async (complaintId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/complaints/search?id=${complaintId}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const c = data[0];
+          setSelectedBreakdown({
+            id: c.complaint_id,
+            category: c.category,
+            location: c.location,
+            status: c.status,
+            assignedTo: c.assigned_to,
+            staff_id: c.staff_id, 
+            severity: c.severity, 
+            is_duplicate: c.is_duplicate,
+            priority_score: c.priority_score,
+            priority_level: c.priority_level,
+            is_auto_assigned: c.is_auto_assigned,
+            recommendation_explanation: c.recommendation_explanation,
+            priority_breakdown: c.priority_breakdown,
+            assignment_history: c.assignment_history,
+            description: c.description,
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching single complaint for audit:", err);
+    }
+  };
+
+  const handleMapAssignClick = async (complaintId) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/complaints/search?id=${complaintId}`, {
+        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const c = data[0];
+          const complaintObj = {
+            id: c.complaint_id,
+            category: c.category,
+            location: c.location,
+            status: c.status,
+            assignedTo: c.assigned_to,
+            staff_id: c.staff_id, 
+            severity: c.severity, 
+            is_duplicate: c.is_duplicate,
+            priority_score: c.priority_score,
+            priority_level: c.priority_level,
+            is_auto_assigned: c.is_auto_assigned,
+            recommendation_explanation: c.recommendation_explanation,
+            priority_breakdown: c.priority_breakdown,
+            assignment_history: c.assignment_history,
+            description: c.description,
+          };
+          navigate("/assign-staff", { state: { complaint: complaintObj } });
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching single complaint for assignment:", err);
+    }
+  };
+
 
   const fetchCounts = async () => {
     try {
@@ -242,7 +365,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Dashboard Executive Counters */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card variant="glass" className="bg-[#fcfcff] border border-primary-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
@@ -253,6 +376,18 @@ const AdminDashboard = () => {
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-xl shadow-sm border border-primary-200/20">
                 🏢
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card variant="glass" className="bg-[#fcfcff] border border-indigo-100">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest">Supporters Joined</p>
+                <p className="text-4xl font-black text-indigo-600 mt-1">{counts.supports || 0}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-sm border border-indigo-200/20">
+                👥
               </div>
             </CardContent>
           </Card>
@@ -282,8 +417,175 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Analytics Section */}
-        <Card variant="default">
+        {/* View Toggler */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-150 p-2.5 rounded-2xl shadow-sm">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setViewTab("list")}
+              className={`px-4.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer select-none ${
+                viewTab === "list"
+                  ? "bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              📋 Queue Workspace
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewTab("map")}
+              className={`px-4.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer select-none ${
+                viewTab === "map"
+                  ? "bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-md"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              🗺️ Interactive Map
+            </button>
+          </div>
+          {viewTab === "map" && (
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pr-2">
+              Showing {mapMarkers.length} Active Hotspots
+            </span>
+          )}
+        </div>
+
+
+        {viewTab === "map" ? (
+          <Card className="border border-slate-100 shadow-sm overflow-hidden min-h-[550px] relative bg-white flex flex-col rounded-3xl">
+            {/* Map Filter Controls Bar */}
+            <div className="p-5 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50/50">
+              <div className="flex flex-col gap-1 text-left">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status Filter</label>
+                <select
+                  value={mapFilters.status}
+                  onChange={(e) => setMapFilters({ ...mapFilters, status: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer"
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="NEW">New</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="RESOLVED">Resolved</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1 text-left">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Category Filter</label>
+                <select
+                  value={mapFilters.category}
+                  onChange={(e) => setMapFilters({ ...mapFilters, category: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer"
+                >
+                  <option value="All">All Categories</option>
+                  <option value="Electrical">⚡ Electrical</option>
+                  <option value="Water Leak">💧 Water Leak</option>
+                  <option value="Pathway Damage">🚧 Pathway Damage</option>
+                  <option value="Garbage">🗑️ Garbage</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1 text-left">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">From Date</label>
+                <input
+                  type="date"
+                  value={mapFilters.fromDate}
+                  onChange={(e) => setMapFilters({ ...mapFilters, fromDate: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1 text-left">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">To Date</label>
+                <input
+                  type="date"
+                  value={mapFilters.toDate}
+                  onChange={(e) => setMapFilters({ ...mapFilters, toDate: e.target.value })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                />
+              </div>
+            </div>
+
+            {/* Leaflet Map container */}
+            <div className="flex-1 min-h-[450px] relative w-full h-[450px]">
+              {isLoadingMarkers && (
+                <div className="absolute inset-0 bg-white/65 backdrop-blur-xs flex items-center justify-center z-[1000]">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-2xl animate-spin">⏳</span>
+                    <span className="text-xs text-slate-500 font-semibold">Loading Map Grievances...</span>
+                  </div>
+                </div>
+              )}
+              
+              <MapContainer
+                center={[22.9734, 78.6569]}
+                zoom={5}
+                minZoom={3}
+                maxZoom={18}
+                style={{ width: "100%", height: "100%", zIndex: 1 }}
+                zoomControl={true}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                {mapMarkers.map((m) => {
+                  if (m.latitude == null || m.longitude == null) return null;
+                  return (
+                    <Marker
+                      key={m.complaint_id}
+                      position={[m.latitude, m.longitude]}
+                      icon={createMarkerIcon(m.status, m.severity)}
+                    >
+                      <Popup>
+                        <div className="p-2 space-y-2 text-xs max-w-[200px] text-left">
+                          <h4 className="font-bold text-slate-800 leading-tight">{m.title}</h4>
+                          <div className="flex flex-wrap gap-1.5 items-center">
+                            <Badge variant={m.status === "RESOLVED" ? "success" : (m.status === "IN_PROGRESS" ? "info" : "danger")}>
+                              {m.status}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px]">
+                              {m.category}
+                            </Badge>
+                          </div>
+                          <div className="text-[10px] text-slate-500 space-y-0.5 font-semibold">
+                            <p>🗓️ Date: {new Date(m.submitted_at).toLocaleDateString()}</p>
+                            <p>👥 Supporters: <span className="font-bold text-slate-700">{m.supporters_count}</span></p>
+                            {m.is_duplicate ? (
+                              <p className="text-indigo-500 font-bold">📍 Linked Duplicate</p>
+                            ) : (
+                              <p className="text-slate-500 font-bold">📍 Primary Complaint</p>
+                            )}
+                          </div>
+                          <div className="flex gap-1.5 mt-2">
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              className="h-6 text-[10px] px-2 py-0.5"
+                              onClick={() => handleMapAssignClick(m.complaint_id)}
+                            >
+                              Assign
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-6 text-[10px] px-2 py-0.5"
+                              onClick={() => handleMapAuditClick(m.complaint_id)}
+                            >
+                              Audit
+                            </Button>
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </MapContainer>
+            </div>
+          </Card>
+        ) : (
+          <>
+            {/* Analytics Section */}
+            <Card variant="default">
           <CardContent className="p-6">
             <div className="mb-6 flex items-center justify-between">
               <div>
@@ -548,6 +850,8 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+          </>
+        )}
 
       </div>
 

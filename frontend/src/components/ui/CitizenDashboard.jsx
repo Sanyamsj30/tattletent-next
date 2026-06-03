@@ -13,6 +13,27 @@ import { Input, TextArea } from "./input";
 import ChatbotWidget from "./ChatbotWidget";
 import { API_BASE_URL } from "../../lib/api";
 import { useAuthSession } from "../../hooks/useAuthSession";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+const createMarkerIcon = (status, severity) => {
+  let color = '#3b82f6'; // Blue for NEW
+  if (status === 'IN_PROGRESS') color = '#eab308'; // Amber for IN_PROGRESS
+  if (status === 'RESOLVED') color = '#22c55e'; // Green for RESOLVED
+  if (status === 'RESOLVED_PENDING') color = '#f97316'; // Orange for Verification Pending
+  if (severity === 'Critical' || severity === 'High') color = '#ef4444'; // Red for Escalated/Urgent
+
+  return L.divIcon({
+    html: `<span class="flex h-5 w-5 relative">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style="background-color: ${color}"></span>
+      <span class="relative inline-flex rounded-full h-5 w-5 border-2 border-white shadow-lg" style="background-color: ${color}"></span>
+    </span>`,
+    className: 'custom-leaflet-icon',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+};
 
 const CitizenDashboard = () => {
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
@@ -35,6 +56,127 @@ const CitizenDashboard = () => {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [geoCaptured, setGeoCaptured] = useState(false);
   const [geoCoords, setGeoCoords] = useState({ lat: null, lon: null });
+  const [viewTab, setViewTab] = useState("list"); // "list" or "map"
+  const [nearbyComplaints, setNearbyComplaints] = useState([]);
+  const [isCheckingNearby, setIsCheckingNearby] = useState(false);
+
+  useEffect(() => {
+    const checkNearby = async () => {
+      if (isSubmitOpen && geoCaptured && geoCoords.lat != null && formCategory) {
+        try {
+          setIsCheckingNearby(true);
+          const response = await fetch(
+            `${API_BASE_URL}/api/complaints/nearby?longitude=${geoCoords.lon}&latitude=${geoCoords.lat}&radius=100&category=${formCategory}`,
+            {
+              headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+            }
+          );
+          if (response.ok) {
+            const resData = await response.json();
+            setNearbyComplaints(resData.data || []);
+          }
+        } catch (err) {
+          console.error("Failed to check nearby complaints:", err);
+        } finally {
+          setIsCheckingNearby(false);
+        }
+      } else {
+        setNearbyComplaints([]);
+      }
+    };
+
+    checkNearby();
+  }, [geoCoords, geoCaptured, formCategory, isSubmitOpen]);
+
+  const handleSupportComplaint = async (complaintId) => {
+    try {
+      const token = sessionStorage.getItem("token");
+      if (!token) return;
+
+      const res = await fetch(`${API_BASE_URL}/api/complaints/support/${complaintId}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        alert("Thanks for your support! We've registered you as an affected citizen for this issue.");
+        setIsSubmitOpen(false);
+        fetchComplaintsByUser();
+        fetchCounts();
+      } else {
+        alert("Failed to register support.");
+      }
+    } catch (err) {
+      console.error("Support error:", err);
+    }
+  };
+
+  const [mapFilters, setMapFilters] = useState({ status: "All", category: "All", fromDate: "", toDate: "" });
+  const [mapMarkers, setMapMarkers] = useState([]);
+  const [isLoadingMarkers, setIsLoadingMarkers] = useState(false);
+
+  useEffect(() => {
+    const fetchMarkers = async () => {
+      if (viewTab !== "map") return;
+      try {
+        setIsLoadingMarkers(true);
+        const queryParams = new URLSearchParams();
+        if (mapFilters.status !== "All") queryParams.append("status", mapFilters.status);
+        if (mapFilters.category !== "All") queryParams.append("category", mapFilters.category);
+        if (mapFilters.fromDate) queryParams.append("fromDate", mapFilters.fromDate);
+        if (mapFilters.toDate) queryParams.append("toDate", mapFilters.toDate);
+
+        const response = await fetch(`${API_BASE_URL}/api/complaints/map-markers?${queryParams}`, {
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
+        });
+        if (response.ok) {
+          const resData = await response.json();
+          setMapMarkers(resData.data || []);
+        }
+      } catch (err) {
+        console.error("Error fetching map markers:", err);
+      } finally {
+        setIsLoadingMarkers(false);
+      }
+    };
+
+    fetchMarkers();
+  }, [viewTab, mapFilters]);
+
+  const renderNearbyComplaints = () => {
+    if (nearbyComplaints.length === 0) return null;
+    return (
+      <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4.5 space-y-3 mt-4 text-left">
+        <h4 className="text-xs font-bold text-amber-800 flex items-center gap-1.5 uppercase tracking-wide">
+          ⚠️ Similar Complaints Found Nearby
+        </h4>
+        <p className="text-[10px] text-amber-600 font-semibold leading-relaxed">
+          A similar issue has already been reported near your location. You can support it to increase its priority, or still submit your own report.
+        </p>
+        <div className="space-y-2.5 max-h-36 overflow-y-auto pr-1">
+          {nearbyComplaints.map((c) => (
+            <div key={c.complaint_id} className="bg-white border border-slate-100 rounded-xl p-3 flex items-center justify-between shadow-sm">
+              <div className="space-y-0.5">
+                <p className="text-xs font-bold text-slate-800 line-clamp-1">{c.title}</p>
+                <p className="text-[10px] text-slate-400 font-semibold">
+                  {c.category} • {c.distance}m away • {c.supported_by?.length || 0} supporters
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleSupportComplaint(c.complaint_id)}
+                className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold rounded-lg transition cursor-pointer select-none"
+              >
+                Support This
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   const fetchComplaintsByUser = async () => {
     try {
@@ -251,7 +393,7 @@ const CitizenDashboard = () => {
         </div>
 
         {/* Dashboard Statistics */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card variant="glass" className="bg-[#fcfcff] border border-primary-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
@@ -262,6 +404,18 @@ const CitizenDashboard = () => {
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-xl shadow-sm border border-primary-200/20">
                 📋
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card variant="glass" className="bg-[#fcfcff] border border-indigo-100">
+            <CardContent className="flex items-center justify-between p-6">
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Supporters Joined</p>
+                <p className="text-4xl font-black text-indigo-600 mt-1">{counts.supports || 0}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-sm border border-indigo-200/20">
+                👥
               </div>
             </CardContent>
           </Card>
@@ -325,181 +479,333 @@ const CitizenDashboard = () => {
 
         {/* Complaints Lists */}
         <div className="space-y-6">
-          
-          {/* Active Complaints Table */}
-          <Card variant="default">
-            <CardContent className="p-0">
-              <div className="p-6 border-b border-slate-100">
-                <h3 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-pulse"></span>
-                  Active Grievances
-                </h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-100 text-sm">
-                  <thead className="bg-slate-50/50">
-                    <tr>
-                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
-                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Status</th>
-                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
-                      <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
-                      <th className="px-6 py-4"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
-                    {complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING").length > 0 ? (
-                      complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING").map(c => (
-                        <tr key={c.id} className="hover:bg-slate-50/40 transition">
-                          <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
-                          <td className="px-6 py-4">
-                            <Badge variant={c.status === "RESOLVED_PENDING" ? "warning" : (c.status === "IN_PROGRESS" ? "info" : "danger")}>
-                              {c.status === "RESOLVED_PENDING" ? "Verification Pending" : c.status}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 text-slate-600 font-semibold">{c.title}</td>
-                          <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
-                          <td className="px-6 py-4 text-right flex items-center justify-end gap-3.5">
-                            {c.status === "RESOLVED_PENDING" && (
-                              <div className="flex gap-2">
-                                <button
-                                  className="px-3 py-1.5 bg-success-500 hover:bg-success-600 text-white text-xs font-bold rounded-xl shadow-sm transition"
-                                  onClick={() => handleConfirmFix(c)}
-                                >
-                                  Confirm
-                                </button>
-                                <button
-                                  className="px-3 py-1.5 bg-danger-500 hover:bg-danger-600 text-white text-xs font-bold rounded-xl shadow-sm transition"
-                                  onClick={() => handleRejectFix(c)}
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            )}
-                            <button
-                              className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
-                              onClick={() => {
-                                setSelectedComplaint(c);
-                                setIsViewOpen(true);
-                              }}
-                            >
-                              Details <FiExternalLink />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="5" className="text-center py-10 text-slate-400 italic font-medium">
-                          No active complaints lodged.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
+          {/* View Toggler */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-150 p-2.5 rounded-2xl shadow-sm">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setViewTab("list")}
+                className={`px-4.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer select-none ${
+                  viewTab === "list"
+                    ? "bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-md"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                📋 List View
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewTab("map")}
+                className={`px-4.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer select-none ${
+                  viewTab === "map"
+                    ? "bg-gradient-to-r from-primary-500 to-indigo-500 text-white shadow-md"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                🗺️ Interactive Map
+              </button>
+            </div>
+            {viewTab === "map" && (
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider pr-2">
+                Showing {mapMarkers.length} Active Hotspots
+              </span>
+            )}
+          </div>
 
-          {/* Resolved Ledger Section */}
-          {complaints.some(c => c.status === "RESOLVED" && !c.is_duplicate) && (
-            <Card variant="default" className="border border-success-200/60">
-              <CardContent className="p-0">
-                <div className="p-6 border-b border-slate-100 bg-success-50/20">
-                  <h3 className="text-lg font-bold text-success-800 tracking-tight flex items-center gap-2">
-                    <FiCheckCircle className="text-success-500 animate-bounce" />
-                    Resolved Audits Ledger
-                  </h3>
+          {viewTab === "map" ? (
+            <Card className="border border-slate-100 shadow-sm overflow-hidden min-h-[550px] relative bg-white flex flex-col rounded-3xl">
+              {/* Map Filter Controls Bar */}
+              <div className="p-5 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-4 gap-4 bg-slate-50/50">
+                <div className="flex flex-col gap-1 text-left">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status Filter</label>
+                  <select
+                    value={mapFilters.status}
+                    onChange={(e) => setMapFilters({ ...mapFilters, status: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer"
+                  >
+                    <option value="All">All Statuses</option>
+                    <option value="NEW">New</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="RESOLVED">Resolved</option>
+                  </select>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-100 text-sm">
-                    <thead className="bg-slate-50/50">
-                      <tr>
-                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
-                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
-                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
-                        <th className="px-6 py-4"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {complaints.filter(c => c.status === "RESOLVED" && !c.is_duplicate).map(c => (
-                        <tr key={c.id} className="hover:bg-slate-50/40 transition">
-                          <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
-                          <td className="px-6 py-4 text-slate-650 font-semibold">{c.title}</td>
-                          <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
-                          <td className="px-6 py-4 text-right flex items-center justify-end gap-3.5">
-                            <button
-                              className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
-                              onClick={() => {
-                                setSelectedComplaint(c);
-                                setIsViewOpen(true);
-                              }}
-                            >
-                              Details <FiExternalLink />
-                            </button>
-                            <Button
-                              size="sm"
-                              variant="success"
-                              onClick={() => navigate("/feedback-page", { state: { complaint: c } })}
-                            >
-                              Give Feedback
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Merged Duplicate Grid */}
-          {complaints.some(c => c.status === "DUPLICATE" || c.is_duplicate) && (
-            <Card variant="default" className="border border-indigo-200/60">
-              <CardContent className="p-0">
-                <div className="p-6 border-b border-slate-100 bg-indigo-50/20">
-                  <h3 className="text-lg font-bold text-indigo-800 tracking-tight flex items-center gap-2">
-                    📍 Linked Duplicate Grievances
-                  </h3>
+                <div className="flex flex-col gap-1 text-left">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Category Filter</label>
+                  <select
+                    value={mapFilters.category}
+                    onChange={(e) => setMapFilters({ ...mapFilters, category: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition cursor-pointer"
+                  >
+                    <option value="All">All Categories</option>
+                    <option value="Electrical">⚡ Electrical</option>
+                    <option value="Water Leak">💧 Water Leak</option>
+                    <option value="Pathway Damage">🚧 Pathway Damage</option>
+                    <option value="Garbage">🗑️ Garbage</option>
+                  </select>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-100 text-sm">
-                    <thead className="bg-slate-50/50">
-                      <tr>
-                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
-                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
-                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
-                        <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Status</th>
-                        <th className="px-6 py-4"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                      {complaints.filter(c => c.status === "DUPLICATE" || c.is_duplicate).map(c => (
-                        <tr key={c.id} className="hover:bg-slate-50/40 transition">
-                          <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
-                          <td className="px-6 py-4 text-slate-650 font-semibold">{c.title}</td>
-                          <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
-                          <td className="px-6 py-4">
-                            <Badge variant="info">Merged</Badge>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <button
-                              className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
-                              onClick={() => {
-                                setSelectedComplaint(c);
-                                setIsViewOpen(true);
-                              }}
-                            >
-                              Details <FiExternalLink />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+
+                <div className="flex flex-col gap-1 text-left">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">From Date</label>
+                  <input
+                    type="date"
+                    value={mapFilters.fromDate}
+                    onChange={(e) => setMapFilters({ ...mapFilters, fromDate: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                  />
                 </div>
-              </CardContent>
+
+                <div className="flex flex-col gap-1 text-left">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">To Date</label>
+                  <input
+                    type="date"
+                    value={mapFilters.toDate}
+                    onChange={(e) => setMapFilters({ ...mapFilters, toDate: e.target.value })}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* Leaflet Map container */}
+              <div className="flex-1 min-h-[450px] relative w-full h-[450px]">
+                {isLoadingMarkers && (
+                  <div className="absolute inset-0 bg-white/65 backdrop-blur-xs flex items-center justify-center z-[1000]">
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-2xl animate-spin">⏳</span>
+                      <span className="text-xs text-slate-500 font-semibold">Loading Map Grievances...</span>
+                    </div>
+                  </div>
+                )}
+                
+                <MapContainer
+                  center={geoCaptured && geoCoords.lat != null ? [geoCoords.lat, geoCoords.lon] : [22.9734, 78.6569]}
+                  zoom={geoCaptured && geoCoords.lat != null ? 14 : 5}
+                  minZoom={3}
+                  maxZoom={18}
+                  style={{ width: "100%", height: "100%", zIndex: 1 }}
+                  zoomControl={true}
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  {mapMarkers.map((m) => {
+                    if (m.latitude == null || m.longitude == null) return null;
+                    return (
+                      <Marker
+                        key={m.complaint_id}
+                        position={[m.latitude, m.longitude]}
+                        icon={createMarkerIcon(m.status, m.severity)}
+                      >
+                        <Popup>
+                          <div className="p-2 space-y-2 text-xs max-w-[200px] text-left">
+                            <h4 className="font-bold text-slate-800 leading-tight">{m.title}</h4>
+                            <div className="flex flex-wrap gap-1.5 items-center">
+                              <Badge variant={m.status === "RESOLVED" ? "success" : (m.status === "IN_PROGRESS" ? "info" : "danger")}>
+                                {m.status}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px]">
+                                {m.category}
+                              </Badge>
+                            </div>
+                            <div className="text-[10px] text-slate-500 space-y-0.5 font-semibold">
+                              <p>🗓️ Date: {new Date(m.submitted_at).toLocaleDateString()}</p>
+                              <p>👥 Supporters: <span className="font-bold text-slate-700">{m.supporters_count}</span></p>
+                              {m.is_duplicate && <p className="text-indigo-500 font-bold">📍 Linked Duplicate</p>}
+                            </div>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    );
+                  })}
+                </MapContainer>
+              </div>
             </Card>
+          ) : (
+            <>
+              {/* Active Complaints Table */}
+              <Card variant="default">
+                <CardContent className="p-0">
+                  <div className="p-6 border-b border-slate-100">
+                    <h3 className="text-lg font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-primary-500 animate-pulse"></span>
+                      Active Grievances
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                      <thead className="bg-slate-50/50">
+                        <tr>
+                          <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
+                          <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Status</th>
+                          <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
+                          <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
+                          <th className="px-6 py-4"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 bg-white">
+                        {complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING").length > 0 ? (
+                          complaints.filter(c => c.status === "NEW" || c.status === "IN_PROGRESS" || c.status === "RESOLVED_PENDING").map(c => (
+                            <tr key={c.id} className="hover:bg-slate-50/40 transition">
+                              <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
+                              <td className="px-6 py-4">
+                                <Badge variant={c.status === "RESOLVED_PENDING" ? "warning" : (c.status === "IN_PROGRESS" ? "info" : "danger")}>
+                                  {c.status === "RESOLVED_PENDING" ? "Verification Pending" : c.status}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 text-slate-660 font-semibold">
+                                <div className="space-y-0.5">
+                                  <p>{c.title}</p>
+                                  {c.supported_by && c.supported_by.length > 0 && (
+                                    <p className="text-[10px] text-slate-400 font-bold">👥 Supported by {c.supported_by.length} citizens</p>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
+                              <td className="px-6 py-4 text-right flex items-center justify-end gap-3.5">
+                                {c.status === "RESOLVED_PENDING" && (
+                                  <div className="flex gap-2">
+                                    <button
+                                      className="px-3 py-1.5 bg-success-500 hover:bg-success-600 text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer"
+                                      onClick={() => handleConfirmFix(c)}
+                                    >
+                                      Confirm
+                                    </button>
+                                    <button
+                                      className="px-3 py-1.5 bg-danger-500 hover:bg-danger-600 text-white text-xs font-bold rounded-xl shadow-sm transition cursor-pointer"
+                                      onClick={() => handleRejectFix(c)}
+                                    >
+                                      Reject
+                                    </button>
+                                  </div>
+                                )}
+                                <button
+                                  className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedComplaint(c);
+                                    setIsViewOpen(true);
+                                  }}
+                                >
+                                  Details <FiExternalLink />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="5" className="text-center py-10 text-slate-400 italic font-medium">
+                              No active complaints lodged.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Resolved Ledger Section */}
+              {complaints.some(c => c.status === "RESOLVED" && !c.is_duplicate) && (
+                <Card variant="default" className="border border-success-200/60">
+                  <CardContent className="p-0">
+                    <div className="p-6 border-b border-slate-100 bg-success-50/20">
+                      <h3 className="text-lg font-bold text-success-800 tracking-tight flex items-center gap-2">
+                        <FiCheckCircle className="text-success-500 animate-bounce" />
+                        Resolved Audits Ledger
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead className="bg-slate-50/50">
+                          <tr>
+                            <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
+                            <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
+                            <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
+                            <th className="px-6 py-4"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {complaints.filter(c => c.status === "RESOLVED" && !c.is_duplicate).map(c => (
+                            <tr key={c.id} className="hover:bg-slate-50/40 transition">
+                              <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
+                              <td className="px-6 py-4 text-slate-650 font-semibold">{c.title}</td>
+                              <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
+                              <td className="px-6 py-4 text-right flex items-center justify-end gap-3.5">
+                                <button
+                                  className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedComplaint(c);
+                                    setIsViewOpen(true);
+                                  }}
+                                >
+                                  Details <FiExternalLink />
+                                </button>
+                                <Button
+                                  size="sm"
+                                  variant="success"
+                                  onClick={() => navigate("/feedback-page", { state: { complaint: c } })}
+                                >
+                                  Give Feedback
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Merged Duplicate Grid */}
+              {complaints.some(c => c.status === "DUPLICATE" || c.is_duplicate) && (
+                <Card variant="default" className="border border-indigo-200/60">
+                  <CardContent className="p-0">
+                    <div className="p-6 border-b border-slate-100 bg-indigo-50/20">
+                      <h3 className="text-lg font-bold text-indigo-800 tracking-tight flex items-center gap-2">
+                        📍 Linked Duplicate Grievances
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-slate-100 text-sm">
+                        <thead className="bg-slate-50/50">
+                          <tr>
+                            <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Category</th>
+                            <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Title Summary</th>
+                            <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Subdate</th>
+                            <th className="px-6 py-4 text-left font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Status</th>
+                            <th className="px-6 py-4"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                          {complaints.filter(c => c.status === "DUPLICATE" || c.is_duplicate).map(c => (
+                            <tr key={c.id} className="hover:bg-slate-50/40 transition">
+                              <td className="px-6 py-4 font-bold text-slate-700">{c.category}</td>
+                              <td className="px-6 py-4 text-slate-650 font-semibold">{c.title}</td>
+                              <td className="px-6 py-4 text-slate-400 font-bold">{c.subdate}</td>
+                              <td className="px-6 py-4">
+                                <Badge variant="info">Merged</Badge>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <button
+                                  className="text-primary-500 hover:text-primary-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                                  onClick={() => {
+                                    setSelectedComplaint(c);
+                                    setIsViewOpen(true);
+                                  }}
+                                >
+                                  Details <FiExternalLink />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
         </div>
@@ -654,6 +960,7 @@ const CitizenDashboard = () => {
                         )}
                       </div>
                     </div>
+                    {renderNearbyComplaints()}
                   </div>
                 )}
 
@@ -747,6 +1054,7 @@ const CitizenDashboard = () => {
                         {geoCaptured ? "✓ Attached" : "🗺️ Get GPS"}
                       </Button>
                     </div>
+                    {renderNearbyComplaints()}
                   </div>
                 )}
 
@@ -845,7 +1153,7 @@ const CitizenDashboard = () => {
                         disabled={isSubmitting || !formCategory || !formTitle || !formLocation || !formDescription}
                         onClick={handleNewComplaintSubmit}
                       >
-                        {isSubmitting ? "Submitting..." : "Submit Grievance"}
+                        {isSubmitting ? "Submitting..." : (nearbyComplaints.length > 0 ? "Still Submit My Complaint" : "Submit Grievance")}
                       </Button>
                     ) : formStep < 5 ? (
                       <Button
@@ -866,7 +1174,7 @@ const CitizenDashboard = () => {
                         disabled={isSubmitting}
                         onClick={handleNewComplaintSubmit}
                       >
-                        {isSubmitting ? "Submitting..." : "Submit Grievance"}
+                        {isSubmitting ? "Submitting..." : (nearbyComplaints.length > 0 ? "Still Submit My Complaint" : "Submit Grievance")}
                       </Button>
                     )}
                   </div>

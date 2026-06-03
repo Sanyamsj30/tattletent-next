@@ -29,6 +29,7 @@ const complaintSchema = new mongoose.Schema(
 
     sla_deadline: { type: Date, index: true },
     is_deleted: { type: Boolean, default: false, index: true },
+    supported_by: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], default: [], index: true },
     
     // AI governance extensions
     severity: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'Low', index: true },

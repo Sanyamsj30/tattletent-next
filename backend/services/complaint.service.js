@@ -48,6 +48,7 @@ const toComplaintDto = (c) => {
     severity: c.severity || 'Low',
     is_duplicate: c.is_duplicate || false,
     duplicate_of: c.duplicate_of?.toString?.() || c.duplicate_of,
+    supported_by: (c.supported_by || []).map(id => id.toString()),
     escalation_explanation: c.escalation_explanation,
     priority_score: c.priority_score || 0,
     priority_level: c.priority_level || 'Low',
@@ -316,16 +317,23 @@ export const deleteComplaintFromDB = async (id) => {
 };
 
 export const getComplaintCounts = async () => {
-  const [resolved, pending, in_progress] = await Promise.all([
-    Complaint.countDocuments({ status: 'RESOLVED' }),
-    Complaint.countDocuments({ status: 'NEW' }),
-    Complaint.countDocuments({ status: { $in: ['IN_PROGRESS', 'RESOLVED_PENDING'] } }),
+  const [resolved, pending, in_progress, supportsAggregation] = await Promise.all([
+    Complaint.countDocuments({ status: 'RESOLVED', is_deleted: { $ne: true } }),
+    Complaint.countDocuments({ status: 'NEW', is_deleted: { $ne: true } }),
+    Complaint.countDocuments({ status: { $in: ['IN_PROGRESS', 'RESOLVED_PENDING'] }, is_deleted: { $ne: true } }),
+    Complaint.aggregate([
+      { $match: { is_deleted: { $ne: true } } },
+      { $project: { supportedCount: { $size: { $ifNull: ["$supported_by", []] } } } },
+      { $group: { _id: null, totalSupports: { $sum: "$supportedCount" } } }
+    ])
   ]);
-  return { resolved, pending, in_progress };
+  const supports = supportsAggregation[0]?.totalSupports || 0;
+  return { resolved, pending, in_progress, supports };
 };
 
 export const searchComplaints = async (filters) => {
   let {
+    id,
     user_id,
     searchText,
     category,
@@ -341,6 +349,10 @@ export const searchComplaints = async (filters) => {
   } = filters;
 
   const query = { is_deleted: { $ne: true } };
+
+  if (id) {
+    query._id = id;
+  }
 
   if (searchText) {
     const escaped = String(searchText).replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -620,3 +632,95 @@ export const forceEscalateComplaintInDB = async (id, adminUser, reason) => {
   const finalDoc = await Complaint.findById(id);
   return toComplaintDto(finalDoc || complaint);
 };
+
+export const getNearbyComplaints = async (longitude, latitude, maxDistance = 100, category = null) => {
+  const query = {
+    is_deleted: { $ne: true },
+    status: { $nin: ['RESOLVED', 'DUPLICATE'] }
+  };
+  
+  if (category && category !== 'All' && category !== '') {
+    query.category = category;
+  }
+
+  const results = await Complaint.aggregate([
+    {
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [Number(longitude), Number(latitude)]
+        },
+        distanceField: "distance",
+        maxDistance: Number(maxDistance),
+        query: query,
+        spherical: true
+      }
+    }
+  ]);
+
+  return results.map(c => ({
+    ...toComplaintDto(c),
+    distance: Math.round(c.distance)
+  }));
+};
+
+export const supportComplaintInDB = async (complaintId, userId) => {
+  const complaint = await Complaint.findById(complaintId);
+  if (!complaint) throw new Error('Complaint not found');
+
+  if (!complaint.supported_by.includes(userId)) {
+    complaint.supported_by.push(userId);
+    await complaint.save();
+  }
+
+  return toComplaintDto(complaint);
+};
+
+export const getMapMarkers = async (filters = {}) => {
+  const { status, category, fromDate, toDate } = filters;
+  const query = { 
+    is_deleted: { $ne: true },
+    'geolocation.coordinates.0': { $exists: true }
+  };
+
+  if (category && category !== 'All') {
+    query.category = category;
+  }
+
+  if (status && status !== 'All') {
+    const norm = normalizeStatus(status);
+    if (norm === 'IN_PROGRESS') {
+      query.status = { $in: ['IN_PROGRESS', 'RESOLVED_PENDING'] };
+    } else {
+      query.status = norm;
+    }
+  }
+
+  if (fromDate || toDate) {
+    query.submitted_at = {};
+    if (fromDate) query.submitted_at.$gte = new Date(fromDate);
+    if (toDate) query.submitted_at.$lte = new Date(toDate);
+  }
+
+  const results = await Complaint.find(query)
+    .select('geolocation title status category severity supported_by is_duplicate duplicate_of submitted_at')
+    .lean();
+
+  return results.map(c => {
+    const coords = c.geolocation?.coordinates;
+    return {
+      complaint_id: c._id.toString(),
+      title: c.title,
+      status: c.status,
+      category: c.category,
+      severity: c.severity,
+      latitude: coords?.[1],
+      longitude: coords?.[0],
+      supporters_count: (c.supported_by || []).length,
+      is_duplicate: c.is_duplicate || false,
+      duplicate_of: c.duplicate_of?.toString(),
+      submitted_at: c.submitted_at
+    };
+  });
+};
+
