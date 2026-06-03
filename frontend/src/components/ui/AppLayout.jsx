@@ -23,6 +23,15 @@ export default function AppLayout({ children, requiredRole = "" }) {
       return;
     }
 
+    if (sessionUser?.must_change_password) {
+      if (location.pathname !== "/change-password") {
+        navigate("/change-password", { 
+          state: { alert: "You are not authorized. You must change your password in order to get access to the system." } 
+        });
+        return;
+      }
+    }
+
     setUser(sessionUser);
 
     const role = String(sessionUser.role || "").toLowerCase();
@@ -48,6 +57,10 @@ export default function AppLayout({ children, requiredRole = "" }) {
     const common = [
       { path: "/change-password", label: "Security & Passwords", icon: <FiLock /> }
     ];
+
+    if (user.must_change_password) {
+      return common;
+    }
 
     if (role === "admin" || role === "ringmaster") {
       return [

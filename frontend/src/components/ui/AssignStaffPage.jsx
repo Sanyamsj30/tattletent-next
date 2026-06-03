@@ -34,6 +34,7 @@ const AssignStaffPage = () => {
   const [selectedPriority, setSelectedPriority] = useState("Low");
   const [staffToAssign, setStaffToAssign] = useState(null);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [overrideReason, setOverrideReason] = useState("");
 
   const fetchRecommendation = async () => {
     if (!complaintId) return;
@@ -52,8 +53,11 @@ const AssignStaffPage = () => {
     }
   };
 
-  const handleAssign = async (staffId) => {
-    const reason = prompt("Enter a brief reason/note for this override assignment:") || "";
+  const handleAssign = async (staffId, customReason = null) => {
+    let reason = customReason;
+    if (reason === null) {
+      reason = prompt("Enter a brief reason/note for this override assignment:") || "";
+    }
     const token = sessionStorage.getItem("token");
     try {
       // 1. Reassign vendor (override)
@@ -83,7 +87,7 @@ const AssignStaffPage = () => {
   const fetchStaff = async () => {
     try {
       if (!userId) return;
-      const queryParams = new URLSearchParams({ role: "Staff" }).toString();
+      const queryParams = new URLSearchParams({ role: "Staff", must_change_password: "false" }).toString();
       const response = await fetch(`${API_BASE_URL}/api/users/search?${queryParams}`, {
         headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
       });
@@ -223,7 +227,7 @@ const AssignStaffPage = () => {
                     size="sm"
                     className="shadow-md hover:scale-102 transition"
                   >
-                    Quick Route
+                    Quick Assign
                   </Button>
                 </div>
               </div>
@@ -457,19 +461,33 @@ const AssignStaffPage = () => {
                     <option value="Low">⏳ Low</option>
                   </select>
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Override Reason / Note</label>
+                  <textarea
+                    placeholder="Enter a brief note for this assignment..."
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all h-24 resize-none"
+                    value={overrideReason}
+                    onChange={(e) => setOverrideReason(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-50">
                 <Button
                   variant="secondary"
-                  onClick={() => setPriorityModalOpen(false)}
+                  onClick={() => {
+                    setOverrideReason("");
+                    setPriorityModalOpen(false);
+                  }}
                   className="px-5"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={() => {
-                    handleAssign(staffToAssign.id).finally(() => {
+                    handleAssign(staffToAssign.id, overrideReason).finally(() => {
+                      setOverrideReason("");
                       setPriorityModalOpen(false);
                     });
                   }}

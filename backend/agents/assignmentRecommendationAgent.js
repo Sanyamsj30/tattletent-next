@@ -15,7 +15,7 @@ export const getAssignmentRecommendation = async (complaintId) => {
       return { success: false, message: 'Complaint not found.' };
     }
 
-    const staffList = await User.find({ role: 'Staff' }).lean();
+    const staffList = await User.find({ role: 'Staff', must_change_password: { $ne: true } }).lean();
     if (!staffList || staffList.length === 0) {
       return { success: false, message: 'No staff members found for recommendation.' };
     }

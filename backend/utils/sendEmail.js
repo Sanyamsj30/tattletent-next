@@ -12,7 +12,7 @@ const sendEmail = async (options) => {
     });
 
     const mailOptions = {
-      from: `The Caravan Chronicle <${process.env.EMAIL_USER}>`,
+      from: `TattleTent <${process.env.EMAIL_USER}>`,
       to: options.email,
       subject: options.subject,
       html: options.html,

@@ -8,6 +8,7 @@ const getUsers = async (req, res) => {
       searchText: req.query.q,
       email: req.query.email,
       role: req.query.role,
+      must_change_password: req.query.must_change_password,
       page: req.query.page,
       limit: req.query.limit,
       sortBy: req.query.sortBy,

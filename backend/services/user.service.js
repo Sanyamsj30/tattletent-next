@@ -1,7 +1,7 @@
 import User from '../models/User.js';
 
 export const searchUsers = async (filters) => {
-  let { user_id, searchText, email, role, page, limit, sortBy, order } = filters;
+  let { user_id, searchText, email, role, must_change_password, page, limit, sortBy, order } = filters;
 
   const query = {};
   if (searchText) query.name = new RegExp(String(searchText), 'i');
@@ -15,6 +15,14 @@ export const searchUsers = async (filters) => {
     else if (r === 'ringmaster') query.role = 'Ringmaster';
     else if (r === 'groundmaster') query.role = 'Groundmaster';
     else query.role = role;
+  }
+
+  if (must_change_password !== undefined) {
+    if (must_change_password === 'false' || must_change_password === false) {
+      query.must_change_password = { $ne: true };
+    } else if (must_change_password === 'true' || must_change_password === true) {
+      query.must_change_password = true;
+    }
   }
 
   const validSort = ['created_at', 'email', 'role'];
@@ -48,5 +56,6 @@ export const searchUsers = async (filters) => {
     contractStartDate: u.contractStartDate,
     contractEndDate: u.contractEndDate,
     is_verified: u.is_verified || false,
+    must_change_password: u.must_change_password || false,
   }));
 };

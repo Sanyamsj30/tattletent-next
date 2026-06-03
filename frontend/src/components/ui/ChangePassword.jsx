@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import AppLayout from "./AppLayout";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
@@ -9,6 +9,7 @@ import { FiLock, FiCheckCircle, FiAlertCircle, FiShield, FiKey } from "react-ico
 
 const ChangePassword = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const token = sessionStorage.getItem("token");
   const user = JSON.parse(sessionStorage.getItem("user") || "null");
 
@@ -20,8 +21,15 @@ const ChangePassword = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!token || !user) navigate("/");
-  }, [token, user, navigate]);
+    if (!token || !user) {
+      navigate("/");
+      return;
+    }
+    if (location.state?.alert) {
+      setMessage(location.state.alert);
+      setSuccess(false);
+    }
+  }, [token, user, navigate, location.state]);
 
   const goToDashboard = (role) => {
     const r = String(role || "").toLowerCase();
@@ -87,9 +95,11 @@ const ChangePassword = () => {
               Manage account credentials and update cryptographic keys for security purposes.
             </p>
           </div>
-          <Button variant="secondary" onClick={() => goToDashboard(user?.role)} className="gap-1 text-xs">
-            Cancel Update
-          </Button>
+          {!user?.must_change_password && (
+            <Button variant="secondary" onClick={() => goToDashboard(user?.role)} className="gap-1 text-xs">
+              Cancel Update
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">

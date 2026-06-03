@@ -161,6 +161,7 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
+  const FRONTEND_URL = process.env.FRONTEND_URL || process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
   try {
     const { name, email } = req.body;
     const normalizedEmail = (email || '').toLowerCase().trim();
@@ -175,19 +176,28 @@ router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
         existingUser.must_change_password = true;
         await existingUser.save();
 
-        await sendEmail({
-          email: existingUser.email,
-          subject: 'Your Staff Account for TattleTent',
-          html: `
-            <h2>Welcome to TattleTent</h2>
-            <p>Dear ${existingUser.name},</p>
-            <p>Your role has been upgraded to Staff. Please log in using your existing account credentials.</p>
-            <p><b>Login here:</b> https://your-frontend-url.com/login</p>
-          `,
-        });
+        let emailSent = true;
+        try {
+          await sendEmail({
+            email: existingUser.email,
+            subject: 'Your Staff Account for TattleTent',
+            html: `
+              <h2>Welcome to TattleTent</h2>
+              <p>Dear ${existingUser.name},</p>
+              <p>Your role has been upgraded to Staff. Please log in using your existing account credentials.</p>
+              <p><b>Login here:</b> ${FRONTEND_URL}/login</p>
+            `,
+          });
+        } catch (emailErr) {
+          console.error('Failed to send upgrade email:', emailErr);
+          emailSent = false;
+        }
 
         return res.status(200).json({
-          message: 'Existing citizen account upgraded to Staff and notified by email.',
+          message: emailSent
+            ? 'Existing citizen account upgraded to Staff and notified by email.'
+            : 'Existing citizen account upgraded to Staff, but notification email could not be sent.',
+          emailSent,
           staff: {
             user_id: existingUser._id.toString(),
             name: existingUser.name,
@@ -215,24 +225,33 @@ router.post('/admin/create-staff', protect, adminOnly, async (req, res) => {
       must_change_password: true,
     });
 
-    await sendEmail({
-      email: normalizedEmail,
-      subject: 'Your Staff Account for TattleTent',
-      html: `
-        <h2>Welcome to TattleTent</h2>
-        <p>Dear ${name},</p>
-        <p>An account has been created for you by the TattleTent admin. Use the credentials below to log in:</p>
-        <ul>
-          <li><b>Email:</b> ${normalizedEmail}</li>
-          <li><b>Temporary Password:</b> ${tempPassword}</li>
-        </ul>
-        <p>For security reasons, you must change your password after your first login.</p>
-        <p><b>Login here:</b> https://your-frontend-url.com/login</p>
-      `,
-    });
+    let emailSent = true;
+    try {
+      await sendEmail({
+        email: normalizedEmail,
+        subject: 'Your Staff Account for TattleTent',
+        html: `
+          <h2>Welcome to TattleTent</h2>
+          <p>Dear ${name},</p>
+          <p>An account has been created for you by the TattleTent admin. Use the credentials below to log in:</p>
+          <ul>
+            <li><b>Email:</b> ${normalizedEmail}</li>
+            <li><b>Temporary Password:</b> ${tempPassword}</li>
+          </ul>
+          <p>For security reasons, you must change your password after your first login.</p>
+          <p><b>Login here:</b> ${FRONTEND_URL}/login</p>
+        `,
+      });
+    } catch (emailErr) {
+      console.error('Failed to send invitation email:', emailErr);
+      emailSent = false;
+    }
 
     res.status(201).json({
-      message: 'Staff account created successfully and credentials emailed.',
+      message: emailSent
+        ? 'Staff account created successfully and credentials emailed.'
+        : `Staff account created successfully, but credentials email could not be sent (SMTP issue). Temporary password is: ${tempPassword}`,
+      emailSent,
       staff: {
         user_id: createdStaff._id.toString(),
         name: createdStaff.name,

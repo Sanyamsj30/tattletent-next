@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "./AppLayout";
 import { Button } from "./button";
@@ -14,8 +14,32 @@ export default function AdminInviteStaff() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [staffList, setStaffList] = useState([]);
+  const [listLoading, setListLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  const fetchStaffList = async () => {
+    if (!token) return;
+    try {
+      setListLoading(true);
+      const queryParams = new URLSearchParams({ role: "Staff" }).toString();
+      const res = await fetch(`${API_BASE_URL}/api/users/search?${queryParams}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load staff list");
+      const data = await res.json();
+      setStaffList(data);
+    } catch (err) {
+      console.error("Error fetching staff list:", err);
+    } finally {
+      setListLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStaffList();
+  }, []);
 
   const handleSendInvite = async (e) => {
     e.preventDefault();
@@ -37,9 +61,11 @@ export default function AdminInviteStaff() {
       if (!res.ok) throw new Error(data.message || "Failed to send invitation");
 
       setSuccess(true);
-      setMessage("Personnel invitation sent successfully! Verification link dispatched.");
+      setMessage(data.message || "Personnel invitation sent successfully!");
       setStaffName("");
       setEmail("");
+      // Automatically refresh staff list
+      fetchStaffList();
     } catch (err) {
       setSuccess(false);
       setMessage(err.message || "Network error. Please try again.");
@@ -172,6 +198,84 @@ export default function AdminInviteStaff() {
             </Card>
           </div>
 
+        </div>
+
+        {/* Current Staff Directory */}
+        <div className="space-y-4 pt-6 border-t border-slate-150">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-800 tracking-tight">
+                Current Staff Directory
+              </h2>
+              <p className="text-xs text-slate-400 font-medium">
+                Overview of personnel currently registered in the system.
+              </p>
+            </div>
+            <Badge variant="outline" className="text-slate-500 border-slate-200 bg-slate-50 font-bold px-3 py-1">
+              {staffList.length} Personnel
+            </Badge>
+          </div>
+
+          <Card className="border border-slate-100 bg-white overflow-hidden shadow-sm rounded-2xl">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/75 border-b border-slate-100">
+                      <th className="px-6 py-3.5 text-xs font-bold text-slate-450 uppercase tracking-wider">Name</th>
+                      <th className="px-6 py-3.5 text-xs font-bold text-slate-450 uppercase tracking-wider">Email Address</th>
+                      <th className="px-6 py-3.5 text-xs font-bold text-slate-450 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {listLoading ? (
+                      <tr>
+                        <td colSpan="3" className="px-6 py-8 text-center text-xs text-slate-450 font-medium">
+                          <span className="inline-block w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mr-2"></span>
+                          Loading staff personnel directory...
+                        </td>
+                      </tr>
+                    ) : staffList.length > 0 ? (
+                      staffList.map((staff) => (
+                        <tr key={staff.user_id} className="hover:bg-slate-50/40 transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-500 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                                {staff.name ? staff.name[0].toUpperCase() : "S"}
+                              </div>
+                              <span className="text-sm font-bold text-slate-700">{staff.name}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-semibold text-slate-550">
+                            {staff.email}
+                          </td>
+                          <td className="px-6 py-4">
+                            {staff.must_change_password ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                Pending Setup
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                Active
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="3" className="px-6 py-10 text-center text-sm text-slate-400 font-medium italic">
+                          No staff members found on current system.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
       </div>

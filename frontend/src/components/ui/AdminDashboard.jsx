@@ -13,8 +13,9 @@ import axios from "axios";
 import { API_BASE_URL } from "../../lib/api";
 import { useAuthSession } from "../../hooks/useAuthSession";
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -207,16 +208,12 @@ const AdminDashboard = () => {
     }
   };
 
-  // Modern Chart trend data (weekly distribution)
+  // Modern Chart trend data (actual status counts)
   const chartData = useMemo(() => {
     return [
-      { name: "Mon", open: counts.pending || 4, resolved: counts.resolved || 8 },
-      { name: "Tue", open: (counts.pending || 4) + 2, resolved: counts.resolved || 8 },
-      { name: "Wed", open: counts.pending || 4, resolved: (counts.resolved || 8) + 3 },
-      { name: "Thu", open: counts.in_progress || 6, resolved: counts.resolved || 8 },
-      { name: "Fri", open: counts.pending || 4, resolved: (counts.resolved || 8) + 5 },
-      { name: "Sat", open: counts.in_progress || 6, resolved: counts.resolved || 8 },
-      { name: "Sun", open: counts.pending || 4, resolved: (counts.resolved || 8) + 6 },
+      { name: "Pending", count: counts.pending || 0 },
+      { name: "In Progress", count: counts.in_progress || 0 },
+      { name: "Resolved", count: counts.resolved || 0 },
     ];
   }, [counts]);
 
@@ -290,33 +287,29 @@ const AdminDashboard = () => {
           <CardContent className="p-6">
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-slate-800 tracking-tight">SLA Performance Chart</h3>
-                <p className="text-xs text-slate-400 font-semibold">Weekly comparison of active vs resolved issues</p>
+                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Grievance Status Overview</h3>
+                <p className="text-xs text-slate-400 font-semibold">Real-time breakdown of issues in the system</p>
               </div>
               <span className="text-xs bg-slate-100 text-slate-500 font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                Audited
+                Live Data
               </span>
             </div>
             <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-4">
               <ResponsiveContainer width="100%" height={260}>
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorOpen" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorResolved" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="name" />
-                  <YAxis />
+                  <YAxis allowDecimals={false} />
                   <Tooltip />
-                  <Area type="monotone" dataKey="open" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorOpen)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="resolved" stroke="#10b981" fillOpacity={1} fill="url(#colorResolved)" strokeWidth={2} />
-                </AreaChart>
+                  <Bar dataKey="count" radius={[8, 8, 0, 0]} barSize={40}>
+                    {chartData.map((entry, index) => {
+                      let color = "#8b5cf6"; // Pending: Violet
+                      if (entry.name === "In Progress") color = "#f59e0b"; // In Progress: Amber
+                      if (entry.name === "Resolved") color = "#10b981"; // Resolved: Emerald
+                      return <Cell key={`cell-${index}`} fill={color} />;
+                    })}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
