@@ -36,13 +36,11 @@ export const runAutoAssignmentEngine = async (complaintId) => {
     const candidateScores = [];
 
     for (const vendor of vendors) {
-      // 1. Workload Score (Max 40 points)
-      let workloadScore = 40;
+      // 1. Continuous Workload Score (Max 40 points, decreases by 8 pts per active complaint)
       const activeCases = Number(vendor.activeComplaints || 0);
-      if (activeCases > 5 && activeCases <= 10) {
-        workloadScore = 20;
-      } else if (activeCases > 10) {
-        workloadScore = 5;
+      let workloadScore = Math.max(40 - (activeCases * 8), 0);
+      if (activeCases > 5) {
+        workloadScore = -20; // Severe penalty for overloading
       }
 
       // 2. Performance Score (Max 25 points)
@@ -55,7 +53,8 @@ export const runAutoAssignmentEngine = async (complaintId) => {
       const rating = Number(vendor.citizenRating || 5);
       const ratingScore = ((rating - 1) / 4) * 15;
 
-      let totalScore = workloadScore + perfScore + slaScore + ratingScore;
+      // Calculate total score with a tiny random jitter (0 to 0.05) to break database-order ties
+      let totalScore = workloadScore + perfScore + slaScore + ratingScore + (Math.random() * 0.05);
 
       // 5. Overloaded penalty
       if (vendor.availabilityStatus === 'Overloaded') {
