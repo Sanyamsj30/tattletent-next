@@ -329,6 +329,19 @@ const CitizenDashboard = () => {
         formData.append("photo", photoFile);
       }
 
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log("Latitude:", position.coords.latitude);
+          console.log("Longitude:", position.coords.longitude);
+        },
+        console.error,
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
+        }
+      );
+
       const response = await fetch(`${API_BASE_URL}/api/complaints`, {
         method: "POST",
         headers: {
