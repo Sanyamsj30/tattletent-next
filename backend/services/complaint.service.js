@@ -286,6 +286,16 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
   const normalized = normalizeStatus(status);
   if (normalized === 'RESOLVED') {
     complaint.status = 'RESOLVED';
+    // Auto-resolve duplicate complaints
+    try {
+      await Complaint.updateMany(
+        { duplicate_of: complaint._id, is_deleted: { $ne: true } },
+        { $set: { status: 'RESOLVED' } }
+      );
+      console.log(`[Database] Auto-resolved all duplicate complaints of master ticket ${complaint._id}`);
+    } catch (dupErr) {
+      console.error(`[Database] Failed to auto-resolve duplicate complaints:`, dupErr);
+    }
   } else if (normalized === 'RESOLVED_PENDING') {
     complaint.status = 'RESOLVED_PENDING';
   } else if (normalized === 'IN_PROGRESS') {

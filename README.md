@@ -114,8 +114,10 @@ JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRE=1d
 
 # Email credentials for OTP/notifications
+EMAIL_SERVICE=smtp # Options: resend, gmail, smtp, brevo, sendgrid (Optional: forces specific provider)
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_email_app_password
+RESEND_API_KEY=re_your_resend_api_key_here
 
 # Admin defaults
 ADMIN_NAME=Executive Admin
@@ -146,16 +148,20 @@ CRON_API_KEY=your_secure_cron_key_here
 *   Set the environment variable `VITE_API_URL` to point to your deployed backend domain.
 *   Build the application: `npm run build` and deploy the output `dist` folder.
 
-### 4. Setup Secure SLA Escalation Cron Job
-Automated escalations require a regular trigger to check SLA violations.
-1.  Set up an external cron service (such as [cron-job.org](https://cron-job.org)).
-2.  Point the cron job to your production backend webhook:
+### 4. Setup Secure SLA Escalation & Keep-Alive Cron Jobs
+Render free tier web services spin down (sleep) after 15 minutes of inactivity. To prevent this without hitting email or database limits, you should split your cron jobs into two distinct tasks on your cron provider (such as [cron-job.org](https://cron-job.org)):
+
+1.  **Lightweight Server Keep-Alive (Every 14 minutes)**:
+    *   **URL**: `https://<your-backend-domain>/api/jobs/ping`
+    *   **Method**: `GET`
+    *   **Purpose**: Pings the server to keep it awake. This does **not** execute database queries or send emails, ensuring you do not deplete your limits.
+2.  **Overdue SLA Escalation check (Every 6 to 12 hours)**:
     *   **URL**: `https://<your-backend-domain>/api/jobs/escalate`
     *   **Method**: `POST`
     *   **Headers**:
         *   **Key**: `x-cron-key`
         *   **Value**: `<your_secure_cron_key_here>` (matches the `CRON_API_KEY` defined in backend env variables)
-3.  Configure the job schedule to run regularly (e.g., every 6 hours).
+    *   **Purpose**: Runs the heavy automated SLA priority escalation checks and triggers overdue alert notifications. Recommended to run twice a day (every 12 hours).
 
 ---
 

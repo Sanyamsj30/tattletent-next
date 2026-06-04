@@ -5,6 +5,11 @@ import { ApiResponse } from '../utils/api-response.js';
 
 const router = Router();
 
+// Lightweight ping endpoint for cron-job.org to keep Render service awake without executing database/email operations
+router.get('/ping', (req, res) => {
+  return res.status(200).json(new ApiResponse(200, null, 'TattleTent service is awake'));
+});
+
 // Secure webhook to run SLA escalations and keep Render server awake
 router.post('/escalate', async (req, res) => {
   const cronKey = req.headers['x-cron-key'];
