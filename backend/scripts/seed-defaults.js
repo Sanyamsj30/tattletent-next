@@ -18,6 +18,7 @@ const DEFAULT_SLA_HOURS = {
   Low: 72,
   Medium: 48,
   High: 24,
+  Critical: 12,
 };
 
 const run = async () => {

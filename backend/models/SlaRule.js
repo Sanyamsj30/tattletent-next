@@ -8,7 +8,7 @@ const slaRuleSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    priority: { type: String, enum: ['Low', 'Medium', 'High'], required: true, index: true },
+    priority: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], required: true, index: true },
     time_limit_hours: { type: Number, required: true }, // e.g., 72 = 72 hours
   },
   { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } }
