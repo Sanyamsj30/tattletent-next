@@ -9,7 +9,7 @@ import Logo from "./Logo";
 import { useAuthSession } from "../../hooks/useAuthSession";
 
 export default function AppLayout({ children, requiredRole = "" }) {
-  const { isLoggedIn, user: sessionUser } = useAuthSession();
+  const { isLoggedIn, user: sessionUser, logout } = useAuthSession();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState({ name: "Guest", role: "Citizen" });
@@ -52,8 +52,7 @@ export default function AppLayout({ children, requiredRole = "" }) {
   }, [navigate, requiredRole, isLoggedIn, sessionUser]);
 
   const handleLogout = () => {
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("user");
+    logout();
     navigate("/");
   };
 

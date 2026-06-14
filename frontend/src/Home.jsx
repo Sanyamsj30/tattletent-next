@@ -8,6 +8,7 @@ import { FaBars, FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, Fa
 import { FiX, FiCheckCircle, FiClock, FiActivity, FiLayers, FiShield, FiTrendingUp } from "react-icons/fi";
 import axios from "axios";
 import { API_BASE_URL } from "./lib/api";
+import { useAuthSession } from "./hooks/useAuthSession";
 
 const portals = [
   ["Citizen Console", "Lodge grievances, upload evidence, and verify resolutions in real-time.", "M12 4v16m8-8H4"],
@@ -48,19 +49,8 @@ export default function LandingPage() {
   const [loginMessage, setLoginMessage] = useState("");
 
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { login, logout, user } = useAuthSession();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const storedUser = sessionStorage.getItem("user");
-    const storedToken = sessionStorage.getItem("token");
-
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      setUser(null);
-    }
-  }, []);
 
   // ------------------- SIGNUP -------------------
   const handleSignupSubmit = async (e) => {
@@ -125,9 +115,7 @@ export default function LandingPage() {
       }
 
       if (registerRes.ok) {
-        sessionStorage.setItem("token", registerData.token);
-        sessionStorage.setItem("user", JSON.stringify(registerData.user));
-        setUser(registerData.user);
+        login(registerData.token, registerData.user);
         setOtpOpen(false);
         setSignupOpen(false);
         setFullName("");
@@ -183,9 +171,7 @@ export default function LandingPage() {
       }
 
       const userData = { ...loginData.user, must_change_password: !!loginData.must_change_password };
-      sessionStorage.setItem("token", loginData.token);
-      sessionStorage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
+      login(loginData.token, userData);
 
       setLoginOpen(false);
       setEmail("");
@@ -316,9 +302,7 @@ export default function LandingPage() {
               <AppButton
                 variant="outline"
                 onClick={() => {
-                  sessionStorage.removeItem("user");
-                  sessionStorage.removeItem("token");
-                  setUser(null);
+                  logout();
                   navigate("/");
                 }}
                 className="w-full sm:w-auto"

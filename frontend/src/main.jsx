@@ -17,6 +17,7 @@ import FeedbackPage from "./components/ui/FeedbackPage";
 import AdminInviteStaff from "./components/ui/AdminInviteStaff";
 import ChangePassword from "./components/ui/ChangePassword";
 import ForgotPassword from "./components/ui/ForgotPassword";
+import { AuthProvider } from "./context/AuthContext";
 
 const GOOGLE_CLIENT_ID =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ||
@@ -25,22 +26,24 @@ const GOOGLE_CLIENT_ID =
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/auth-success" element={<AuthSuccess />} /> {/* ✅ New */}
-          <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
-          <Route path="/staff-dashboard" element={<StaffDashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/learn-more" element={<LearnMorePage />} />
-          <Route path="/all-complaints" element={<AllComplaintsPage />} />
-          <Route path="/assign-staff" element={<AssignStaffPage />} />
-          <Route path="/feedback-page" element={<FeedbackPage />} />
-          <Route path="/invite-staff" element={<AdminInviteStaff />} />
-          <Route path="/change-password" element={<ChangePassword />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth-success" element={<AuthSuccess />} /> {/* ✅ New */}
+            <Route path="/citizen-dashboard" element={<CitizenDashboard />} />
+            <Route path="/staff-dashboard" element={<StaffDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/learn-more" element={<LearnMorePage />} />
+            <Route path="/all-complaints" element={<AllComplaintsPage />} />
+            <Route path="/assign-staff" element={<AssignStaffPage />} />
+            <Route path="/feedback-page" element={<FeedbackPage />} />
+            <Route path="/invite-staff" element={<AdminInviteStaff />} />
+            <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </GoogleOAuthProvider>
   </StrictMode>
 );

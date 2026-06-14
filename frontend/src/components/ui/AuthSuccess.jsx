@@ -3,18 +3,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from "../../lib/api";
 import { motion } from "framer-motion";
 import Logo from "./Logo";
+import { useAuthSession } from "../../hooks/useAuthSession";
 
 const AuthSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuthSession();
 
   useEffect(() => {
     const run = async () => {
       const params = new URLSearchParams(location.search);
       const token = params.get('token');
       if (!token) return navigate('/');
-
-      sessionStorage.setItem('token', token);
 
       // Fetch user info so dashboards have user_id/role
       const meRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
@@ -23,7 +23,7 @@ const AuthSuccess = () => {
       if (!meRes.ok) return navigate('/');
 
       const me = await meRes.json();
-      sessionStorage.setItem('user', JSON.stringify(me.user));
+      login(token, me.user);
 
       switch (me.user.role) {
         case 'Citizen':

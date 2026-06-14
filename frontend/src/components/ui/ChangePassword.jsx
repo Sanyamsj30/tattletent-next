@@ -7,11 +7,12 @@ import { Badge } from "./badge";
 import { API_BASE_URL } from "../../lib/api";
 import { FiLock, FiCheckCircle, FiAlertCircle, FiShield, FiKey } from "react-icons/fi";
 
+import { useAuthSession } from "../../hooks/useAuthSession";
+
 const ChangePassword = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const token = sessionStorage.getItem("token");
-  const user = JSON.parse(sessionStorage.getItem("user") || "null");
+  const { token, user, updateUser } = useAuthSession();
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -63,7 +64,7 @@ const ChangePassword = () => {
       if (!res.ok) throw new Error(data.message || "Failed to change password");
 
       if (data.user) {
-        sessionStorage.setItem("user", JSON.stringify(data.user));
+        updateUser(data.user);
       }
 
       setSuccess(true);
