@@ -23,11 +23,14 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.warn('Unauthorized request - redirecting to login...');
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/';
+      const url = error.config?.url || '';
+      if (!url.includes('/api/auth/login')) {
+        console.warn('Unauthorized request - redirecting to login...');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/';
+        }
       }
     }
     return Promise.reject(error);
