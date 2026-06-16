@@ -6,8 +6,10 @@ import Logo from "./components/ui/Logo";
 import { useNavigate } from "react-router-dom";
 import { FaBars, FaGithub, FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaGoogle } from "react-icons/fa";
 import { FiX, FiCheckCircle, FiClock, FiActivity, FiLayers, FiShield, FiTrendingUp } from "react-icons/fi";
-import axios from "axios";
-import { API_BASE_URL } from "./lib/api";
+import { API_BASE_URL } from "./api/axiosInstance";
+import { sendOtp, registerUser, loginUser, checkEmailExists, sendResetOtp, resetPassword } from "./api/auth.api";
+import { searchPublicComplaints, fetchPublicComplaintCounts } from "./api/complaint.api";
+import { fetchPublicFeedback } from "./api/feedback.api";
 import { useAuthSession } from "./hooks/useAuthSession";
 
 const portals = [
@@ -60,26 +62,17 @@ export default function LandingPage() {
     try {
       setIsLoading(true);
       setSignupMessage("");
-      const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
-
-      if (res.status === 409) {
+      await sendOtp(email);
+      setOtpOpen(true);
+    } catch (err) {
+      if (err.response && err.response.status === 409) {
         setSignupMessage("An account with this email already exists. Please log in.");
         setSignupOpen(false);
         setLoginOpen(true);
         setLoginMessage("An account with this email already exists. Please log in.");
         return;
       }
-
-      if (!res.ok) throw new Error(data.message);
-      setOtpOpen(true);
-    } catch (err) {
-      setSignupMessage(err.message || "Signup failed. Try again.");
+      setSignupMessage(err.response?.data?.message || err.message || "Signup failed. Try again.");
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -92,20 +85,23 @@ export default function LandingPage() {
     try {
       setIsLoading(true);
       setSignupMessage("");
-      const registerRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: fullName,
-          email,
-          password,
-          otp,
-        }),
+      const registerData = await registerUser({
+        name: fullName,
+        email,
+        password,
+        otp,
       });
 
-      const registerData = await registerRes.json();
-
-      if (registerRes.status === 409) {
+      login(registerData.token, registerData.user);
+      setOtpOpen(false);
+      setSignupOpen(false);
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setCPassword("");
+      setOtp("");
+    } catch (err) {
+      if (err.response && err.response.status === 409) {
         setSignupMessage("An account with this email already exists. Please log in.");
         setOtpOpen(false);
         setSignupOpen(false);
@@ -113,21 +109,7 @@ export default function LandingPage() {
         setLoginMessage("An account with this email already exists. Please log in.");
         return;
       }
-
-      if (registerRes.ok) {
-        login(registerData.token, registerData.user);
-        setOtpOpen(false);
-        setSignupOpen(false);
-        setFullName("");
-        setEmail("");
-        setPassword("");
-        setCPassword("");
-        setOtp("");
-      } else {
-        setSignupMessage(registerData.message);
-      }
-    } catch (err) {
-      setSignupMessage("OTP Verify Error: " + err.message);
+      setSignupMessage(err.response?.data?.message || err.message || "OTP Verify Error");
     } finally {
       setIsLoading(false);
     }
@@ -140,35 +122,7 @@ export default function LandingPage() {
       setIsLoading(true);
       setLoginMessage("");
 
-      const loginRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const loginData = await loginRes.json();
-
-      if (!loginRes.ok) {
-        if (loginRes.status === 401 && loginData.message.includes("Invalid credentials")) {
-          try {
-            const emailCheck = await fetch(`${API_BASE_URL}/api/auth/check-email?email=${encodeURIComponent(email)}`);
-            const emailExists = await emailCheck.json();
-
-            if (!emailCheck.ok || !emailExists.exists) {
-              setLoginOpen(false);
-              setSignupOpen(true);
-              setSignupMessage("No account found with this email. Please sign up.");
-            } else {
-              setLoginMessage("Incorrect password. Please try again.");
-            }
-          } catch (emailErr) {
-            setLoginMessage("Unable to verify email. Please try again later.");
-          }
-        } else {
-          setLoginMessage(loginData.message);
-        }
-        return;
-      }
+      const loginData = await loginUser(email, password);
 
       const userData = { ...loginData.user, must_change_password: !!loginData.must_change_password };
       login(loginData.token, userData);
@@ -188,7 +142,23 @@ export default function LandingPage() {
       else navigate("/citizen-dashboard");
 
     } catch (err) {
-      setLoginMessage("Login Unsuccessful: " + err.message);
+      if (err.response && err.response.status === 401 && err.response.data?.message?.includes("Invalid credentials")) {
+        try {
+          const emailExists = await checkEmailExists(email);
+
+          if (!emailExists.exists) {
+            setLoginOpen(false);
+            setSignupOpen(true);
+            setSignupMessage("No account found with this email. Please sign up.");
+          } else {
+            setLoginMessage("Incorrect password. Please try again.");
+          }
+        } catch (emailErr) {
+          setLoginMessage("Unable to verify email. Please try again later.");
+        }
+      } else {
+        setLoginMessage(err.response?.data?.message || err.message || "Login Unsuccessful");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -203,11 +173,7 @@ export default function LandingPage() {
   const fetchComplaints = async () => {
     try {  
       const queryParams = new URLSearchParams({ status: "Resolved" }).toString();
-      const response = await fetch(`${API_BASE_URL}/api/public/complaints/search?${queryParams}`);
-  
-      if (!response.ok) throw new Error("Failed to fetch complaints");
-  
-      const data = await response.json();
+      const data = await searchPublicComplaints(queryParams);
       
       if (data.length > 0) {
         const totalHours = data.reduce((acc, complaint) => {
@@ -233,8 +199,8 @@ export default function LandingPage() {
 
   const fetchCounts = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/public/complaints/counts`);
-      setCounts(res.data);
+      const data = await fetchPublicComplaintCounts();
+      setCounts(data);
     } catch (err) {
       console.error(err);
     }
@@ -248,8 +214,8 @@ export default function LandingPage() {
 
   const fetchFeedback = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/public/feedback`);
-      setReviews((res.data.data || []).map(c => ({
+      const data = await fetchPublicFeedback();
+      setReviews((data.data || []).map(c => ({
         name: c.name,
         rating: c.rating,
         comment: c.comment
@@ -313,7 +279,7 @@ export default function LandingPage() {
           ) : (
             <>
               <button
-                onClick={() => setLoginOpen(true)}
+               onClick={() => setLoginOpen(true)}
                 className="text-sm font-bold text-slate-600 hover:text-slate-900 transition px-4 py-2 w-full sm:w-auto text-center"
               >
                 Sign In
@@ -822,16 +788,10 @@ export default function LandingPage() {
                     setIsLoading(true);
                     setLoginMessage("");
                     try {
-                      const res = await fetch(`${API_BASE_URL}/api/auth/send-reset-otp`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.message);
+                      await sendResetOtp(email);
                       setOtpOpen(true);
                     } catch (err) {
-                      setLoginMessage(err.message || "Failed to send OTP");
+                      setLoginMessage(err.response?.data?.message || err.message || "Failed to send OTP");
                     } finally {
                       setIsLoading(false);
                     }
@@ -863,13 +823,7 @@ export default function LandingPage() {
                     setIsLoading(true);
                     setLoginMessage("");
                     try {
-                      const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ email, otp, password }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data.message);
+                      await resetPassword(email, otp, password);
                       setForgotPassword(false);
                       setOtpOpen(false);
                       setPassword("");
@@ -877,7 +831,7 @@ export default function LandingPage() {
                       setLoginOpen(true);
                       setLoginMessage("Password reset successful. Please log in.");
                     } catch (err) {
-                      setLoginMessage(err.message || "Failed to reset password");
+                      setLoginMessage(err.response?.data?.message || err.message || "Failed to reset password");
                     } finally {
                       setIsLoading(false);
                     }

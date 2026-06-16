@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import axios from "axios";
-import { API_BASE_URL } from "../../lib/api";
+import { callChatbot } from "../../api/ai.api";
 
 const escapeHTML = (str) => {
   if (!str) return "";
@@ -45,17 +44,9 @@ const ChatbotWidget = () => {
     setIsLoading(true);
 
     try {
-      const token = sessionStorage.getItem("token");
-      const response = await axios.post(`${API_BASE_URL}/api/ai/chatbot`, {
-        message: text,
-        userId: user?.user_id || null,
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const response = await callChatbot(text);
 
-      const replyText = response.data?.data?.response || "I didn't quite get that. Let's try again!";
+      const replyText = response.data?.response || "I didn't quite get that. Let's try again!";
       setMessages((prev) => [...prev, { sender: "bot", text: replyText }]);
     } catch (err) {
       console.error("Chatbot error:", err);

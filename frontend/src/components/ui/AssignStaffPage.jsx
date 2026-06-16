@@ -5,8 +5,9 @@ import AppLayout from "./AppLayout";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
-import axios from "axios";
-import { API_BASE_URL } from "../../lib/api";
+import { fetchAssignmentRecommendation } from "../../api/ai.api";
+import { reassignComplaint, updateComplaintPriority, searchComplaints } from "../../api/complaint.api";
+import { searchUsers } from "../../api/user.api";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiCpu, FiUser, FiBarChart2, FiArrowLeft, FiActivity, FiStar, FiMail, FiMap } from "react-icons/fi";
 import { useAuthSession } from "../../hooks/useAuthSession";
@@ -40,11 +41,9 @@ const AssignStaffPage = () => {
     if (!complaintId) return;
     try {
       setRecLoading(true);
-      const res = await axios.get(`${API_BASE_URL}/api/ai/recommendation/${complaintId}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (res.data?.success) {
-        setRecommendation(res.data.data);
+      const data = await fetchAssignmentRecommendation(complaintId);
+      if (data?.success) {
+        setRecommendation(data.data);
       }
     } catch (err) {
       console.error("Failed to fetch recommendation:", err);
@@ -58,23 +57,16 @@ const AssignStaffPage = () => {
     if (reason === null) {
       reason = prompt("Enter a brief reason/note for this override assignment:") || "";
     }
-    const token = sessionStorage.getItem("token");
     try {
       // 1. Reassign vendor (override)
-      await axios.put(`${API_BASE_URL}/api/complaints/reassign/${complaintId}`, {
+      await reassignComplaint(complaintId, {
         staffId,
         reason,
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       // 2. Update priority if it's different or requested
       if (selectedPriority) {
-        await axios.put(`${API_BASE_URL}/api/complaints/priority/${complaintId}`, {
-          priority: selectedPriority,
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await updateComplaintPriority(complaintId, selectedPriority);
       }
 
       navigate("/admin-dashboard");
@@ -88,11 +80,7 @@ const AssignStaffPage = () => {
     try {
       if (!userId) return;
       const queryParams = new URLSearchParams({ role: "Staff", must_change_password: "false" }).toString();
-      const response = await fetch(`${API_BASE_URL}/api/users/search?${queryParams}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch staff");
-      const data = await response.json();
+      const data = await searchUsers(queryParams);
       setstaffList(data.map(c => ({
         id: c.user_id,
         name: c.name,
@@ -124,10 +112,7 @@ const AssignStaffPage = () => {
 
   const fetchStaffPerformance = async (staff) => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/complaints/search?staff_id=${staff.id}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      const data = response.data;
+      const data = await searchComplaints(`staff_id=${staff.id}`);
       if (!Array.isArray(data)) {
         console.error("Unexpected data format:", data);
         return;

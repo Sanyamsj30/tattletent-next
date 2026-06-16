@@ -4,7 +4,7 @@ import AppLayout from "./AppLayout";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
-import { API_BASE_URL } from "../../lib/api";
+import { changePassword } from "../../api/auth.api";
 import { FiLock, FiCheckCircle, FiAlertCircle, FiShield, FiKey } from "react-icons/fi";
 
 import { useAuthSession } from "../../hooks/useAuthSession";
@@ -51,17 +51,7 @@ const ChangePassword = () => {
 
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ oldPassword, newPassword }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to change password");
+      const data = await changePassword(oldPassword, newPassword);
 
       if (data.user) {
         updateUser(data.user);
@@ -76,7 +66,7 @@ const ChangePassword = () => {
       setTimeout(() => goToDashboard((data.user || user).role), 1000);
     } catch (err) {
       setSuccess(false);
-      setMessage(err.message || "Operation failed.");
+      setMessage(err.response?.data?.message || err.message || "Operation failed.");
     } finally {
       setLoading(false);
     }

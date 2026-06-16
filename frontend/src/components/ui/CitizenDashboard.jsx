@@ -11,8 +11,17 @@ import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
 import { Input, TextArea } from "./input";
 import ChatbotWidget from "./ChatbotWidget";
-import { API_BASE_URL } from "../../lib/api";
+import { API_BASE_URL } from "../../api/axiosInstance";
 import { useAuthSession } from "../../hooks/useAuthSession";
+import {
+  fetchNearbyComplaints,
+  supportComplaint,
+  fetchMapMarkers,
+  searchComplaints,
+  fetchComplaintCounts,
+  updateComplaintStatus,
+  createComplaint
+} from "../../api/complaint.api";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -65,16 +74,14 @@ const CitizenDashboard = () => {
       if (isSubmitOpen && geoCaptured && geoCoords.lat != null && formCategory) {
         try {
           setIsCheckingNearby(true);
-          const response = await fetch(
-            `${API_BASE_URL}/api/complaints/nearby?longitude=${geoCoords.lon}&latitude=${geoCoords.lat}&radius=100&category=${formCategory}`,
-            {
-              headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-            }
-          );
-          if (response.ok) {
-            const resData = await response.json();
-            setNearbyComplaints(resData.data || []);
-          }
+          const queryParams = new URLSearchParams({
+            longitude: geoCoords.lon,
+            latitude: geoCoords.lat,
+            radius: 100,
+            category: formCategory
+          }).toString();
+          const resData = await fetchNearbyComplaints(queryParams);
+          setNearbyComplaints(resData.data || []);
         } catch (err) {
           console.error("Failed to check nearby complaints:", err);
         } finally {
@@ -90,27 +97,15 @@ const CitizenDashboard = () => {
 
   const handleSupportComplaint = async (complaintId) => {
     try {
-      const token = sessionStorage.getItem("token");
-      if (!token) return;
-
-      const res = await fetch(`${API_BASE_URL}/api/complaints/support/${complaintId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (res.ok) {
-        alert("Thanks for your support! We've registered you as an affected citizen for this issue.");
-        setIsSubmitOpen(false);
-        fetchComplaintsByUser();
-        fetchCounts();
-        fetchMarkers();
-      } else {
-        alert("Failed to register support.");
-      }
+      await supportComplaint(complaintId);
+      alert("Thanks for your support! We've registered you as an affected citizen for this issue.");
+      setIsSubmitOpen(false);
+      fetchComplaintsByUser();
+      fetchCounts();
+      fetchMarkers();
     } catch (err) {
       console.error("Support error:", err);
+      alert("Failed to register support.");
     }
   };
 
@@ -128,13 +123,8 @@ const CitizenDashboard = () => {
       if (mapFilters.fromDate) queryParams.append("fromDate", mapFilters.fromDate);
       if (mapFilters.toDate) queryParams.append("toDate", mapFilters.toDate);
 
-      const response = await fetch(`${API_BASE_URL}/api/complaints/map-markers?${queryParams}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
-      });
-      if (response.ok) {
-        const resData = await response.json();
-        setMapMarkers(resData.data || []);
-      }
+      const resData = await fetchMapMarkers(queryParams.toString());
+      setMapMarkers(resData.data || []);
     } catch (err) {
       console.error("Error fetching map markers:", err);
     } finally {
@@ -183,11 +173,7 @@ const CitizenDashboard = () => {
     try {
       if (!userId) return;
       const queryParams = new URLSearchParams({ user_id: userId }).toString();
-      const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch complaints");
-      const data = await response.json();
+      const data = await searchComplaints(queryParams);
       setComplaints(data.map(c => ({
         id: c.complaint_id,
         category: c.category,
@@ -212,13 +198,8 @@ const CitizenDashboard = () => {
 
   const fetchCounts = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/complaints/counts`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCounts(data);
-      }
+      const data = await fetchComplaintCounts();
+      setCounts(data);
     } catch (err) {
       console.error(err);
     }
@@ -232,18 +213,8 @@ const CitizenDashboard = () => {
   }, [userId]);
 
   const handleConfirmFix = async (complaint) => {
-    const token = sessionStorage.getItem("token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/complaints/status/${complaint.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: "RESOLVED" })
-      });
-      if (!res.ok) throw new Error("Failed to confirm fix");
+      await updateComplaintStatus(complaint.id, { status: "RESOLVED" });
       alert("Resolution confirmed! Thank you for your feedback.");
       fetchComplaintsByUser();
       fetchCounts();
@@ -256,18 +227,8 @@ const CitizenDashboard = () => {
   const handleRejectFix = async (complaint) => {
     const reason = prompt("Enter a brief reason/feedback for rejecting the contractor's fix:") || "";
     if (reason === "") return;
-    const token = sessionStorage.getItem("token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/complaints/status/${complaint.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: "IN_PROGRESS" })
-      });
-      if (!res.ok) throw new Error("Failed to reject fix");
+      await updateComplaintStatus(complaint.id, { status: "IN_PROGRESS" });
       alert("Resolution rejected. The complaint has been returned to the contractor's active queue.");
       fetchComplaintsByUser();
       fetchCounts();
@@ -306,13 +267,6 @@ const CitizenDashboard = () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const token = sessionStorage.getItem("token");
-      if (!token || !user) {
-        alert("You must be logged in to submit a complaint.");
-        setIsSubmitting(false);
-        return;
-      }
-
       const formData = new FormData();
       formData.append("category", formCategory);
       formData.append("title", formTitle);
@@ -329,39 +283,15 @@ const CitizenDashboard = () => {
         formData.append("photo", photoFile);
       }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          console.log("Latitude:", position.coords.latitude);
-          console.log("Longitude:", position.coords.longitude);
-        },
-        console.error,
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 0
-        }
-      );
-
-      const response = await fetch(`${API_BASE_URL}/api/complaints`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        alert("Complaint submitted successfully!");
-        resetForm();
-        setIsSubmitOpen(false);
-        fetchComplaintsByUser();
-        fetchCounts();
-      } else {
-        const errorData = await response.json();
-        alert(errorData?.message || "Failed to submit complaint.");
-      }
+      await createComplaint(formData);
+      alert("Complaint submitted successfully!");
+      resetForm();
+      setIsSubmitOpen(false);
+      fetchComplaintsByUser();
+      fetchCounts();
     } catch (error) {
       console.error("Error submitting complaint:", error);
+      alert(error.response?.data?.message || "Failed to submit complaint.");
     } finally {
       setIsSubmitting(false);
     }

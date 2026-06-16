@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { API_BASE_URL } from "../../lib/api";
+import { fetchCurrentUser } from "../../api/auth.api";
 import { motion } from "framer-motion";
 import Logo from "./Logo";
 import { useAuthSession } from "../../hooks/useAuthSession";
@@ -16,32 +16,34 @@ const AuthSuccess = () => {
       const token = params.get('token');
       if (!token) return navigate('/');
 
-      // Fetch user info so dashboards have user_id/role
-      const meRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!meRes.ok) return navigate('/');
+      // Set token temporarily so axiosInstance request interceptor attaches it
+      sessionStorage.setItem('token', token);
 
-      const me = await meRes.json();
-      login(token, me.user);
+      try {
+        const me = await fetchCurrentUser();
+        login(token, me.user);
 
-      switch (me.user.role) {
-        case 'Citizen':
-          navigate('/citizen-dashboard');
-          break;
-        case 'Staff':
-          navigate('/staff-dashboard');
-          break;
-        case 'Ringmaster':
-        case 'Admin':
-          navigate('/admin-dashboard');
-          break;
-        default:
-          if (String(me.user.role || '').toLowerCase() === 'admin' || String(me.user.role || '').toLowerCase() === 'ringmaster') {
+        switch (me.user.role) {
+          case 'Citizen':
+            navigate('/citizen-dashboard');
+            break;
+          case 'Staff':
+            navigate('/staff-dashboard');
+            break;
+          case 'Ringmaster':
+          case 'Admin':
             navigate('/admin-dashboard');
             break;
-          }
-          navigate('/');
+          default:
+            if (String(me.user.role || '').toLowerCase() === 'admin' || String(me.user.role || '').toLowerCase() === 'ringmaster') {
+              navigate('/admin-dashboard');
+              break;
+            }
+            navigate('/');
+        }
+      } catch (err) {
+        sessionStorage.removeItem('token');
+        navigate('/');
       }
     };
 

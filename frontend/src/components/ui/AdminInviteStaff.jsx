@@ -4,11 +4,11 @@ import AppLayout from "./AppLayout";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
-import { API_BASE_URL } from "../../lib/api";
+import { searchUsers } from "../../api/user.api";
+import { adminCreateStaff } from "../../api/auth.api";
 import { FiUserPlus, FiMail, FiArrowLeft, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 
 export default function AdminInviteStaff() {
-  const token = sessionStorage.getItem("token");
   const [staffName, setStaffName] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -20,15 +20,10 @@ export default function AdminInviteStaff() {
   const navigate = useNavigate();
 
   const fetchStaffList = async () => {
-    if (!token) return;
     try {
       setListLoading(true);
       const queryParams = new URLSearchParams({ role: "Staff" }).toString();
-      const res = await fetch(`${API_BASE_URL}/api/users/search?${queryParams}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error("Failed to load staff list");
-      const data = await res.json();
+      const data = await searchUsers(queryParams);
       setStaffList(data);
     } catch (err) {
       console.error("Error fetching staff list:", err);
@@ -48,17 +43,7 @@ export default function AdminInviteStaff() {
     setSuccess(false);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/admin/create-staff`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-         },
-        body: JSON.stringify({ name: staffName, email }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to send invitation");
+      const data = await adminCreateStaff({ name: staffName, email });
 
       setSuccess(true);
       setMessage(data.message || "Personnel invitation sent successfully!");
@@ -68,7 +53,7 @@ export default function AdminInviteStaff() {
       fetchStaffList();
     } catch (err) {
       setSuccess(false);
-      setMessage(err.message || "Network error. Please try again.");
+      setMessage(err.response?.data?.message || err.message || "Network error. Please try again.");
       console.error(err);
     } finally {
       setIsLoading(false);

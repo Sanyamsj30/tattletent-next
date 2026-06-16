@@ -5,13 +5,11 @@ import AppLayout from "./AppLayout";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
-import axios from "axios";
-import { API_BASE_URL } from "../../lib/api";
+import { submitFeedback } from "../../api/feedback.api";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiCheckCircle, FiStar, FiFileText, FiCalendar, FiArrowLeft, FiTag } from "react-icons/fi";
 
 const FeedbackPage = () => {
-  const token = sessionStorage.getItem("token");
   const navigate = useNavigate();
 
   const [rating, setRating] = useState(0);
@@ -41,23 +39,11 @@ const FeedbackPage = () => {
         comment: review,
       };
 
-      const response = await axios.post(
-        `${API_BASE_URL}/api/feedback`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.status === 201) {
-        setSubmitted(true);
-        setTimeout(() => {
-          navigate("/citizen-dashboard", { replace: true });
-        }, 1800);
-      }
+      await submitFeedback(payload);
+      setSubmitted(true);
+      setTimeout(() => {
+        navigate("/citizen-dashboard", { replace: true });
+      }, 1800);
     } catch (error) {
       console.error("Error submitting feedback:", error);
       alert(error.response?.data?.message || "Failed to submit feedback.");

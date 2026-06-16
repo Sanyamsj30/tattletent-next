@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "./AppLayout";
 import { useAuthSession } from "../../hooks/useAuthSession";
 import { jsPDF } from "jspdf";
-import { API_BASE_URL } from "../../lib/api";
+import { API_BASE_URL } from "../../api/axiosInstance";
+import { searchComplaints, searchPublicComplaints } from "../../api/complaint.api";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiSearch, FiSliders, FiDownload, FiRefreshCw, FiExternalLink, FiFileText, FiMapPin, FiCalendar, FiUser, FiInfo, FiTag, FiFile } from "react-icons/fi";
 import { Button } from "./button";
@@ -45,18 +46,10 @@ const AllComplaintsPage = () => {
         }
       }
 
-      const endpoint = isAdminOrStaff
-        ? `${API_BASE_URL}/api/complaints/search`
-        : `${API_BASE_URL}/api/public/complaints/search`;
+      const data = isAdminOrStaff
+        ? await searchComplaints()
+        : await searchPublicComplaints();
 
-      const headers = {};
-      if (isAdminOrStaff && token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(endpoint, { headers });
-      if (!response.ok) throw new Error("Failed to fetch complaints");
-      const data = await response.json();
       setComplaints(data.map(c => ({
         id: c.complaint_id,
         category: c.category,

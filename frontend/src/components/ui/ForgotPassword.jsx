@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "./Logo";
-import { API_BASE_URL } from "../../lib/api";
+import { sendResetOtp, resetPassword } from "../../api/auth.api";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
@@ -19,31 +19,25 @@ const ForgotPassword = () => {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const sendOtp = async (e) => {
+  const handleSendOtp = async (e) => {
     e.preventDefault();
     setMessage("");
     setSuccess(false);
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/auth/send-reset-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to send OTP");
+      await sendResetOtp(email);
       setSuccess(true);
       setMessage("Verification code sent successfully. Check your email inbox.");
       setStep(2);
     } catch (err) {
       setSuccess(false);
-      setMessage(err.message || "Something went wrong.");
+      setMessage(err.response?.data?.message || err.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
 
-  const resetPassword = async (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
     setMessage("");
     setSuccess(false);
@@ -53,19 +47,13 @@ const ForgotPassword = () => {
     }
     try {
       setLoading(true);
-      const res = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp, newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to reset password");
+      await resetPassword(email, otp, newPassword);
       setSuccess(true);
       setMessage("Password updated successfully! Redirecting to dashboard...");
       setTimeout(() => navigate("/"), 1200);
     } catch (err) {
       setSuccess(false);
-      setMessage(err.message || "Reset failed.");
+      setMessage(err.response?.data?.message || err.message || "Reset failed.");
     } finally {
       setLoading(false);
     }
@@ -116,7 +104,7 @@ const ForgotPassword = () => {
           )}
 
           {step === 1 ? (
-            <form onSubmit={sendOtp} className="space-y-4">
+            <form onSubmit={handleSendOtp} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Email Address</label>
                 <div className="relative">
@@ -143,7 +131,7 @@ const ForgotPassword = () => {
               </div>
             </form>
           ) : (
-            <form onSubmit={resetPassword} className="space-y-4">
+            <form onSubmit={handleResetPassword} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">Confirm Email</label>
                 <div className="relative">

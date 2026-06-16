@@ -9,9 +9,14 @@ import AppLayout from "./AppLayout";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
-import axios from "axios";
-import { API_BASE_URL } from "../../lib/api";
 import { useAuthSession } from "../../hooks/useAuthSession";
+import {
+  fetchComplaintCounts,
+  searchComplaints,
+  fetchMapMarkers,
+  forceEscalateComplaint,
+  deleteComplaint
+} from "../../api/complaint.api";
 import {
   BarChart,
   Bar,
@@ -78,13 +83,8 @@ const AdminDashboard = () => {
         if (mapFilters.fromDate) queryParams.append("fromDate", mapFilters.fromDate);
         if (mapFilters.toDate) queryParams.append("toDate", mapFilters.toDate);
 
-        const response = await fetch(`${API_BASE_URL}/api/complaints/map-markers?${queryParams}`, {
-          headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
-        });
-        if (response.ok) {
-          const resData = await response.json();
-          setMapMarkers(resData.data || []);
-        }
+        const resData = await fetchMapMarkers(queryParams.toString());
+        setMapMarkers(resData.data || []);
       } catch (err) {
         console.error("Error fetching map markers:", err);
       } finally {
@@ -97,31 +97,26 @@ const AdminDashboard = () => {
 
   const handleMapAuditClick = async (complaintId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/complaints/search?id=${complaintId}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.length > 0) {
-          const c = data[0];
-          setSelectedBreakdown({
-            id: c.complaint_id,
-            category: c.category,
-            location: c.location,
-            status: c.status,
-            assignedTo: c.assigned_to,
-            staff_id: c.staff_id, 
-            severity: c.severity, 
-            is_duplicate: c.is_duplicate,
-            priority_score: c.priority_score,
-            priority_level: c.priority_level,
-            is_auto_assigned: c.is_auto_assigned,
-            recommendation_explanation: c.recommendation_explanation,
-            priority_breakdown: c.priority_breakdown,
-            assignment_history: c.assignment_history,
-            description: c.description,
-          });
-        }
+      const data = await searchComplaints(`id=${complaintId}`);
+      if (data && data.length > 0) {
+        const c = data[0];
+        setSelectedBreakdown({
+          id: c.complaint_id,
+          category: c.category,
+          location: c.location,
+          status: c.status,
+          assignedTo: c.assigned_to,
+          staff_id: c.staff_id, 
+          severity: c.severity, 
+          is_duplicate: c.is_duplicate,
+          priority_score: c.priority_score,
+          priority_level: c.priority_level,
+          is_auto_assigned: c.is_auto_assigned,
+          recommendation_explanation: c.recommendation_explanation,
+          priority_breakdown: c.priority_breakdown,
+          assignment_history: c.assignment_history,
+          description: c.description,
+        });
       }
     } catch (err) {
       console.error("Error fetching single complaint for audit:", err);
@@ -130,32 +125,27 @@ const AdminDashboard = () => {
 
   const handleMapAssignClick = async (complaintId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/complaints/search?id=${complaintId}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.length > 0) {
-          const c = data[0];
-          const complaintObj = {
-            id: c.complaint_id,
-            category: c.category,
-            location: c.location,
-            status: c.status,
-            assignedTo: c.assigned_to,
-            staff_id: c.staff_id, 
-            severity: c.severity, 
-            is_duplicate: c.is_duplicate,
-            priority_score: c.priority_score,
-            priority_level: c.priority_level,
-            is_auto_assigned: c.is_auto_assigned,
-            recommendation_explanation: c.recommendation_explanation,
-            priority_breakdown: c.priority_breakdown,
-            assignment_history: c.assignment_history,
-            description: c.description,
-          };
-          navigate("/assign-staff", { state: { complaint: complaintObj } });
-        }
+      const data = await searchComplaints(`id=${complaintId}`);
+      if (data && data.length > 0) {
+        const c = data[0];
+        const complaintObj = {
+          id: c.complaint_id,
+          category: c.category,
+          location: c.location,
+          status: c.status,
+          assignedTo: c.assigned_to,
+          staff_id: c.staff_id, 
+          severity: c.severity, 
+          is_duplicate: c.is_duplicate,
+          priority_score: c.priority_score,
+          priority_level: c.priority_level,
+          is_auto_assigned: c.is_auto_assigned,
+          recommendation_explanation: c.recommendation_explanation,
+          priority_breakdown: c.priority_breakdown,
+          assignment_history: c.assignment_history,
+          description: c.description,
+        };
+        navigate("/assign-staff", { state: { complaint: complaintObj } });
       }
     } catch (err) {
       console.error("Error fetching single complaint for assignment:", err);
@@ -165,13 +155,8 @@ const AdminDashboard = () => {
 
   const fetchCounts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/complaints/counts`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCounts(data);
-      }
+      const data = await fetchComplaintCounts();
+      setCounts(data);
     } catch (err) {
       console.error("Error fetching counts:", err);
     }
@@ -181,11 +166,7 @@ const AdminDashboard = () => {
     try {
       if (!userId) return;
       const queryParams = new URLSearchParams({ status: "NEW" }).toString();
-      const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch complaints");
-      const data = await response.json();
+      const data = await searchComplaints(queryParams);
       setComplaints(data.map(c => ({
         id: c.complaint_id,
         category: c.category,
@@ -213,11 +194,7 @@ const AdminDashboard = () => {
     try {
       if (!userId) return;
       const queryParams = new URLSearchParams({ status: "IN_PROGRESS" }).toString();
-      const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (!response.ok) throw new Error("Failed to fetch complaints");
-      const data = await response.json();
+      const data = await searchComplaints(queryParams);
       setAssignedComplaints(data.map(c => ({
         id: c.complaint_id,
         category: c.category,
@@ -271,16 +248,11 @@ const AdminDashboard = () => {
     if (reason === "") return;
     
     try {
-      const token = sessionStorage.getItem("token");
-      const res = await axios.post(`${API_BASE_URL}/api/complaints/force-escalate/${complaintId}`, { reason }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data) {
-        alert("Complaint escalated successfully! Recalculated severity & priorities.");
-        fetchComplaintsByUser();
-        fetchAssignedComplaints();
-        fetchCounts();
-      }
+      await forceEscalateComplaint(complaintId, reason);
+      alert("Complaint escalated successfully! Recalculated severity & priorities.");
+      fetchComplaintsByUser();
+      fetchAssignedComplaints();
+      fetchCounts();
     } catch (err) {
       alert(err.response?.data?.message || "Failed to force escalation.");
     }
@@ -290,10 +262,7 @@ const AdminDashboard = () => {
     if (!window.confirm("Are you sure you want to delete this complaint? This will perform an audit-logged soft delete.")) return;
     
     try {
-      const token = sessionStorage.getItem("token");
-      await axios.delete(`${API_BASE_URL}/api/complaints/${complaintId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await deleteComplaint(complaintId);
       alert("Complaint deleted successfully!");
       fetchComplaintsByUser();
       fetchAssignedComplaints();

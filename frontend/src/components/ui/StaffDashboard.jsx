@@ -9,9 +9,13 @@ import AppLayout from "./AppLayout";
 import { Button } from "./button";
 import { Card, CardContent } from "./card";
 import { Badge } from "./badge";
-import axios from "axios";
-import { API_BASE_URL } from "../../lib/api";
+import { API_BASE_URL } from "../../api/axiosInstance";
 import { useAuthSession } from "../../hooks/useAuthSession";
+import {
+  fetchComplaintCounts,
+  searchComplaints,
+  updateComplaintStatus
+} from "../../api/complaint.api";
 import {
   BarChart,
   Bar,
@@ -43,13 +47,8 @@ const StaffDashboard = () => {
 
   const fetchCounts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/complaints/counts`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCounts(data);
-      }
+      const data = await fetchComplaintCounts();
+      setCounts(data);
     } catch (err) {
       console.warn("Failed to fetch counts from backend");
     }
@@ -60,13 +59,7 @@ const StaffDashboard = () => {
       if (!userId) return;
   
       const queryParams = new URLSearchParams({ staff_id: userId }).toString();
-      const response = await fetch(`${API_BASE_URL}/api/complaints/search?${queryParams}`, {
-        headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      });
-  
-      if (!response.ok) throw new Error("Failed to fetch complaints");
-  
-      const data = await response.json();
+      const data = await searchComplaints(queryParams);
       setComplaints(data.map(c => ({
         id: c.complaint_id,
         category: c.category,
@@ -100,11 +93,8 @@ const StaffDashboard = () => {
   }, [complaints]);
 
   const handleResolvedComplaints = (complaint) => {
-    const token = sessionStorage.getItem("token");
-    axios.put(`${API_BASE_URL}/api/complaints/status/${complaint.id}`, {
+    updateComplaintStatus(complaint.id, {
       status: "Resolved",
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
     }).then(() => {
       fetchCounts();
       fetchComplaintsByUser();
