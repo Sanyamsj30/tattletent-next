@@ -21,6 +21,10 @@ dotenv.config();
 
 const app = express();
 
+// Trust the first proxy (Render / Nginx reverse proxy)
+// Required for express-rate-limit to correctly read X-Forwarded-For header
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(passport.initialize());
 app.use('/public', express.static('public'));

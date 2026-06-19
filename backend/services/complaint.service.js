@@ -133,8 +133,9 @@ export const saveComplaintToDB = async (newComplaint) => {
       dept_id,
       priority,
       user_id: newComplaint.user_id,
-      longitude: newComplaint.longitude ?? undefined,
-      latitude: newComplaint.latitude ?? undefined,
+      // Don't pass longitude/latitude virtuals alongside geolocation GeoJSON —
+      // Mongoose virtual setters fire before coordinates array is initialized, causing a crash.
+      // geolocation already encodes both lon and lat correctly.
       geolocation:
         newComplaint.longitude != null && newComplaint.latitude != null
           ? {
