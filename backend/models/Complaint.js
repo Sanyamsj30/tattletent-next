@@ -23,7 +23,7 @@ const complaintSchema = new mongoose.Schema(
     assigned_to: { type: String },
 
     geolocation: {
-      type: { type: String, enum: ['Point'], default: 'Point' },
+      type: { type: String, enum: ['Point'] },
       coordinates: { type: [Number], default: undefined }, // [lon, lat]
     },
 
