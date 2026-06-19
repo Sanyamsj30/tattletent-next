@@ -101,7 +101,8 @@ export const compressImage = async (req, res, next) => {
       console.warn('⚠️ Cloudinary not configured. Fallback local image saved at:', compressedPath);
     }
   } catch (err) {
-    console.error('❌ Image compression/upload failed, proceeding with fallback:', err.message);
+    console.error('❌ Image compression/upload failed, skipping photo:', err.message);
+    req.file = null; // prevent undefined path crash in controller
   }
 
   next();
