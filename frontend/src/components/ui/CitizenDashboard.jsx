@@ -51,6 +51,9 @@ const CitizenDashboard = () => {
   const [counts, setCounts] = useState({ resolved: 0, pending: 0, in_progress: 0 });
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isRejectOpen, setIsRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [complaintToReject, setComplaintToReject] = useState(null);
   const navigate = useNavigate();
   const { user, userId } = useAuthSession();
 
@@ -224,15 +227,21 @@ const CitizenDashboard = () => {
     }
   };
 
-  const handleRejectFix = async (complaint) => {
-    const reason = prompt("Enter a brief reason/feedback for rejecting the contractor's fix:") || "";
-    if (reason === "") return;
+  const handleRejectFix = (complaint) => {
+    setComplaintToReject(complaint);
+    setRejectReason("");
+    setIsRejectOpen(true);
+  };
+
+  const submitRejection = async () => {
+    if (!rejectReason.trim()) return;
     try {
-      await updateComplaintStatus(complaint.id, { status: "IN_PROGRESS" });
+      await updateComplaintStatus(complaintToReject.id, { status: "IN_PROGRESS" });
       alert("Resolution rejected. The complaint has been returned to the contractor's active queue.");
+      setIsRejectOpen(false);
+      setIsViewOpen(false);
       fetchComplaintsByUser();
       fetchCounts();
-      setIsViewOpen(false);
     } catch (err) {
       console.error("Failed to reject resolution:", err);
     }
@@ -258,6 +267,9 @@ const CitizenDashboard = () => {
   const handlePhotoSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (photoPreview) {
+        URL.revokeObjectURL(photoPreview);
+      }
       setPhotoFile(file);
       setPhotoPreview(URL.createObjectURL(file));
     }
@@ -305,6 +317,9 @@ const CitizenDashboard = () => {
     setFormLocation("");
     setFormDescription("");
     setPhotoFile(null);
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
     setPhotoPreview(null);
     setGeoCaptured(false);
     setGeoCoords({ lat: null, lon: null });
@@ -348,18 +363,6 @@ const CitizenDashboard = () => {
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-xl shadow-sm border border-primary-200/20">
                 📋
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card variant="glass" className="bg-[#fcfcff] border border-indigo-100">
-            <CardContent className="flex items-center justify-between p-6">
-              <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Supporters Joined</p>
-                <p className="text-4xl font-black text-indigo-600 mt-1">{counts.supports || 0}</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-sm border border-indigo-200/20">
-                👥
               </div>
             </CardContent>
           </Card>
@@ -561,7 +564,7 @@ const CitizenDashboard = () => {
                               <p>👥 Supporters: <span className="font-bold text-slate-700">{m.supporters_count}</span></p>
                               {m.is_duplicate && <p className="text-indigo-500 font-bold">📍 Linked Duplicate</p>}
                             </div>
-                            {m.status !== "RESOLVED" && (
+                            {m.status !== "RESOLVED" && m.user_id !== userId && (
                               <div className="pt-1.5 border-t border-slate-100 flex justify-end">
                                 <Button
                                   size="sm"
@@ -1335,6 +1338,66 @@ const CitizenDashboard = () => {
 
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Rejection Modal */}
+      <AnimatePresence>
+        {isRejectOpen && complaintToReject && (
+          <div
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+            onClick={() => setIsRejectOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-3xl w-full max-w-md relative p-7 flex flex-col gap-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-655 transition text-lg"
+                onClick={() => setIsRejectOpen(false)}
+              >
+                ✕
+              </button>
+
+              <div className="border-b border-slate-100 pb-3 text-left">
+                <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                  Reject Resolution
+                </h3>
+                <p className="text-xs text-slate-450 mt-1 font-semibold">
+                  Please provide a reason/feedback for rejecting the contractor's fix.
+                </p>
+              </div>
+
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Explain what is still broken or needs attention..."
+                rows={4}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition resize-none text-left"
+              />
+
+              <div className="flex gap-3 justify-end">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setIsRejectOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={submitRejection}
+                  disabled={!rejectReason.trim()}
+                >
+                  Submit Rejection
+                </Button>
               </div>
             </motion.div>
           </div>

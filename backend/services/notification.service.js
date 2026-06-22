@@ -92,7 +92,7 @@ export const notifyOverdueReminder = async () => {
 };
 
 export const notifyAdminForManualReassignment = async (complaintId) => {
-  const admins = await User.find({ role: 'Ringmaster' }).select('email').lean();
+  const admins = await User.find({ role: { $in: ['Ringmaster', 'Admin', 'ringmaster', 'admin'] } }).select('email').lean();
   const emails = admins.map((a) => a.email).filter(Boolean);
   if (!emails.length) return;
 

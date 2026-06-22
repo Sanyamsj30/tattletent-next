@@ -243,11 +243,44 @@ export const updateStaffWorkloadAndAvailability = async (staffId) => {
       availabilityStatus = 'Overloaded';
     }
 
+    const resolvedDocs = await Complaint.find({
+      staff_id: staffId,
+      status: 'RESOLVED',
+      is_deleted: { $ne: true }
+    }).select('submitted_at resolved_at sla_deadline').lean();
+
+    let slaComplianceRate = 100;
+    let avgResolutionTime = 24;
+
+    if (resolvedDocs.length > 0) {
+      const compliantCount = resolvedDocs.filter(c => {
+        if (!c.resolved_at || !c.sla_deadline) return false;
+        return new Date(c.resolved_at) <= new Date(c.sla_deadline);
+      }).length;
+      slaComplianceRate = Math.round((compliantCount / resolvedDocs.length) * 100);
+
+      let totalHours = 0;
+      let validCount = 0;
+      resolvedDocs.forEach(c => {
+        if (c.submitted_at && c.resolved_at) {
+          const diffMs = new Date(c.resolved_at).getTime() - new Date(c.submitted_at).getTime();
+          const diffHours = diffMs / (1000 * 60 * 60);
+          totalHours += diffHours;
+          validCount++;
+        }
+      });
+      if (validCount > 0) {
+        avgResolutionTime = Math.round(totalHours / validCount);
+      }
+    }
+
     const vendor = await User.findById(staffId);
     if (vendor) {
       vendor.activeComplaints = activeComplaints;
       vendor.resolvedComplaints = resolvedComplaints;
       vendor.availabilityStatus = availabilityStatus;
+      vendor.slaComplianceRate = slaComplianceRate;
+      vendor.avgResolutionTime = avgResolutionTime;
 
       // Recalculate vendor performance score automatically
       const { calculateVendorPerformanceScore } = await import('./rule-engine.service.js');
@@ -287,24 +320,28 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
   const normalized = normalizeStatus(status);
   if (normalized === 'RESOLVED') {
     complaint.status = 'RESOLVED';
+    complaint.resolved_at = new Date();
     // Auto-resolve duplicate complaints
     try {
       await Complaint.updateMany(
         { duplicate_of: complaint._id, is_deleted: { $ne: true } },
-        { $set: { status: 'RESOLVED' } }
+        { $set: { status: 'RESOLVED', resolved_at: new Date() } }
       );
       console.log(`[Database] Auto-resolved all duplicate complaints of master ticket ${complaint._id}`);
     } catch (dupErr) {
       console.error(`[Database] Failed to auto-resolve duplicate complaints:`, dupErr);
     }
-  } else if (normalized === 'RESOLVED_PENDING') {
-    complaint.status = 'RESOLVED_PENDING';
-  } else if (normalized === 'IN_PROGRESS') {
-    complaint.status = 'IN_PROGRESS';
-  } else if (normalized === 'NEW') {
-    complaint.status = 'NEW';
-  } else if (normalized) {
-    complaint.status = normalized;
+  } else {
+    complaint.resolved_at = undefined;
+    if (normalized === 'RESOLVED_PENDING') {
+      complaint.status = 'RESOLVED_PENDING';
+    } else if (normalized === 'IN_PROGRESS') {
+      complaint.status = 'IN_PROGRESS';
+    } else if (normalized === 'NEW') {
+      complaint.status = 'NEW';
+    } else if (normalized) {
+      complaint.status = normalized;
+    }
   }
 
   await complaint.save();
@@ -370,6 +407,7 @@ export const searchComplaints = async (filters) => {
     sortBy,
     order,
     staff_id,
+    requestingUser,
   } = filters;
 
   const query = { is_deleted: { $ne: true } };
@@ -384,8 +422,21 @@ export const searchComplaints = async (filters) => {
     query.$or = [{ title: re }, { description: re }];
   }
 
-  if (user_id) query.user_id = user_id;
-  if (staff_id) query.staff_id = staff_id;
+  // Enforce BOLA scoping using requesting user context
+  if (requestingUser) {
+    if (requestingUser.role === 'Citizen') {
+      query.user_id = requestingUser.user_id;
+    } else if (requestingUser.role === 'Staff') {
+      query.staff_id = requestingUser.user_id;
+    } else {
+      if (user_id) query.user_id = user_id;
+      if (staff_id) query.staff_id = staff_id;
+    }
+  } else {
+    if (user_id) query.user_id = user_id;
+    if (staff_id) query.staff_id = staff_id;
+  }
+
   if (category) query.category = category;
   if (location) query.location = location;
 
@@ -400,8 +451,17 @@ export const searchComplaints = async (filters) => {
 
   if (fromDate || toDate) {
     query.submitted_at = {};
-    if (fromDate) query.submitted_at.$gte = new Date(fromDate);
-    if (toDate) query.submitted_at.$lte = new Date(toDate);
+    if (fromDate) {
+      const d = new Date(fromDate);
+      if (!isNaN(d.getTime())) query.submitted_at.$gte = d;
+    }
+    if (toDate) {
+      const d = new Date(toDate);
+      if (!isNaN(d.getTime())) query.submitted_at.$lte = d;
+    }
+    if (Object.keys(query.submitted_at).length === 0) {
+      delete query.submitted_at;
+    }
   }
 
   const validSort = ['submitted_at', 'status', 'category', 'sla_deadline'];
@@ -413,7 +473,11 @@ export const searchComplaints = async (filters) => {
   page = parseInt(page, 10);
   limit = parseInt(limit, 10);
   if (isNaN(page) || page < 1) page = 1;
-  if (isNaN(limit) || limit < 1) limit = 50;
+  if (isNaN(limit) || limit < 1) {
+    limit = 15;
+  } else {
+    limit = Math.min(limit, 100);
+  }
   const skip = (page - 1) * limit;
 
   const results = await Complaint.find(query)
@@ -449,12 +513,19 @@ export const escalateComplaintsByCategory = async () => {
 
     if (complaint.priority === 'Low') {
       complaint.priority = 'Medium';
+      complaint.escalation_count = (complaint.escalation_count || 0) + 1;
       const slaHours = complaint.dept_id
         ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
         : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
       await complaint.save();
+
+      if (complaint.staff_id) {
+        await User.updateOne({ _id: complaint.staff_id }, { $inc: { totalEscalations: 1 } });
+        await updateStaffWorkloadAndAvailability(complaint.staff_id);
+      }
+
       escalated.push({ complaint_id: complaint._id.toString(), priority: complaint.priority });
 
       // Run AI Urgency Analysis asynchronously in background
@@ -472,12 +543,19 @@ export const escalateComplaintsByCategory = async () => {
 
     if (complaint.priority === 'Medium') {
       complaint.priority = 'High';
+      complaint.escalation_count = (complaint.escalation_count || 0) + 1;
       const slaHours = complaint.dept_id
         ? await calculateSlaDeadline(complaint.dept_id, complaint.priority)
         : 24;
       complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
       await complaint.save();
+
+      if (complaint.staff_id) {
+        await User.updateOne({ _id: complaint.staff_id }, { $inc: { totalEscalations: 1 } });
+        await updateStaffWorkloadAndAvailability(complaint.staff_id);
+      }
+
       escalated.push({ complaint_id: complaint._id.toString(), priority: complaint.priority });
 
       // Run AI Urgency Analysis asynchronously in background
@@ -495,7 +573,11 @@ export const escalateComplaintsByCategory = async () => {
 
     // High priority: reset assignment and notify admin
     complaint.status = 'NEW';
+    complaint.escalation_count = (complaint.escalation_count || 0) + 1;
     const oldStaffId = complaint.staff_id;
+    if (oldStaffId) {
+      await User.updateOne({ _id: oldStaffId }, { $inc: { totalEscalations: 1 } });
+    }
     complaint.staff_id = undefined;
     complaint.assigned_to = undefined;
     const slaHours = complaint.dept_id
@@ -606,6 +688,11 @@ export const forceEscalateComplaintInDB = async (id, adminUser, reason) => {
   // Increment escalation count
   complaint.escalation_count = (complaint.escalation_count || 0) + 1;
 
+  // Increment contractor's totalEscalations if assigned
+  if (complaint.staff_id) {
+    await User.updateOne({ _id: complaint.staff_id }, { $inc: { totalEscalations: 1 } });
+  }
+
   // Recalculate deterministic priority & severity
   const duplicateCount = await Complaint.countDocuments({ duplicate_of: complaint._id });
   complaint.severity = calculateDeterministicSeverity(complaint, duplicateCount);
@@ -642,6 +729,8 @@ export const forceEscalateComplaintInDB = async (id, adminUser, reason) => {
 
     // Trigger auto-assignment
     runAutoAssignmentEngine(complaint._id).catch(err => console.error("Auto reassignment failed in escalation:", err));
+  } else if (complaint.staff_id) {
+    await updateStaffWorkloadAndAvailability(complaint.staff_id);
   }
 
   // Trigger background LLM urgency explanation
@@ -693,6 +782,12 @@ export const supportComplaintInDB = async (complaintId, userId) => {
   const complaint = await Complaint.findById(complaintId);
   if (!complaint) throw new Error('Complaint not found');
 
+  if (complaint.user_id.toString() === userId.toString()) {
+    const err = new Error('You cannot support your own complaint.');
+    err.statusCode = 400;
+    throw err;
+  }
+
   if (!complaint.supported_by.includes(userId)) {
     complaint.supported_by.push(userId);
     await complaint.save();
@@ -723,12 +818,21 @@ export const getMapMarkers = async (filters = {}) => {
 
   if (fromDate || toDate) {
     query.submitted_at = {};
-    if (fromDate) query.submitted_at.$gte = new Date(fromDate);
-    if (toDate) query.submitted_at.$lte = new Date(toDate);
+    if (fromDate) {
+      const d = new Date(fromDate);
+      if (!isNaN(d.getTime())) query.submitted_at.$gte = d;
+    }
+    if (toDate) {
+      const d = new Date(toDate);
+      if (!isNaN(d.getTime())) query.submitted_at.$lte = d;
+    }
+    if (Object.keys(query.submitted_at).length === 0) {
+      delete query.submitted_at;
+    }
   }
 
   const results = await Complaint.find(query)
-    .select('geolocation title status category severity supported_by is_duplicate duplicate_of submitted_at')
+    .select('geolocation title status category severity supported_by is_duplicate duplicate_of submitted_at user_id')
     .lean();
 
   return results.map(c => {
@@ -744,7 +848,8 @@ export const getMapMarkers = async (filters = {}) => {
       supporters_count: (c.supported_by || []).length,
       is_duplicate: c.is_duplicate || false,
       duplicate_of: c.duplicate_of?.toString(),
-      submitted_at: c.submitted_at
+      submitted_at: c.submitted_at,
+      user_id: c.user_id?.toString()
     };
   });
 };

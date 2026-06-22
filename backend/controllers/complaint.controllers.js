@@ -128,7 +128,7 @@ const updateComplaintStatus = asynchandler(async (req, res) => {
 
   // Best-effort notification (email)
   try {
-    await notifyStatusChange(updated.complaint_id);
+    await notifyStatusChange(id);
   } catch (err) {
     console.error('notifyStatusChange failed:', err);
   }
@@ -201,6 +201,7 @@ const getComplaints = async (req, res) => {
       sortBy: req.query.sortBy,
       order: req.query.order,
       staff_id: req.query.staff_id,
+      requestingUser: { role: req.user.role, user_id: req.user.user_id },
     };
 
     const complaints = await searchComplaints(filters);
