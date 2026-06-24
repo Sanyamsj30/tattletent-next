@@ -28,9 +28,9 @@ export const checkDuplicateComplaint = async (newComplaintData) => {
       };
     }
 
-    // If we have an existing ID (e.g. updating), exclude it
+    // Only compare against older complaints to avoid race conditions and mutual duplicate marking
     if (currentId) {
-      query._id = { $ne: currentId };
+      query._id = { $lt: currentId };
     }
 
     const candidates = await Complaint.find(query).limit(10).lean();

@@ -40,6 +40,13 @@ TattleTent is a modern, full-stack, AI-assisted municipal grievance tracking and
 *   **Unique Complaints Tab**: Filters out redundant duplicates, showing only distinct physical incidents.
 *   **PDF/CSV Exporting**: Citizens can download certified PDF receipts of grievances or export ledger summaries to CSV.
 
+### 5. Security & Data Integrity Controls
+*   **Service-Level BOLA Safeguards**: Enforces strict data ownership validation inside query filters (e.g., scoping citizen search queries to their own user IDs).
+*   **Anti-Manipulation Protections**: Blocks authors from supporting/voting on their own complaints to prevent artificial escalation.
+*   **Dynamic Performance Auditing**: Recalculates contractor average resolution times (`avgResolutionTime`) and compliance rates (`slaComplianceRate`) dynamically upon complaint resolution.
+*   **Feedback Lock**: Validates that feedback and star ratings can only be submitted for grievances with a `RESOLVED` status.
+*   **API Load Protections**: Implements strict date format verification on query filters and caps API search pagination to 100 entries.
+
 ---
 
 ## 🤖 Agentic AI Governance
@@ -167,9 +174,41 @@ Render free tier web services spin down (sleep) after 15 minutes of inactivity. 
 
 ## 🔍 Verification & Diagnostics
 
+We provide several utility scripts inside the `backend/scripts/` folder to check database states, reset data, and run tests:
+
+### 1. Database Geolocation Check
 To check the contents of your local database and output geolocation points:
 ```bash
 cd backend
 node scripts/check-db.js
 ```
 This utility script connects directly to MongoDB, fetches active grievances, and prints their GeoJSON coordinate pairings.
+
+### 2. Reset Database (Clean State)
+To delete all non-admin users, complaints, feedback, audit logs, and OTPs while preserving default admin accounts:
+```bash
+cd backend
+node scripts/purge-database.js
+```
+
+### 3. Backend API Smoke Test
+To verify key backend API endpoints (without running a full browser):
+```bash
+cd backend
+node scripts/smoke-test.js
+```
+
+---
+
+## 🧪 Testing & Linting
+
+For a detailed manual verification checklist of signup/login, citizen dashboard flows, contractor updates, and public maps, please refer to:
+*   [TESTING.md](TESTING.md)
+
+### Frontend Quality Checks
+To run the React/Vite frontend lint and production build checks:
+```bash
+cd frontend
+npm run lint
+npm run build
+```
