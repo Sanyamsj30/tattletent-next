@@ -334,10 +334,13 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card variant="glass" className="bg-[#fcfcff] border border-primary-100">
             <CardContent className="flex items-center justify-between p-6">
-              <div>
-                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest">Total Grievances</p>
+               <div>
+                <p className="text-xs font-bold text-slate-555 uppercase tracking-widest font-sans">Unique Incident Grievances</p>
                 <p className="text-4xl font-black text-slate-800 mt-1">
                   {(parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0)}
+                </p>
+                <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                  Total (incl. duplicates): {counts.totalAll || 0}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-xl shadow-sm border border-primary-200/20">
@@ -349,7 +352,7 @@ const AdminDashboard = () => {
           <Card variant="glass" className="bg-[#fcfcff] border border-indigo-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest">Supporters Joined</p>
+                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest font-sans">Supporters Joined</p>
                 <p className="text-4xl font-black text-indigo-600 mt-1">{counts.supports || 0}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl shadow-sm border border-indigo-200/20">
@@ -361,7 +364,7 @@ const AdminDashboard = () => {
           <Card variant="glass" className="bg-[#fcfcff] border border-emerald-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest">Resolved Active</p>
+                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest font-sans">Resolved Active (Unique)</p>
                 <p className="text-4xl font-black text-emerald-600 mt-1">{counts.resolved}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-sm border border-emerald-200/20">
@@ -373,7 +376,7 @@ const AdminDashboard = () => {
           <Card variant="glass" className="bg-[#fcfcff] border border-amber-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest">Pending SLA</p>
+                <p className="text-xs font-bold text-slate-550 uppercase tracking-widest font-sans">Pending SLA (Unique)</p>
                 <p className="text-4xl font-black text-amber-600 mt-1">{counts.pending}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shadow-sm border border-amber-200/20">

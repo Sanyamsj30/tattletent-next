@@ -31,9 +31,12 @@ const toComplaintDto = (c) => {
     if (orig && typeof orig === 'object') {
       const origStaffId = orig.staff_id?._id?.toString() || orig.staff_id?.toString() || orig.staff_id;
       const origStaffName = orig.staff_id?.name || orig.assigned_to;
-      if (origStaffId || origStaffName) {
-        staffIdStr = origStaffId || staffIdStr;
-        assignedToName = origStaffName || assignedToName;
+      // Only fallback to original complaint's assignee if duplicate itself has none assigned
+      if (!staffIdStr) {
+        staffIdStr = origStaffId;
+      }
+      if (!assignedToName) {
+        assignedToName = origStaffName;
       }
     }
   }
@@ -59,7 +62,7 @@ const toComplaintDto = (c) => {
     submitted_at: c.submitted_at,
     updated_at: c.updated_at,
     severity: c.severity || 'Low',
-    is_duplicate: c.is_duplicate || false,
+    is_duplicate: c.is_duplicate || c.status === 'DUPLICATE' || false,
     duplicate_of: c.duplicate_of?._id?.toString?.() || c.duplicate_of?.toString?.() || c.duplicate_of,
     supported_by: (c.supported_by || []).map(id => id.toString()),
     escalation_explanation: c.escalation_explanation,
@@ -156,65 +159,69 @@ export const saveComplaintToDB = async (newComplaint) => {
     doc.priority_breakdown = prioDetails.breakdown;
     await doc.save();
 
-    // 4. Run the Auto-Assignment Engine synchronously to assign the best vendor instantly
-    await runAutoAssignmentEngine(doc._id);
+    // 4. Run duplicate check synchronously BEFORE auto-assignment
+    try {
+      const dupResult = await checkDuplicateComplaint({
+        title: newComplaint.title,
+        description: newComplaint.description,
+        category: newComplaint.category,
+        location: newComplaint.location,
+        latitude: doc.latitude,
+        longitude: doc.longitude,
+        currentId: doc._id
+      });
 
-    // 5. Fetch fully assigned updated document
-    const finalDoc = await Complaint.findById(doc._id);
+      if (dupResult && dupResult.isDuplicate && dupResult.duplicateOf) {
+        // Count total duplicates of the original complaint (existing ones + this new one)
+        const duplicateCount = await Complaint.countDocuments({
+          duplicate_of: dupResult.duplicateOf,
+          is_deleted: { $ne: true }
+        }) + 1;
 
-    // Launch duplicate check asynchronously in the background
-    setImmediate(async () => {
-      try {
-        const dupResult = await checkDuplicateComplaint({
-          title: newComplaint.title,
-          description: newComplaint.description,
-          category: newComplaint.category,
-          location: newComplaint.location,
-          latitude: doc.latitude,
-          longitude: doc.longitude,
-          currentId: doc._id
-        });
-        if (dupResult && dupResult.isDuplicate && dupResult.duplicateOf) {
-          // Count total duplicates of the original complaint
-          const duplicateCount = await Complaint.countDocuments({
-            $or: [
-              { _id: dupResult.duplicateOf },
-              { duplicate_of: dupResult.duplicateOf }
-            ]
-          });
+        const origComplaint = await Complaint.findById(dupResult.duplicateOf);
+        if (origComplaint) {
+          // Re-evaluate original complaint's priority, severity, and breakdown
+          const updatedSeverity = calculateDeterministicSeverity(origComplaint, duplicateCount);
+          origComplaint.severity = updatedSeverity;
 
-          const origComplaint = await Complaint.findById(dupResult.duplicateOf);
-          if (origComplaint) {
-            // Re-evaluate original complaint's priority, severity, and breakdown
-            const updatedSeverity = calculateDeterministicSeverity(origComplaint, duplicateCount);
-            origComplaint.severity = updatedSeverity;
+          const prioDetailsOrig = calculateDeterministicPriority(origComplaint, duplicateCount);
+          origComplaint.priority_score = prioDetailsOrig.priority_score;
+          origComplaint.priority_level = prioDetailsOrig.priority_level;
+          origComplaint.priority_breakdown = prioDetailsOrig.breakdown;
 
-            const prioDetails = calculateDeterministicPriority(origComplaint, duplicateCount);
-            origComplaint.priority_score = prioDetails.priority_score;
-            origComplaint.priority_level = prioDetails.priority_level;
-            origComplaint.priority_breakdown = prioDetails.breakdown;
-
-            await origComplaint.save();
-          }
-
-          // Mark current complaint as duplicate
-          await Complaint.updateOne(
-            { _id: doc._id },
-            { $set: { is_duplicate: true, duplicate_of: dupResult.duplicateOf, status: 'DUPLICATE' } }
-          );
-
-          // Update workload of assigned staff because duplicate gets auto-resolved/removed from active queue!
-          if (doc.staff_id) {
-            await updateStaffWorkloadAndAvailability(doc.staff_id);
-          }
-
-          console.log(`[AI Background] Complaint ${doc._id} marked as duplicate of ${dupResult.duplicateOf} and merged.`);
+          await origComplaint.save();
         }
-      } catch (dupErr) {
-        console.error("[AI Background] Duplicate check failed:", dupErr);
-      }
-    });
 
+        // Mark current complaint as duplicate and set assignee to match master complaint
+        doc.is_duplicate = true;
+        doc.duplicate_of = dupResult.duplicateOf;
+        doc.status = 'DUPLICATE';
+        if (origComplaint) {
+          doc.staff_id = origComplaint.staff_id || undefined;
+          doc.assigned_to = origComplaint.assigned_to || undefined;
+        }
+        await doc.save();
+
+        // Update workload of assigned staff because duplicate gets auto-resolved/removed from active queue!
+        if (doc.staff_id) {
+          await updateStaffWorkloadAndAvailability(doc.staff_id);
+        }
+
+        console.log(`[AI Sync] Complaint ${doc._id} marked as duplicate of ${dupResult.duplicateOf} and merged.`);
+      } else {
+        // Not a duplicate: Run Auto-Assignment Engine
+        await runAutoAssignmentEngine(doc._id);
+      }
+    } catch (dupErr) {
+      console.error("[AI Sync] Duplicate check / auto-assignment failed:", dupErr);
+      // Fallback: run auto-assignment if duplicate check crashed
+      await runAutoAssignmentEngine(doc._id);
+    }
+
+    const finalDoc = await Complaint.findById(doc._id)
+      .populate('user_id', 'name email')
+      .populate('staff_id', 'name email')
+      .populate({ path: 'duplicate_of', populate: { path: 'staff_id', select: 'name email' } });
     return toComplaintDto(finalDoc || doc);
   } catch (err) {
     console.error('❌ Error saving complaint:', err.message);
@@ -227,12 +234,14 @@ export const updateStaffWorkloadAndAvailability = async (staffId) => {
   try {
     const activeComplaints = await Complaint.countDocuments({
       staff_id: staffId,
-      status: 'IN_PROGRESS'
+      status: 'IN_PROGRESS',
+      is_duplicate: { $ne: true }
     });
 
     const resolvedComplaints = await Complaint.countDocuments({
       staff_id: staffId,
-      status: 'RESOLVED'
+      status: 'RESOLVED',
+      is_duplicate: { $ne: true }
     });
 
     // 0-5 active: Available, 6-10: Busy, 11+: Overloaded
@@ -246,7 +255,8 @@ export const updateStaffWorkloadAndAvailability = async (staffId) => {
     const resolvedDocs = await Complaint.find({
       staff_id: staffId,
       status: 'RESOLVED',
-      is_deleted: { $ne: true }
+      is_deleted: { $ne: true },
+      is_duplicate: { $ne: true }
     }).select('submitted_at resolved_at sla_deadline').lean();
 
     let slaComplianceRate = 100;
@@ -306,6 +316,15 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
     if (staff) {
       complaint.staff_id = staff._id;
       complaint.assigned_to = staff.name;
+      // Sync duplicates assignee in DB
+      try {
+        await Complaint.updateMany(
+          { duplicate_of: complaint._id, is_deleted: { $ne: true } },
+          { $set: { staff_id: staff._id, assigned_to: staff.name } }
+        );
+      } catch (dupErr) {
+        console.error("Failed to sync duplicates assignee in status update:", dupErr);
+      }
     }
   }
 
@@ -378,10 +397,11 @@ export const deleteComplaintFromDB = async (id) => {
 };
 
 export const getComplaintCounts = async () => {
-  const [resolved, pending, in_progress, supportsAggregation] = await Promise.all([
-    Complaint.countDocuments({ status: 'RESOLVED', is_deleted: { $ne: true } }),
-    Complaint.countDocuments({ status: 'NEW', is_deleted: { $ne: true } }),
-    Complaint.countDocuments({ status: { $in: ['IN_PROGRESS', 'RESOLVED_PENDING'] }, is_deleted: { $ne: true } }),
+  const [resolved, pending, in_progress, totalAll, supportsAggregation] = await Promise.all([
+    Complaint.countDocuments({ status: 'RESOLVED', is_deleted: { $ne: true }, is_duplicate: { $ne: true } }),
+    Complaint.countDocuments({ status: 'NEW', is_deleted: { $ne: true }, is_duplicate: { $ne: true } }),
+    Complaint.countDocuments({ status: { $in: ['IN_PROGRESS', 'RESOLVED_PENDING'] }, is_deleted: { $ne: true }, is_duplicate: { $ne: true } }),
+    Complaint.countDocuments({ is_deleted: { $ne: true } }),
     Complaint.aggregate([
       { $match: { is_deleted: { $ne: true } } },
       { $project: { supportedCount: { $size: { $ifNull: ["$supported_by", []] } } } },
@@ -389,7 +409,7 @@ export const getComplaintCounts = async () => {
     ])
   ]);
   const supports = supportsAggregation[0]?.totalSupports || 0;
-  return { resolved, pending, in_progress, supports };
+  return { resolved, pending, in_progress, totalAll, supports };
 };
 
 export const searchComplaints = async (filters) => {
@@ -435,6 +455,11 @@ export const searchComplaints = async (filters) => {
   } else {
     if (user_id) query.user_id = user_id;
     if (staff_id) query.staff_id = staff_id;
+  }
+
+  // Staff should only see unique (non-duplicate) complaints in their queue
+  if (query.staff_id) {
+    query.is_duplicate = { $ne: true };
   }
 
   if (category) query.category = category;
@@ -694,7 +719,10 @@ export const forceEscalateComplaintInDB = async (id, adminUser, reason) => {
   }
 
   // Recalculate deterministic priority & severity
-  const duplicateCount = await Complaint.countDocuments({ duplicate_of: complaint._id });
+  const duplicateCount = await Complaint.countDocuments({
+    duplicate_of: complaint._id,
+    is_deleted: { $ne: true }
+  });
   complaint.severity = calculateDeterministicSeverity(complaint, duplicateCount);
 
   const prioDetails = calculateDeterministicPriority(complaint, duplicateCount);

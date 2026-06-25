@@ -356,9 +356,12 @@ const CitizenDashboard = () => {
           <Card variant="glass" className="bg-[#fcfcff] border border-primary-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Reports</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">Unique Incidents</p>
                 <p className="text-4xl font-black text-slate-800 mt-1">
                   {(parseInt(counts.resolved, 10) || 0) + (parseInt(counts.in_progress, 10) || 0) + (parseInt(counts.pending, 10) || 0)}
+                </p>
+                <p className="text-[10px] text-slate-400 font-semibold mt-1">
+                  Total reports: {counts.totalAll || 0}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-xl shadow-sm border border-primary-200/20">
@@ -370,7 +373,7 @@ const CitizenDashboard = () => {
           <Card variant="glass" className="bg-[#fcfcff] border border-emerald-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Resolved</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">Resolved (Unique)</p>
                 <p className="text-4xl font-black text-emerald-600 mt-1">{counts.resolved}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shadow-sm border border-emerald-200/20">
@@ -382,7 +385,7 @@ const CitizenDashboard = () => {
           <Card variant="glass" className="bg-[#fcfcff] border border-amber-100">
             <CardContent className="flex items-center justify-between p-6">
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">In Progress</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest font-sans">In Progress (Unique)</p>
                 <p className="text-4xl font-black text-amber-600 mt-1">{counts.in_progress}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl shadow-sm border border-amber-200/20">

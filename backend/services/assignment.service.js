@@ -77,6 +77,16 @@ export const runAutoAssignmentEngine = async (complaintId) => {
       complaint.status = 'IN_PROGRESS';
       await complaint.save();
 
+      // Sync duplicates assignee in DB
+      try {
+        await Complaint.updateMany(
+          { duplicate_of: complaint._id, is_deleted: { $ne: true } },
+          { $set: { staff_id: vendor._id, assigned_to: vendor.name } }
+        );
+      } catch (dupErr) {
+        console.error("Failed to sync duplicates assignee in auto-assignment:", dupErr);
+      }
+
       // Recalculate workloads and availability for the vendor
       await updateStaffWorkloadAndAvailability(vendor._id);
 
@@ -162,6 +172,21 @@ export const adminOverrideAssignment = async (complaintId, newVendorId, adminUse
     complaint.status = newVendor ? 'IN_PROGRESS' : 'NEW';
 
     await complaint.save();
+
+    // Sync duplicates assignee in DB
+    try {
+      await Complaint.updateMany(
+        { duplicate_of: complaint._id, is_deleted: { $ne: true } },
+        { 
+          $set: { 
+            staff_id: newVendor ? newVendor._id : null, 
+            assigned_to: newVendor ? newVendor.name : null 
+          } 
+        }
+      );
+    } catch (dupErr) {
+      console.error("Failed to sync duplicates assignee in manual override:", dupErr);
+    }
 
     // Update availability workloads
     if (oldVendorId) {
