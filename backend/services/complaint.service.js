@@ -2,6 +2,7 @@ import Complaint from '../models/Complaint.js';
 import Department from '../models/Department.js';
 import SlaRule from '../models/SlaRule.js';
 import User from '../models/User.js';
+import Feedback from '../models/Feedback.js';
 import { notifyAdminForManualReassignment } from './notification.service.js';
 import { checkDuplicateComplaint } from '../agents/duplicateDetectionAgent.js';
 import { analyzeEscalationUrgency } from '../agents/smartEscalationAgent.js';
@@ -81,6 +82,7 @@ const toComplaintDto = (c) => {
       admin_name: h.admin_name,
       reason: h.reason,
     })),
+    feedback_submitted: c.feedback_submitted || false,
   };
 };
 
@@ -373,7 +375,8 @@ export const updateComplaintStatusInDB = async (id, status, staffId, priority) =
     await updateStaffWorkloadAndAvailability(oldStaffId);
   }
 
-  return toComplaintDto(complaint);
+  const feedbackExists = await Feedback.exists({ complaint_id: complaint._id });
+  return toComplaintDto({ ...complaint.toObject(), feedback_submitted: !!feedbackExists });
 };
 
 /**
@@ -388,7 +391,8 @@ export const updateComplaintPriorityInDB = async (id, priority) => {
   complaint.sla_deadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
 
   await complaint.save();
-  return toComplaintDto(complaint);
+  const feedbackExists = await Feedback.exists({ complaint_id: complaint._id });
+  return toComplaintDto({ ...complaint.toObject(), feedback_submitted: !!feedbackExists });
 };
 
 export const deleteComplaintFromDB = async (id) => {
@@ -513,7 +517,15 @@ export const searchComplaints = async (filters) => {
     .skip(skip)
     .limit(limit)
     .lean();
-  return results.map((c) => toComplaintDto(c));
+
+  const complaintIds = results.map(r => r._id);
+  const feedbacks = await Feedback.find({ complaint_id: { $in: complaintIds } }).select('complaint_id').lean();
+  const feedbackSet = new Set(feedbacks.map(f => f.complaint_id.toString()));
+
+  return results.map((c) => {
+    c.feedback_submitted = feedbackSet.has(c._id.toString());
+    return toComplaintDto(c);
+  });
 };
 
 /**
@@ -700,7 +712,8 @@ export const fetchHeatmapData = async () => {
 export const adminReassignComplaintInDB = async (id, staffId, adminUser, reason) => {
   const { adminOverrideAssignment } = await import('./assignment.service.js');
   const updated = await adminOverrideAssignment(id, staffId, adminUser, reason);
-  return toComplaintDto(updated);
+  const feedbackExists = await Feedback.exists({ complaint_id: id });
+  return toComplaintDto({ ...updated.toObject(), feedback_submitted: !!feedbackExists });
 };
 
 /**
@@ -772,7 +785,8 @@ export const forceEscalateComplaintInDB = async (id, adminUser, reason) => {
   });
 
   const finalDoc = await Complaint.findById(id);
-  return toComplaintDto(finalDoc || complaint);
+  const feedbackExists = await Feedback.exists({ complaint_id: id });
+  return toComplaintDto({ ...(finalDoc || complaint).toObject(), feedback_submitted: !!feedbackExists });
 };
 
 export const getNearbyComplaints = async (longitude, latitude, maxDistance = 100, category = null) => {

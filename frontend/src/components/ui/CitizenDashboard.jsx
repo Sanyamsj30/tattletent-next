@@ -192,7 +192,8 @@ const CitizenDashboard = () => {
         severity: c.severity, 
         is_duplicate: c.is_duplicate, 
         duplicate_of: c.duplicate_of, 
-        escalation_explanation: c.escalation_explanation
+        escalation_explanation: c.escalation_explanation,
+        feedback_submitted: c.feedback_submitted
       })));
     } catch (err) {
       console.error("Error fetching complaints:", err);
@@ -706,13 +707,19 @@ const CitizenDashboard = () => {
                                 >
                                   Details <FiExternalLink />
                                 </button>
-                                <Button
-                                  size="sm"
-                                  variant="success"
-                                  onClick={() => navigate("/feedback-page", { state: { complaint: c } })}
-                                >
-                                  Give Feedback
-                                </Button>
+                                {c.feedback_submitted ? (
+                                  <span className="text-emerald-600 bg-emerald-50 border border-emerald-200/50 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs select-none">
+                                    ✓ Feedback Submitted
+                                  </span>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="success"
+                                    onClick={() => navigate("/feedback-page", { state: { complaint: c } })}
+                                  >
+                                    Give Feedback
+                                  </Button>
+                                )}
                               </td>
                             </tr>
                           ))}
